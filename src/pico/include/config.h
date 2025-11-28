@@ -1,0 +1,82 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <stdint.h>
+#include <stdbool.h>
+
+// Include shared protocol definitions
+#include "protocol_defs.h"
+
+// =============================================================================
+// BrewOS Pico Firmware Configuration
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Version
+// -----------------------------------------------------------------------------
+#define FIRMWARE_VERSION_MAJOR      0
+#define FIRMWARE_VERSION_MINOR      1
+#define FIRMWARE_VERSION_PATCH      0
+#define PICO_VERSION_MAJOR      FIRMWARE_VERSION_MAJOR
+#define PICO_VERSION_MINOR      FIRMWARE_VERSION_MINOR
+#define PICO_VERSION_PATCH      FIRMWARE_VERSION_PATCH
+
+// -----------------------------------------------------------------------------
+// Safety Limits (NEVER exceed these)
+// -----------------------------------------------------------------------------
+#define SAFETY_MAX_BOILER_TEMP_C        165     // Absolute max temperature
+#define SAFETY_MIN_WATER_LEVEL          10      // Minimum water level %
+#define SAFETY_WATCHDOG_TIMEOUT_MS      2000    // Watchdog timeout (max 2000ms per SAF-002)
+#define SAFETY_HEARTBEAT_TIMEOUT_MS     5000    // ESP32 heartbeat timeout
+
+// -----------------------------------------------------------------------------
+// UART - ESP32 Communication (Pico side pins)
+// -----------------------------------------------------------------------------
+#define ESP32_UART_ID           uart0
+#define ESP32_UART_BAUD         PROTOCOL_BAUD_RATE
+#define ESP32_UART_TX_PIN       0               // Pico TX -> ESP32 RX
+#define ESP32_UART_RX_PIN       1               // Pico RX <- ESP32 TX
+
+// -----------------------------------------------------------------------------
+// Timing
+// -----------------------------------------------------------------------------
+#define CONTROL_LOOP_PERIOD_MS  100             // 10Hz control loop
+#define STATUS_SEND_PERIOD_MS   250             // 4Hz status updates
+#define SENSOR_READ_PERIOD_MS   50              // 20Hz sensor reads
+
+// -----------------------------------------------------------------------------
+// PID Defaults
+// -----------------------------------------------------------------------------
+#define PID_DEFAULT_KP          2.0f
+#define PID_DEFAULT_KI          0.1f
+#define PID_DEFAULT_KD          1.0f
+#define PID_OUTPUT_MIN          0.0f
+#define PID_OUTPUT_MAX          100.0f
+
+// -----------------------------------------------------------------------------
+// Temperature Defaults (in Celsius * 10 for 0.1C resolution)
+// -----------------------------------------------------------------------------
+#define DEFAULT_BREW_TEMP       930             // 93.0C
+#define DEFAULT_STEAM_TEMP      1400            // 140.0C
+#define DEFAULT_OFFSET_TEMP     -50             // -5.0C offset
+
+// -----------------------------------------------------------------------------
+// Hardware Simulation Mode
+// -----------------------------------------------------------------------------
+// Set to 1 to enable simulation mode (for development without hardware)
+// Set to 0 to use real hardware
+// Can also be overridden at compile time: -DHW_SIMULATION_MODE=0
+#ifndef HW_SIMULATION_MODE
+    #define HW_SIMULATION_MODE 1  // Default to simulation for development
+#endif
+
+// -----------------------------------------------------------------------------
+// Debug
+// -----------------------------------------------------------------------------
+#if DEBUG_BUILD
+    #define DEBUG_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#else
+    #define DEBUG_PRINT(fmt, ...) ((void)0)
+#endif
+
+#endif // CONFIG_H

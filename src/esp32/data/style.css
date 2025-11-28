@@ -1,0 +1,480 @@
+/* ECM Controller - Web UI Styles */
+/* Dark theme with coffee-inspired accents */
+
+:root {
+    /* Colors - warm coffee theme */
+    --bg-primary: #0d0d0d;
+    --bg-secondary: #1a1a1a;
+    --bg-card: #242424;
+    --bg-card-hover: #2a2a2a;
+    
+    --text-primary: #f5f5f5;
+    --text-secondary: #a0a0a0;
+    --text-muted: #666;
+    
+    --accent-warm: #d4a574;       /* Coffee/caramel */
+    --accent-hot: #e85d45;        /* Hot temperature */
+    --accent-cool: #4a90d9;       /* Cool/water */
+    --accent-success: #4caf50;
+    --accent-warning: #ff9800;
+    --accent-error: #f44336;
+    
+    --border-color: #333;
+    --border-radius: 12px;
+    
+    /* Typography */
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-display);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 24px;
+}
+
+.header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-warm);
+}
+
+.connection-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent-error);
+    transition: background 0.3s;
+}
+
+.status-dot.connected {
+    background: var(--accent-success);
+    box-shadow: 0 0 8px var(--accent-success);
+}
+
+/* WiFi Setup */
+.wifi-setup {
+    background: linear-gradient(135deg, #1e3a5f 0%, #1a1a1a 100%);
+    border: 1px solid var(--accent-cool);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.wifi-setup.hidden {
+    display: none;
+}
+
+.wifi-setup h2 {
+    margin-bottom: 8px;
+}
+
+.wifi-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.wifi-form select,
+.wifi-form input {
+    padding: 10px 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 1rem;
+    min-width: 200px;
+}
+
+.wifi-status {
+    margin-top: 12px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Cards */
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    background: var(--bg-card-hover);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    font-weight: 500;
+}
+
+.card-header .icon {
+    font-size: 1.25rem;
+}
+
+/* Status Grid */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+/* Temperature Cards */
+.temp-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.temp-display {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.temp-value {
+    font-family: var(--font-mono);
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent-warm);
+    text-shadow: 0 0 20px rgba(212, 165, 116, 0.3);
+}
+
+.temp-unit {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+}
+
+.setpoint {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.output-bar {
+    height: 6px;
+    background: var(--bg-secondary);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.output-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-warning), var(--accent-hot));
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+
+/* Pressure Display */
+.pressure-display {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.pressure-value {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-cool);
+}
+
+.pressure-unit {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+/* Water Display */
+.water-display {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.water-tank {
+    width: 40px;
+    height: 60px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 4px 4px 8px 8px;
+    position: relative;
+    overflow: hidden;
+}
+
+.water-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(0deg, var(--accent-cool), #7ab8e8);
+    transition: height 0.5s;
+}
+
+/* Pico Card */
+.pico-card .status-badge {
+    margin-left: auto;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge.connected {
+    background: rgba(76, 175, 80, 0.2);
+    color: var(--accent-success);
+}
+
+.status-badge.disconnected {
+    background: rgba(244, 67, 54, 0.2);
+    color: var(--accent-error);
+}
+
+.pico-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.pico-actions {
+    display: flex;
+    gap: 12px;
+}
+
+/* OTA Card */
+.ota-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ota-form input[type="file"] {
+    flex: 1;
+    min-width: 200px;
+}
+
+.ota-progress {
+    margin-top: 16px;
+}
+
+.ota-progress.hidden {
+    display: none;
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-success);
+    width: 0%;
+    transition: width 0.3s;
+}
+
+/* Log Console */
+.log-card {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.log-controls {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+}
+
+.log-container {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    height: 200px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+}
+
+.log-entry {
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.log-entry.info { color: var(--text-secondary); }
+.log-entry.warn { color: var(--accent-warning); }
+.log-entry.error { color: var(--accent-error); }
+.log-entry.pico { color: var(--accent-cool); }
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-warm);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn.primary {
+    background: var(--accent-warm);
+    border-color: var(--accent-warm);
+    color: #000;
+}
+
+.btn.primary:hover {
+    background: #e5b685;
+}
+
+.btn.warning {
+    background: rgba(244, 67, 54, 0.2);
+    border-color: var(--accent-error);
+    color: var(--accent-error);
+}
+
+.btn.warning:hover {
+    background: rgba(244, 67, 54, 0.3);
+}
+
+.btn.small {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+}
+
+/* Footer */
+.footer {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 0;
+    margin-top: 24px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .pico-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .footer {
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.status-dot.connecting {
+    animation: pulse 1s infinite;
+    background: var(--accent-warning);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}
+

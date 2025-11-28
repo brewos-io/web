@@ -1,0 +1,13 @@
+# BrewOS Firmware Version
+# Format: MAJOR.MINOR.PATCH
+# Follow semantic versioning: https://semver.org/
+#
+# MAJOR: Breaking changes (protocol version changes, incompatible API)
+# MINOR: New features (backward compatible)
+# PATCH: Bug fixes (backward compatible)
+#
+# Protocol version is tracked separately in src/shared/protocol_defs.h
+# Increment PROTOCOL_VERSION for breaking protocol changes
+
+FIRMWARE_VERSION=0.1.0
+PROTOCOL_VERSION=1

@@ -1,0 +1,14 @@
+CompileFlags:
+  CompilationDatabase: .
+  Remove:
+    - -mlongcalls
+    - -mlong-calls
+    - -fstrict-volatile-bitfields
+    - -fno-tree-switch-conversion
+Diagnostics:
+  UnusedIncludes: None
+  Suppress:
+    - unknown-argument
+    - unused-command-line-argument
+    - missing-includes
+    - undeclared-var-template

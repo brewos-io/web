@@ -1,0 +1,77 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// Include shared protocol definitions
+#include "protocol_defs.h"
+
+// =============================================================================
+// BrewOS ESP32-S3 Configuration
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Version
+// -----------------------------------------------------------------------------
+#define ESP32_VERSION_MAJOR     0
+#define ESP32_VERSION_MINOR     1
+#define ESP32_VERSION_PATCH     0
+#define ESP32_VERSION           "0.1.0"
+
+// -----------------------------------------------------------------------------
+// WiFi Configuration
+// -----------------------------------------------------------------------------
+#define WIFI_AP_SSID            "BrewOS-Setup"
+#define WIFI_AP_PASSWORD        "brewoscoffee"  // Min 8 characters
+#define WIFI_AP_CHANNEL         1
+#define WIFI_AP_MAX_CONNECTIONS 4
+#define WIFI_AP_IP              IPAddress(192, 168, 4, 1)
+#define WIFI_AP_GATEWAY         IPAddress(192, 168, 4, 1)
+#define WIFI_AP_SUBNET          IPAddress(255, 255, 255, 0)
+
+#define WIFI_CONNECT_TIMEOUT_MS 15000
+#define WIFI_RECONNECT_INTERVAL 30000
+
+// -----------------------------------------------------------------------------
+// Web Server
+// -----------------------------------------------------------------------------
+#define WEB_SERVER_PORT         80
+#define WEBSOCKET_PATH          "/ws"
+
+// -----------------------------------------------------------------------------
+// UART - Pico Communication (ESP32 side pins)
+// -----------------------------------------------------------------------------
+#define PICO_UART_NUM           1               // UART1
+#define PICO_UART_BAUD          PROTOCOL_BAUD_RATE
+#define PICO_UART_TX_PIN        17              // ESP32 TX -> Pico RX (GPIO1)
+#define PICO_UART_RX_PIN        18              // ESP32 RX <- Pico TX (GPIO0)
+
+// Pico control pins for OTA
+#define PICO_RUN_PIN            8               // Controls Pico RUN (reset) → J15 Pin 5
+#define PICO_BOOTSEL_PIN        9               // Controls Pico BOOTSEL → J15 Pin 6
+
+// Brew-by-weight signal
+#define WEIGHT_STOP_PIN         10              // ESP32 GPIO10 → J15 Pin 7 (WEIGHT_STOP) → Pico GPIO21
+                                                // Set HIGH when target weight reached, LOW otherwise
+
+// Buffer sizes
+#define PICO_RX_BUFFER_SIZE     256
+
+// -----------------------------------------------------------------------------
+// OTA Configuration
+// -----------------------------------------------------------------------------
+#define OTA_FILE_PATH           "/pico_firmware.bin"
+#define OTA_MAX_SIZE            (2 * 1024 * 1024)   // 2MB max
+
+// -----------------------------------------------------------------------------
+// Debug
+// -----------------------------------------------------------------------------
+#define DEBUG_SERIAL            Serial
+#define DEBUG_BAUD              115200
+
+// Log macros
+#define LOG_TAG                 "BrewOS"
+#define LOG_I(fmt, ...)         Serial.printf("[%lu] I: " fmt "\n", millis(), ##__VA_ARGS__)
+#define LOG_D(fmt, ...)         Serial.printf("[%lu] D: " fmt "\n", millis(), ##__VA_ARGS__)
+#define LOG_W(fmt, ...)         Serial.printf("[%lu] W: " fmt "\n", millis(), ##__VA_ARGS__)
+#define LOG_E(fmt, ...)         Serial.printf("[%lu] E: " fmt "\n", millis(), ##__VA_ARGS__)
+
+#endif // CONFIG_H

@@ -1,0 +1,50 @@
+# Build directories
+build/
+**/build/
+
+# Compiled Object files
+*.o
+*.d
+*.obj
+
+# Executables and binaries
+*.elf
+*.bin
+*.hex
+*.uf2
+*.map
+*.dis
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+CMakeDoxyfile.in
+CMakeDoxygenDefaults.cmake
+
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cache/
+**/.cache/
+
+# compile_commands.json (generated)
+compile_commands.json
+compile_commands.json.bak
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Generated linker scripts
+pico_flash_region.ld
+

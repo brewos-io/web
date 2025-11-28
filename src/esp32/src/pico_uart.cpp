@@ -1,0 +1,347 @@
+#include "pico_uart.h"
+#include "config.h"
+
+PicoUART::PicoUART(HardwareSerial& serial)
+    : _serial(serial)
+    , _packetCallback(nullptr)
+    , _rxState(RxState::WAIT_START)
+    , _rxIndex(0)
+    , _rxLength(0)
+    , _txSeq(0)
+    , _packetsReceived(0)
+    , _packetErrors(0)
+    , _lastPacketTime(0)
+    , _connected(false) {
+}
+
+void PicoUART::begin() {
+    LOG_I("Initializing Pico UART at %d baud", PICO_UART_BAUD);
+    
+    // Initialize UART
+    _serial.begin(PICO_UART_BAUD, SERIAL_8N1, PICO_UART_RX_PIN, PICO_UART_TX_PIN);
+    
+    // Initialize control pins
+    pinMode(PICO_RUN_PIN, OUTPUT);
+    pinMode(PICO_BOOTSEL_PIN, OUTPUT);
+    pinMode(WEIGHT_STOP_PIN, OUTPUT);
+    
+    // Default states - Pico running normally
+    digitalWrite(PICO_RUN_PIN, LOW);       // LOW = Pico running
+    digitalWrite(PICO_BOOTSEL_PIN, LOW);   // LOW = normal boot
+    digitalWrite(WEIGHT_STOP_PIN, LOW);    // LOW = no weight stop signal
+    
+    LOG_I("Pico UART initialized. TX=%d, RX=%d", PICO_UART_TX_PIN, PICO_UART_RX_PIN);
+    LOG_I("Pico control pins. RUN=%d, BOOTSEL=%d", PICO_RUN_PIN, PICO_BOOTSEL_PIN);
+}
+
+void PicoUART::loop() {
+    // Process all available bytes
+    while (_serial.available()) {
+        uint8_t byte = _serial.read();
+        processByte(byte);
+    }
+    
+    // Update connection status
+    if (_lastPacketTime > 0) {
+        _connected = (millis() - _lastPacketTime) < 2000;
+    }
+}
+
+void PicoUART::processByte(uint8_t byte) {
+    switch (_rxState) {
+        case RxState::WAIT_START:
+            if (byte == PROTOCOL_SYNC_BYTE) {
+                _rxIndex = 0;
+                _rxState = RxState::GOT_TYPE;
+            }
+            break;
+            
+        case RxState::GOT_TYPE:
+            _rxBuffer[_rxIndex++] = byte;  // type
+            _rxState = RxState::GOT_LENGTH;
+            break;
+            
+        case RxState::GOT_LENGTH:
+            _rxBuffer[_rxIndex++] = byte;  // length
+            _rxLength = byte;
+            _rxState = RxState::GOT_SEQ;
+            break;
+            
+        case RxState::GOT_SEQ:
+            _rxBuffer[_rxIndex++] = byte;  // seq
+            if (_rxLength > 0) {
+                _rxState = RxState::READING_PAYLOAD;
+            } else {
+                _rxState = RxState::READING_CRC;
+            }
+            break;
+            
+        case RxState::READING_PAYLOAD:
+            _rxBuffer[_rxIndex++] = byte;
+            if (_rxIndex >= 3 + _rxLength) {
+                _rxState = RxState::READING_CRC;
+            }
+            break;
+            
+        case RxState::READING_CRC:
+            _rxBuffer[_rxIndex++] = byte;
+            if (_rxIndex >= 3 + _rxLength + 2) {
+                processPacket();
+                _rxState = RxState::WAIT_START;
+            }
+            break;
+    }
+    
+    // Safety: reset if buffer overflow
+    if (_rxIndex >= sizeof(_rxBuffer)) {
+        _rxState = RxState::WAIT_START;
+        _rxIndex = 0;
+        _packetErrors++;
+    }
+}
+
+void PicoUART::processPacket() {
+    // Extract packet fields
+    PicoPacket packet;
+    packet.type = _rxBuffer[0];
+    packet.length = _rxBuffer[1];
+    packet.seq = _rxBuffer[2];
+    
+    // Copy payload
+    if (packet.length > 0 && packet.length <= sizeof(packet.payload)) {
+        memcpy(packet.payload, &_rxBuffer[3], packet.length);
+    }
+    
+    // Extract CRC (little-endian)
+    uint16_t receivedCRC = _rxBuffer[3 + packet.length] | 
+                          (_rxBuffer[4 + packet.length] << 8);
+    
+    // Calculate expected CRC
+    uint16_t expectedCRC = calculateCRC(_rxBuffer, 3 + packet.length);
+    
+    if (receivedCRC == expectedCRC) {
+        packet.valid = true;
+        packet.crc = receivedCRC;
+        _packetsReceived++;
+        _lastPacketTime = millis();
+        
+        // Call callback if set
+        if (_packetCallback) {
+            _packetCallback(packet);
+        }
+    } else {
+        packet.valid = false;
+        _packetErrors++;
+        LOG_W("Packet CRC error: received=0x%04X, expected=0x%04X", 
+              receivedCRC, expectedCRC);
+    }
+}
+
+bool PicoUART::sendPacket(uint8_t type, const uint8_t* payload, uint8_t length) {
+    if (length > 56) {
+        LOG_E("Packet payload too large: %d", length);
+        return false;
+    }
+    
+    uint8_t buffer[64];
+    uint8_t idx = 0;
+    
+    // Build packet
+    buffer[idx++] = PROTOCOL_SYNC_BYTE;
+    buffer[idx++] = type;
+    buffer[idx++] = length;
+    buffer[idx++] = _txSeq++;
+    
+    // Copy payload
+    if (length > 0 && payload != nullptr) {
+        memcpy(&buffer[idx], payload, length);
+        idx += length;
+    }
+    
+    // Calculate and append CRC
+    uint16_t crc = calculateCRC(&buffer[1], 3 + length);
+    buffer[idx++] = crc & 0xFF;
+    buffer[idx++] = (crc >> 8) & 0xFF;
+    
+    // Send
+    size_t written = _serial.write(buffer, idx);
+    
+    return written == idx;
+}
+
+bool PicoUART::sendPing() {
+    uint32_t timestamp = millis();
+    return sendPacket(MSG_PING, (uint8_t*)&timestamp, sizeof(timestamp));
+}
+
+bool PicoUART::sendCommand(uint8_t cmdType, const uint8_t* data, uint8_t len) {
+    return sendPacket(cmdType, data, len);
+}
+
+bool PicoUART::requestConfig() {
+    return sendPacket(MSG_CMD_GET_CONFIG, nullptr, 0);
+}
+
+bool PicoUART::enterBootloader() {
+    LOG_I("Putting Pico into bootloader mode...");
+    
+    // Sequence: Hold BOOTSEL, pulse RUN, release BOOTSEL
+    holdBootsel(true);
+    delay(10);
+    
+    // Pulse RUN (reset)
+    digitalWrite(PICO_RUN_PIN, HIGH);
+    delay(100);
+    digitalWrite(PICO_RUN_PIN, LOW);
+    delay(100);
+    
+    holdBootsel(false);
+    
+    LOG_I("Pico should be in bootloader mode");
+    return true;
+}
+
+void PicoUART::resetPico() {
+    LOG_I("Resetting Pico...");
+    
+    // Pulse RUN pin
+    digitalWrite(PICO_RUN_PIN, HIGH);
+    delay(100);
+    digitalWrite(PICO_RUN_PIN, LOW);
+    
+    LOG_I("Pico reset complete");
+}
+
+void PicoUART::holdBootsel(bool hold) {
+    digitalWrite(PICO_BOOTSEL_PIN, hold ? HIGH : LOW);
+}
+
+void PicoUART::setWeightStop(bool active) {
+    // Set WEIGHT_STOP signal (HIGH = stop brew, LOW = normal)
+    // This signal goes to Pico GPIO21 via J15 Pin 7
+    digitalWrite(WEIGHT_STOP_PIN, active ? HIGH : LOW);
+}
+
+uint16_t PicoUART::calculateCRC(const uint8_t* data, size_t length) {
+    // CRC-16-CCITT (polynomial 0x1021, initial value 0xFFFF)
+    uint16_t crc = 0xFFFF;
+    
+    for (size_t i = 0; i < length; i++) {
+        crc ^= (uint16_t)data[i] << 8;
+        for (int j = 0; j < 8; j++) {
+            if (crc & 0x8000) {
+                crc = (crc << 1) ^ 0x1021;
+            } else {
+                crc <<= 1;
+            }
+        }
+    }
+    
+    return crc;
+}
+
+bool PicoUART::waitForBootloaderAck(uint32_t timeoutMs) {
+    // Bootloader sends 0xAA 0x55 as ACK (raw bytes, not packet protocol)
+    // Note: 0xAA is also PROTOCOL_SYNC_BYTE, so we need to be careful
+    // The bootloader ACK comes AFTER the protocol ACK packet, so we may see:
+    // 1. Protocol ACK packet (0xAA ... with CRC)
+    // 2. Raw bootloader ACK (0xAA 0x55)
+    
+    unsigned long startTime = millis();
+    uint8_t expected[2] = {0xAA, 0x55};
+    uint8_t index = 0;
+    
+    // Clear any pending data first to avoid confusion
+    while (_serial.available()) {
+        _serial.read();
+    }
+    
+    // Reset packet state machine to avoid interference
+    // (We're reading raw bytes, not packets)
+    RxState savedState = _rxState;
+    _rxState = RxState::WAIT_START;
+    
+    while ((millis() - startTime) < timeoutMs) {
+        if (_serial.available()) {
+            uint8_t byte = _serial.read();
+            
+            if (index == 0 && byte == expected[0]) {
+                // Got first byte (0xAA) - could be protocol sync or bootloader ACK
+                index = 1;
+            } else if (index == 1) {
+                if (byte == expected[1]) {
+                    // Got second byte (0x55) - this is the bootloader ACK!
+                    LOG_I("Bootloader ACK received: 0x%02X 0x%02X", expected[0], expected[1]);
+                    _rxState = savedState;  // Restore state
+                    return true;
+                } else {
+                    // Not 0x55, reset and check if this byte is 0xAA
+                    index = (byte == expected[0]) ? 1 : 0;
+                }
+            } else {
+                // Reset
+                index = (byte == expected[0]) ? 1 : 0;
+            }
+        }
+        delay(1);
+    }
+    
+    // Restore state
+    _rxState = savedState;
+    LOG_E("Bootloader ACK timeout after %d ms", timeoutMs);
+    return false;
+}
+
+size_t PicoUART::streamFirmwareChunk(const uint8_t* data, size_t len, uint32_t chunkNumber) {
+    // Stream firmware chunk in bootloader protocol format
+    // Format: [MAGIC: 0x55AA] [CHUNK_NUM: 4 bytes LE] [SIZE: 2 bytes LE] [DATA] [CHECKSUM: 1 byte]
+    
+    if (len > 256) {  // Reasonable limit for chunk size
+        LOG_E("Chunk too large: %d", len);
+        return 0;
+    }
+    
+    // Build chunk header
+    uint8_t header[8];
+    header[0] = 0x55;  // Magic byte 1
+    header[1] = 0xAA;  // Magic byte 2
+    header[2] = chunkNumber & 0xFF;
+    header[3] = (chunkNumber >> 8) & 0xFF;
+    header[4] = (chunkNumber >> 16) & 0xFF;
+    header[5] = (chunkNumber >> 24) & 0xFF;
+    header[6] = len & 0xFF;
+    header[7] = (len >> 8) & 0xFF;
+    
+    // Calculate checksum (XOR of all data bytes)
+    uint8_t checksum = 0;
+    for (size_t i = 0; i < len; i++) {
+        checksum ^= data[i];
+    }
+    
+    // Send header
+    size_t written = _serial.write(header, 8);
+    if (written != 8) {
+        LOG_E("Failed to write chunk header");
+        return 0;
+    }
+    
+    // Send data
+    written = _serial.write(data, len);
+    if (written != len) {
+        LOG_E("Failed to write chunk data: %d/%d", written, len);
+        return 0;
+    }
+    
+    // Send checksum
+    written = _serial.write(&checksum, 1);
+    if (written != 1) {
+        LOG_E("Failed to write checksum");
+        return 0;
+    }
+    
+    // Flush to ensure data is sent
+    _serial.flush();
+    
+    return len;
+}
+

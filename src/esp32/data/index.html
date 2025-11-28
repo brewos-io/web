@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrewOS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>☕ BrewOS</h1>
+            <div class="connection-status">
+                <span id="ws-status" class="status-dot disconnected"></span>
+                <span id="ws-text">Disconnected</span>
+            </div>
+        </header>
+
+        <!-- WiFi Setup Banner (shown in AP mode) -->
+        <div id="wifi-setup" class="wifi-setup hidden">
+            <h2>📶 WiFi Setup</h2>
+            <p>Connect to your home WiFi network</p>
+            <div class="wifi-form">
+                <button id="scan-btn" class="btn">Scan Networks</button>
+                <select id="wifi-ssid">
+                    <option value="">Select network...</option>
+                </select>
+                <input type="password" id="wifi-password" placeholder="Password">
+                <button id="connect-btn" class="btn primary">Connect</button>
+            </div>
+            <div id="wifi-status" class="wifi-status"></div>
+        </div>
+
+        <!-- Main Dashboard -->
+        <main class="dashboard">
+            <!-- Status Cards -->
+            <div class="status-grid">
+                <div class="card temp-card">
+                    <div class="card-header">
+                        <span class="icon">🔥</span>
+                        <span>Brew Boiler</span>
+                    </div>
+                    <div class="temp-display">
+                        <span class="temp-value" id="brew-temp">--.-</span>
+                        <span class="temp-unit">°C</span>
+                    </div>
+                    <div class="setpoint">
+                        <span>Setpoint:</span>
+                        <span id="brew-sp">--.-°C</span>
+                    </div>
+                    <div class="output-bar">
+                        <div class="output-fill" id="brew-output" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="card temp-card">
+                    <div class="card-header">
+                        <span class="icon">💨</span>
+                        <span>Steam Boiler</span>
+                    </div>
+                    <div class="temp-display">
+                        <span class="temp-value" id="steam-temp">--.-</span>
+                        <span class="temp-unit">°C</span>
+                    </div>
+                    <div class="setpoint">
+                        <span>Setpoint:</span>
+                        <span id="steam-sp">--.-°C</span>
+                    </div>
+                    <div class="output-bar">
+                        <div class="output-fill" id="steam-output" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">📊</span>
+                        <span>Pressure</span>
+                    </div>
+                    <div class="pressure-display">
+                        <span class="pressure-value" id="pressure">--.--</span>
+                        <span class="pressure-unit">bar</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <span class="icon">💧</span>
+                        <span>Water Level</span>
+                    </div>
+                    <div class="water-display">
+                        <div class="water-tank">
+                            <div class="water-fill" id="water-level" style="height: 0%"></div>
+                        </div>
+                        <span id="water-pct">--%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pico Connection -->
+            <div class="card pico-card">
+                <div class="card-header">
+                    <span class="icon">🎛️</span>
+                    <span>Pico Status</span>
+                    <span id="pico-status" class="status-badge disconnected">Disconnected</span>
+                </div>
+                <div class="pico-stats">
+                    <div class="stat">
+                        <span class="stat-label">Packets</span>
+                        <span class="stat-value" id="pico-packets">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Errors</span>
+                        <span class="stat-value" id="pico-errors">0</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">State</span>
+                        <span class="stat-value" id="pico-state">--</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Uptime</span>
+                        <span class="stat-value" id="pico-uptime">--</span>
+                    </div>
+                </div>
+                <div class="pico-actions">
+                    <button id="ping-btn" class="btn">Ping</button>
+                    <button id="reset-btn" class="btn warning">Reset Pico</button>
+                </div>
+            </div>
+
+            <!-- OTA Update -->
+            <div class="card ota-card">
+                <div class="card-header">
+                    <span class="icon">⬆️</span>
+                    <span>Firmware Update</span>
+                </div>
+                <div class="ota-form">
+                    <input type="file" id="ota-file" accept=".uf2,.bin">
+                    <button id="upload-btn" class="btn primary" disabled>Upload</button>
+                    <button id="flash-btn" class="btn warning" disabled>Flash Pico</button>
+                </div>
+                <div class="ota-progress hidden">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="ota-progress"></div>
+                    </div>
+                    <span id="ota-status">Ready</span>
+                </div>
+            </div>
+
+            <!-- Log Console -->
+            <div class="card log-card">
+                <div class="card-header">
+                    <span class="icon">📜</span>
+                    <span>Console</span>
+                    <div class="log-controls">
+                        <button id="log-clear" class="btn small">Clear</button>
+                        <button id="log-pause" class="btn small">Pause</button>
+                    </div>
+                </div>
+                <div class="log-container" id="log-container">
+                    <div class="log-entry info">Ready</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <span>ESP32: <span id="esp-version">--</span></span>
+            <span>Heap: <span id="esp-heap">--</span></span>
+            <span>Uptime: <span id="esp-uptime">--</span></span>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
