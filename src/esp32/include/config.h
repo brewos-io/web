@@ -6,15 +6,21 @@
 
 // =============================================================================
 // BrewOS ESP32-S3 Configuration
+// Target: UEDX48480021-MD80E (2.1" Round Knob Display)
 // =============================================================================
 
 // -----------------------------------------------------------------------------
 // Version
 // -----------------------------------------------------------------------------
 #define ESP32_VERSION_MAJOR     0
-#define ESP32_VERSION_MINOR     1
+#define ESP32_VERSION_MINOR     2
 #define ESP32_VERSION_PATCH     0
-#define ESP32_VERSION           "0.1.0"
+#define ESP32_VERSION           "0.2.0"
+
+// -----------------------------------------------------------------------------
+// Display Configuration (included from display/display_config.h)
+// -----------------------------------------------------------------------------
+// See display/display_config.h for pin definitions and display settings
 
 // -----------------------------------------------------------------------------
 // WiFi Configuration

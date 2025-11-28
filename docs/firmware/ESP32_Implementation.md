@@ -87,8 +87,8 @@ The round 480x480 IPS display is perfect for:
 Controls:
 • Rotate Clockwise     → Next item / Increase value
 • Rotate Counter-CW    → Previous item / Decrease value  
-• Short Press          → Select / Confirm / Start brew
-• Long Press (2s)      → Back / Cancel / Emergency stop
+• Short Press          → Select / Confirm
+• Long Press (2s)      → Back / Cancel
 • Double Press         → Quick action (e.g., tare scale)
 ```
 
@@ -147,7 +147,7 @@ Auto-discovery for seamless Home Assistant integration:
 | Feature | Description | Priority |
 |---------|-------------|----------|
 | Status Publishing | Temps, pressure, state | High |
-| Command Subscription | Set temps, start brew | High |
+| Command Subscription | Set temps, machine mode | High |
 | Home Assistant Discovery | Auto-configuration | High |
 | Shot Data Publishing | Brew metrics per shot | Medium |
 | QoS 1 for Commands | Guaranteed delivery | Medium |
@@ -204,12 +204,13 @@ struct MQTTConfig {
 
 #### Machine Control
 ```
-POST /api/brew/start            # Start brewing
-POST /api/brew/stop             # Stop brewing  
 POST /api/temp/brew             # Set brew temperature
 POST /api/temp/steam            # Set steam temperature
-POST /api/mode                  # Set machine mode
+POST /api/mode                  # Set machine mode (idle/standby)
 ```
+
+> **Note:** Brew start/stop is controlled by the physical lever on the machine, not via API.
+> The ESP32 monitors brewing state from the Pico but does not control it.
 
 #### Configuration
 ```
@@ -262,15 +263,16 @@ POST /api/weight/target         # Set target weight
 ### 3.4 Implementation Tasks
 
 ```
-[ ] API-1: Brew control endpoints (start/stop)
-[ ] API-2: Temperature setpoint endpoints
-[ ] API-3: Full configuration GET/POST
-[ ] API-4: Statistics and shot history endpoints
-[ ] API-5: MQTT configuration endpoints
-[ ] API-6: API authentication middleware
-[ ] API-7: Request validation and error responses
-[ ] API-8: API documentation (OpenAPI/Swagger)
+[ ] API-1: Temperature setpoint endpoints
+[ ] API-2: Full configuration GET/POST
+[ ] API-3: Statistics and shot history endpoints
+[ ] API-4: MQTT configuration endpoints
+[ ] API-5: API authentication middleware
+[ ] API-6: Request validation and error responses
+[ ] API-7: API documentation (OpenAPI/Swagger)
 ```
+
+> **Note:** Brew control is via physical lever - ESP32 only monitors brewing state.
 
 ---
 
@@ -614,8 +616,8 @@ Integrate Bluetooth Low Energy (BLE) scales for precise brew-by-weight control. 
 
 ```
 1. User sets target weight (e.g., 36g)
-2. User starts brew (presses button or web UI)
-3. ESP32 starts monitoring scale weight
+2. User starts brew (pulls physical lever)
+3. ESP32 detects brewing state from Pico and starts monitoring scale weight
 4. Weight data streamed to UI in real-time
 5. When weight >= (target - offset), ESP32 sets WEIGHT_STOP HIGH
 6. Pico receives signal and stops pump
