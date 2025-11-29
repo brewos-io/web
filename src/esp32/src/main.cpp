@@ -14,6 +14,7 @@
  */
 
 #include <Arduino.h>
+#include <cmath>
 #include "config.h"
 #include "wifi_manager.h"
 #include "web_server.h"
@@ -37,6 +38,11 @@ WebServer webServer(wifiManager, picoUart, mqttClient);
 // Machine state from Pico
 static ui_state_t machineState = {0};
 
+// Demo mode - simulates Pico data when Pico not connected
+#define DEMO_MODE_TIMEOUT_MS  10000  // Enter demo after 10s without Pico
+static bool demoMode = false;
+static unsigned long demoStartTime = 0;
+
 // Timing
 unsigned long lastPing = 0;
 unsigned long lastStatusBroadcast = 0;
@@ -45,6 +51,66 @@ unsigned long lastUIUpdate = 0;
 // Forward declarations
 void parsePicoStatus(const uint8_t* payload, uint8_t length);
 void handleEncoderEvent(int32_t diff, button_state_t btn);
+void updateDemoMode();
+
+/**
+ * Demo mode - simulates machine behavior when Pico not connected
+ * Useful for testing the UI without any hardware
+ */
+void updateDemoMode() {
+    static unsigned long lastDemoUpdate = 0;
+    static float demoCycle = 0;
+    
+    // Only update every 100ms
+    if (millis() - lastDemoUpdate < 100) return;
+    lastDemoUpdate = millis();
+    
+    // Cycle through demo states
+    demoCycle += 0.01f;
+    if (demoCycle > 1.0f) demoCycle = 0;
+    
+    // Simulate heating up
+    float heatProgress = demoCycle;
+    
+    // Simulate temperatures approaching setpoints
+    machineState.brew_temp = 25.0f + (machineState.brew_setpoint - 25.0f) * heatProgress;
+    machineState.steam_temp = 25.0f + (machineState.steam_setpoint - 25.0f) * heatProgress;
+    
+    // Simulate pressure (varies slightly)
+    machineState.pressure = 9.0f + sin(millis() / 1000.0f) * 0.3f;
+    
+    // Update state based on temperature
+    if (heatProgress < 0.95f) {
+        machineState.machine_state = STATE_HEATING;
+        machineState.is_heating = true;
+    } else {
+        machineState.machine_state = STATE_READY;
+        machineState.is_heating = false;
+    }
+    
+    // Simulate periodic brewing
+    static unsigned long brewStart = 0;
+    if (demoCycle > 0.5f && demoCycle < 0.7f) {
+        if (!machineState.is_brewing) {
+            brewStart = millis();
+            machineState.is_brewing = true;
+            machineState.machine_state = STATE_BREWING;
+            LOG_I("[DEMO] Simulated brew started");
+        }
+        machineState.brew_time_ms = millis() - brewStart;
+        machineState.brew_weight = machineState.brew_time_ms / 1000.0f * 1.5f;  // ~1.5g/s
+        machineState.flow_rate = 1.5f + sin(millis() / 500.0f) * 0.3f;
+    } else {
+        if (machineState.is_brewing) {
+            machineState.is_brewing = false;
+            LOG_I("[DEMO] Simulated brew ended: %.1fs, %.1fg", 
+                  machineState.brew_time_ms / 1000.0f, machineState.brew_weight);
+        }
+    }
+    
+    // Always connected in demo mode
+    machineState.pico_connected = true;  // Pretend Pico is connected
+}
 
 void setup() {
     // Initialize debug serial (USB)
@@ -245,8 +311,29 @@ void loop() {
     mqttClient.loop();
     
     // Update Pico connection status
-    machineState.pico_connected = picoUart.isConnected();
+    bool picoConnected = picoUart.isConnected();
     machineState.mqtt_connected = mqttClient.isConnected();
+    
+    // Demo mode: If Pico not connected for DEMO_MODE_TIMEOUT_MS, simulate data
+    if (!picoConnected && picoUart.getPacketsReceived() == 0) {
+        if (!demoMode && millis() > DEMO_MODE_TIMEOUT_MS) {
+            demoMode = true;
+            demoStartTime = millis();
+            LOG_I("=== DEMO MODE ENABLED (no Pico detected) ===");
+            ui.showNotification("Demo Mode", 3000);
+        }
+    } else {
+        if (demoMode) {
+            demoMode = false;
+            LOG_I("=== DEMO MODE DISABLED (Pico connected) ===");
+        }
+        machineState.pico_connected = picoConnected;
+    }
+    
+    // Update demo simulation if active
+    if (demoMode) {
+        updateDemoMode();
+    }
     
     // Update UI state periodically
     if (millis() - lastUIUpdate > 100) {  // 10Hz UI update
