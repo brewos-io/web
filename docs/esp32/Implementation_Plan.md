@@ -77,24 +77,32 @@ The ESP32-S3 serves as the connectivity and UI hub for the BrewOS coffee machine
 
 Round display screens with rotary encoder navigation.
 
+**👉 See [UI Design](UI_Design.md) for complete screen specifications.**
+
 ### Screens
 
 | Screen | Description | Status |
 |--------|-------------|--------|
+| Setup | WiFi AP info, QR code | 🔲 |
+| Idle | Turn on, heating strategy | 🔲 |
 | Home | Brew/Steam temps, pressure | 🔲 |
-| Brew | Shot timer, weight, flow | 🔲 |
-| Settings | WiFi, MQTT, Cloud config | 🔲 |
-| Statistics | Shot count, usage | 🔲 |
+| Brewing | Timer, weight, flow | 🔲 |
+| Shot Complete | Summary, save option | 🔲 |
+| Settings | Menu navigation | 🔲 |
+| Scale Pairing | BLE scale connection | 🔲 |
+| Alarm | Error display | 🔲 |
 
 ### Tasks
 
 ```
-[ ] UI-1: Home screen with temperature arcs
-[ ] UI-2: Brew screen with timer/weight
-[ ] UI-3: Settings radial menu
-[ ] UI-4: Statistics screen
-[ ] UI-5: Screen transitions
-[ ] UI-6: Idle dimming
+[ ] UI-1: Setup screen with AP info
+[ ] UI-2: Idle screen with heating strategy
+[ ] UI-3: Home screen with temperature arcs
+[ ] UI-4: Brewing screen with timer/weight
+[ ] UI-5: Settings menu navigation
+[ ] UI-6: Scale pairing flow
+[ ] UI-7: Alarm handling
+[ ] UI-8: Screen transitions and animations
 ```
 
 ---

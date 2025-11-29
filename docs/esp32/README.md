@@ -7,6 +7,7 @@ The ESP32-S3 handles connectivity, user interface, and advanced features for the
 | Document | Description |
 |----------|-------------|
 | [Implementation Plan](Implementation_Plan.md) | Development roadmap and status |
+| [UI Design](UI_Design.md) | Display screens and navigation |
 | [MQTT Integration](integrations/MQTT.md) | MQTT setup and Home Assistant |
 | [Web API Reference](integrations/Web_API.md) | HTTP endpoints and WebSocket |
 
@@ -56,6 +57,7 @@ pio run -t uploadfs # Upload web UI
 docs/esp32/
 ├── README.md              # This file
 ├── Implementation_Plan.md # Development status
+├── UI_Design.md           # Display UI specification
 └── integrations/
     ├── MQTT.md            # MQTT documentation
     └── Web_API.md         # API reference
