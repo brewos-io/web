@@ -12,6 +12,7 @@ The ESP32-S3 handles connectivity, user interface, and advanced features for the
 | [Web API Reference](integrations/Web_API.md) | HTTP endpoints and WebSocket |
 | [BLE Scales](integrations/BLE_Scales.md) | Bluetooth scale integration |
 | [Brew-by-Weight](integrations/Brew_By_Weight.md) | Auto-stop at target weight |
+| [Notifications](integrations/Notifications.md) | Push reminders and alerts |
 
 ## Hardware
 
@@ -35,6 +36,7 @@ The ESP32-S3 handles connectivity, user interface, and advanced features for the
 
 - BLE scale integration
 - Brew-by-weight auto-stop
+- Notifications framework
 - Cloud connectivity
 
 ## Building
@@ -64,6 +66,7 @@ docs/esp32/
     ├── MQTT.md              # MQTT documentation
     ├── Web_API.md           # API reference
     ├── BLE_Scales.md        # Bluetooth scales
-    └── Brew_By_Weight.md    # Auto-stop feature
+    ├── Brew_By_Weight.md    # Auto-stop feature
+    └── Notifications.md     # Push reminders & alerts
 ```
 
