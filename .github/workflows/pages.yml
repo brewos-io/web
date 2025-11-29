@@ -7,6 +7,7 @@ on:
     branches: ["main"]
     paths:
       - 'web/**'
+      - 'assets/**'
       - '.github/workflows/pages.yml'
   
   # Allows manual trigger
@@ -36,10 +37,14 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v4
       
+      - name: Prepare site
+        run: |
+          mkdir -p web/assets
+          cp -r assets/* web/assets/
+      
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Upload site folder
           path: 'web'
       
       - name: Deploy to GitHub Pages
