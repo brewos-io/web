@@ -2,11 +2,10 @@
  * BrewOS Brew-by-Weight Settings Screen Implementation
  */
 
-#include <Arduino.h>
+#include "platform/platform.h"
 #include "ui/screen_bbw.h"
 #include "display/theme.h"
 #include "display/display_config.h"
-#include "config.h"
 
 // Field indices
 enum {

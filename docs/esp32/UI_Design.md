@@ -6,10 +6,30 @@
 
 ## Overview
 
-The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The design prioritizes:
+The BrewOS UI runs on a 2.1" round display ([VIEWE UEDX48480021-MD80E](https://github.com/VIEWESMART/UEDX48480021-MD80ESP32_2.1inch-Knob)) with **rotary encoder + button only** (no touch).
+
+### Design Priorities
 - **Glanceability** - Key info visible at a glance
 - **Simplicity** - Minimal steps for common tasks
 - **Context-awareness** - UI adapts to machine state
+
+### Encoder-First Principles
+
+> ⚠️ **No Touch Screen** - This display has knob + click only. Design accordingly.
+
+| Principle | Description |
+|-----------|-------------|
+| **One action per screen** | Click does the obvious thing - no button hunting |
+| **Whole screen is clickable** | No visual buttons needed for primary action |
+| **Rotation = adjustment** | Rotate to change values or cycle options |
+| **Focus is implicit** | Current screen context determines what click does |
+| **No multi-select** | Can't tap multiple areas - use sequential screens |
+
+**Anti-patterns to avoid:**
+- ❌ Multiple tappable buttons on one screen
+- ❌ "Save" / "Cancel" button pairs
+- ❌ Sliders or drag controls
+- ❌ Tap-to-select from a grid
 
 ---
 
@@ -115,26 +135,25 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
        │                      │
        │      BrewOS          │
        │                      │
-       │    ┌──────────┐      │
-       │    │ TURN ON  │      │
-       │    └──────────┘      │
        │                      │
-       │   Current Strategy:  │
-       │   🔥 Sequential      │
+       │   Click to Turn On   │
+       │                      │
+       │                      │
+       │   ◄ Sequential ►     │  ← Rotate to change
        │                      │
         ╲                    ╱
          └─────────────────┘
 ```
 
 **Elements:**
-- BrewOS logo/icon
-- "TURN ON" button (selected by default)
-- Current heating strategy display
-- Time (optional)
+- BrewOS logo/icon (centered)
+- Action hint text
+- Heating strategy selector (rotate to change)
+- Subtle arrows indicating rotation
 
 **Interactions:**
-- Press: Turn on machine (start heating)
-- Rotate: Change heating strategy
+- Click: Turn on machine (start heating)
+- Rotate: Cycle heating strategies
 - Long Press: Go to Settings
 
 **Heating Strategies:**
@@ -192,10 +211,10 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
   - Scale connection indicator (if paired)
 
 **Interactions:**
-- Rotate: Navigate to Settings or other screens
-- Press: Quick access menu (temp adjust, etc.)
-- Long Press: Go to Idle (turn off)
-- Double Press: Tare scale (if connected)
+- Rotate: Switch focus between Brew ↔ Steam temp display
+- Click: Adjust focused temperature setpoint
+- Long Press: Turn off machine (go to Idle)
+- Double Click: Tare scale (if connected)
 
 **State-Based Colors:**
 | State | Arc Color | Status Text |
@@ -298,27 +317,27 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
        │                      │
        │       00:28          │    ← Total time
        │       35.2g          │    ← Final weight
+       │       1.4 ml/s       │    ← Avg flow
        │                      │
-       │   ┌──────────────┐   │
-       │   │  Save Shot?  │   │
-       │   └──────────────┘   │
+       │   Click to Save      │
+       │   (auto-dismiss 10s) │
        │                      │
         ╲                    ╱
          └─────────────────┘
 ```
 
 **Elements:**
-- Completion checkmark
-- Total brew time
+- Completion checkmark animation
+- Total brew time (large)
 - Final weight (if scale)
 - Average flow rate
-- "Save Shot?" option
+- Action hint
 
 **Interactions:**
-- Press: Save shot to history
-- Rotate: View more details
+- Click: Save shot to history → Home
+- Rotate: View ratio, peak pressure, etc.
 - Long Press: Dismiss without saving
-- Auto-dismiss: Returns to Home after 10s
+- Auto: Returns to Home after 10s if no input
 
 ---
 
@@ -336,18 +355,15 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
         ╱                   ╲
        │      ⚙️ Settings     │
        │                      │
-       │   ┌──────────────┐   │
-       │   │► Temperatures │   │  ← Selected
-       │   └──────────────┘   │
-       │   ┌──────────────┐   │
-       │   │  Heating Mode │   │
-       │   └──────────────┘   │
-       │   ┌──────────────┐   │
-       │   │  Scale Setup  │   │
-       │   └──────────────┘   │
-       │   ┌──────────────┐   │
-       │   │  WiFi        │   │
-       │   └──────────────┘   │
+       │   ▸ Temperatures     │  ← Highlighted (rotate)
+       │     Heating Mode     │
+       │     Scale Setup      │
+       │     WiFi             │
+       │     Display          │
+       │     Machine Info     │
+       │                      │
+       │                      │
+       │   Click to Enter     │
         ╲                    ╱
          └─────────────────┘
 ```
@@ -385,30 +401,30 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
        │                      │
        │   BREW SETPOINT      │
        │   ┌──────────────┐   │
-       │   │   94.0°C     │   │  ← Editable
+       │   │ ◄  94.0°C  ► │   │  ← Rotate to adjust
        │   └──────────────┘   │
        │   (Max: 105°C)       │
        │                      │
        │   STEAM SETPOINT     │
        │   ┌──────────────┐   │
-       │   │  145.0°C     │   │
+       │   │   145.0°C    │   │  ← Dimmed until selected
        │   └──────────────┘   │
        │   (Max: 155°C)       │
        │                      │
-        ╲  [Save]  [Cancel]  ╱
+        ╲   Click to Save    ╱
          └─────────────────┘
 ```
 
 **Elements:**
-- Brew temperature setpoint (adjustable)
-- Steam temperature setpoint (adjustable)
+- Brew temperature (active, shows ◄ ► arrows)
+- Steam temperature (dimmed until focused)
 - Max limits displayed
-- Save/Cancel buttons
+- Hint text at bottom
 
 **Interactions:**
-- Rotate: Adjust selected value (0.5°C increments)
-- Press: Move to next field / Confirm
-- Long Press: Cancel and go back
+- Rotate: Adjust current value (0.5°C steps)
+- Click: Save & move to next field (or exit if last)
+- Long Press: Cancel changes and go back
 
 ---
 
@@ -448,28 +464,25 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
         ╱                   ╲
        │    ⚖️ Scale Setup    │
        │                      │
-       │   Connected:         │
-       │   ┌──────────────┐   │
-       │   │ Lunar ABC123 │   │
-       │   │      ✓       │   │
-       │   └──────────────┘   │
+       │   Connected ✓        │
+       │   Lunar ABC123       │
        │                      │
-       │   Current: 0.0g      │
+       │      ┌───────┐       │
+       │      │ 0.0g  │       │  ← Live weight
+       │      └───────┘       │
        │                      │
-       │   ┌──────────────┐   │
-       │   │     Tare     │   │
-       │   └──────────────┘   │
-       │   ┌──────────────┐   │
-       │   │   Disconnect │   │
-       │   └──────────────┘   │
+       │   Click to Tare      │
+       │                      │
+       │   ◄ Disconnect ►     │  ← Rotate to select
+       │                      │
         ╲                    ╱
          └─────────────────┘
 ```
 
 **Interactions:**
-- Rotate: Select from found scales
-- Press: Connect to selected / Tare
-- Long Press: Cancel / Back
+- Click: Tare scale (when on Tare) / Disconnect (when selected)
+- Rotate: Cycle between Tare ↔ Disconnect options
+- Long Press: Back to Settings
 
 ---
 
@@ -485,7 +498,7 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
        │                      │
        │   TARGET WEIGHT      │
        │   ┌──────────────┐   │
-       │   │    36.0g     │   │
+       │   │ ◄  36.0g   ► │   │  ← Rotate to adjust
        │   └──────────────┘   │
        │                      │
        │   DOSE (optional)    │
@@ -495,23 +508,22 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
        │                      │
        │   Ratio: 1:2.0       │
        │                      │
-       │   ☑ Auto-stop at     │
-       │     target weight    │
+       │   ○ Auto-stop: ON    │  ← Rotate cycles ON/OFF
        │                      │
-        ╲  [Save]  [Cancel]  ╱
+        ╲   Click to Save    ╱
          └─────────────────┘
 ```
 
 **Elements:**
-- Target weight input
-- Dose weight input (optional)
-- Calculated ratio display
-- Auto-stop toggle
+- Target weight (rotate to adjust)
+- Dose weight (optional, click to focus)
+- Calculated ratio (auto-updates)
+- Auto-stop toggle (rotate to toggle)
 
 **Interactions:**
-- Rotate: Adjust values (0.5g increments)
-- Press: Next field / Toggle / Save
-- Long Press: Cancel
+- Rotate: Adjust current value (0.5g steps) or toggle
+- Click: Move to next field / Save when done
+- Long Press: Cancel and go back
 
 ---
 

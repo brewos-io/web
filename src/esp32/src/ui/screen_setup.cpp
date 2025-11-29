@@ -4,11 +4,10 @@
  * WiFi AP setup screen for first-time configuration
  */
 
-#include <Arduino.h>
+#include "platform/platform.h"
 #include "ui/screen_setup.h"
 #include "display/theme.h"
 #include "display/display_config.h"
-#include "config.h"
 
 // Static elements
 static lv_obj_t* screen = nullptr;

@@ -23,6 +23,12 @@
 #define DISPLAY_CENTER_Y        (DISPLAY_HEIGHT / 2)
 #define DISPLAY_RADIUS          (DISPLAY_WIDTH / 2)
 
+// Safe area for round display (content should stay within this)
+// Elements at top/bottom need ~70-80px margin from edge
+// Elements at corners are cut off - avoid placing content there
+#define DISPLAY_SAFE_MARGIN     70
+#define DISPLAY_SAFE_RADIUS     (DISPLAY_RADIUS - DISPLAY_SAFE_MARGIN)
+
 // =============================================================================
 // Display SPI Pins (adjust based on actual board pinout)
 // These need to be verified for UEDX48480021-MD80E

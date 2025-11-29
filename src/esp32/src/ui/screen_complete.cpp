@@ -4,11 +4,10 @@
  * Shot summary display after brewing completes
  */
 
-#include <Arduino.h>
+#include "platform/platform.h"
 #include "ui/screen_complete.h"
 #include "display/theme.h"
 #include "display/display_config.h"
-#include "config.h"
 
 // Static elements
 static lv_obj_t* screen = nullptr;

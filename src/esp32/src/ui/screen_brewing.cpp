@@ -4,11 +4,10 @@
  * Active shot display with timer, weight, and flow rate
  */
 
-#include <Arduino.h>
+#include "platform/platform.h"
 #include "ui/screen_brewing.h"
 #include "display/theme.h"
 #include "display/display_config.h"
-#include "config.h"
 
 // Static elements
 static lv_obj_t* screen = nullptr;

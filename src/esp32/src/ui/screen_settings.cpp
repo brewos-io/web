@@ -4,11 +4,10 @@
  * Radial menu for settings navigation
  */
 
-#include <Arduino.h>
+#include "platform/platform.h"
 #include "ui/screen_settings.h"
 #include "display/theme.h"
 #include "display/display_config.h"
-#include "config.h"
 
 // Menu item definitions
 static const char* item_icons[] = {
@@ -131,7 +130,8 @@ lv_obj_t* screen_settings_create(void) {
         lv_obj_set_size(status_icons[i], 6, 6);
         lv_obj_set_style_radius(status_icons[i], LV_RADIUS_CIRCLE, 0);
         lv_obj_set_style_border_width(status_icons[i], 0, 0);
-        lv_obj_set_style_margin_all(status_icons[i], 3, 0);
+        lv_obj_set_style_pad_left(status_icons[i], 3, 0);
+        lv_obj_set_style_pad_right(status_icons[i], 3, 0);
         
         if (i == selected_index) {
             lv_obj_set_style_bg_color(status_icons[i], COLOR_ACCENT_AMBER, 0);
@@ -145,7 +145,27 @@ lv_obj_t* screen_settings_create(void) {
     lv_label_set_text(hint, "Rotate to browse • Press to select");
     lv_obj_set_style_text_font(hint, FONT_SMALL, 0);
     lv_obj_set_style_text_color(hint, COLOR_TEXT_MUTED, 0);
-    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -30);
+    lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -80);
+    
+    // === Make container focusable for encoder input ===
+    lv_group_t* group = lv_group_get_default();
+    if (group) {
+        lv_obj_add_flag(container, LV_OBJ_FLAG_CLICKABLE);
+        lv_group_add_obj(group, container);
+        
+        // Handle encoder events
+        lv_obj_add_event_cb(container, [](lv_event_t* e) {
+            lv_event_code_t code = lv_event_get_code(e);
+            if (code == LV_EVENT_KEY) {
+                uint32_t key = lv_event_get_key(e);
+                if (key == LV_KEY_RIGHT || key == LV_KEY_DOWN) {
+                    screen_settings_navigate(1);
+                } else if (key == LV_KEY_LEFT || key == LV_KEY_UP) {
+                    screen_settings_navigate(-1);
+                }
+            }
+        }, LV_EVENT_KEY, NULL);
+    }
     
     LOG_I("Settings screen created");
     return screen;

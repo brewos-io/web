@@ -1,6 +1,6 @@
 # UI Simulator
 
-The BrewOS UI Simulator lets you develop and preview the LVGL-based display UI on your desktop without flashing hardware.
+The BrewOS UI Simulator runs the **actual LVGL UI screens** on your desktop for development without flashing hardware.
 
 ## Prerequisites
 
@@ -24,15 +24,33 @@ The BrewOS UI Simulator lets you develop and preview the LVGL-based display UI o
 
 This will:
 1. Check for SDL2 (install if missing on macOS)
-2. Build the simulator environment
-3. Launch a 480×480 window
+2. Build the simulator with actual UI screens
+3. Launch a 480×480 round display window
 
-## Controls
+## Controls (Encoder Simulation)
 
 | Input | Action |
 |-------|--------|
-| **Click** | Simulate touch |
-| **ESC** | Close window |
+| **Scroll wheel** | Rotate knob |
+| **↑ / ← arrows** | Rotate CCW |
+| **↓ / → arrows** | Rotate CW |
+| **Click / Enter / Space** | Button press |
+| **Hold 1 second** | Long press |
+| **ESC** | Exit |
+
+### Quick Screen Switching (Development)
+
+| Key | Screen |
+|-----|--------|
+| **0** | Setup (WiFi) |
+| **1** | Idle |
+| **2** | Home |
+| **3** | Brewing |
+| **4** | Complete |
+| **5** | Settings |
+| **6** | Alarm |
+
+The terminal shows encoder events and state updates in real-time.
 
 ## Manual Build & Run
 
@@ -44,63 +62,97 @@ pio run -e simulator
 
 ## What's Simulated
 
-The simulator provides a **Theme Preview** with:
+The simulator runs the **actual UI code** from `src/esp32/src/ui/`:
 
-- **Temperature Arc Gauge** - Live color changes based on temp vs setpoint
-- **Steam/Pressure Cards** - UI card styling
-- **Color Palette Strip** - Visual preview of brand colors
-- **Primary Button** - Button styling
+| Screen | Status |
+|--------|--------|
+| **Idle** | ✅ Implemented |
+| **Home** | ✅ Implemented |
+| **Brewing** | ✅ Implemented |
+| **Complete** | ✅ Implemented |
+| **Settings** | ✅ Implemented |
+| **Setup** | ✅ Implemented |
+| **Alarm** | ✅ Implemented |
+| **BBW Settings** | ❌ Excluded (has BLE deps) |
 
-### Simulated Values
+### Mock Machine State
 
-| Value | Range | Update Rate |
-|-------|-------|-------------|
-| Brew Temp | 90-96°C | 500ms |
-| Steam Temp | 145°C (static) | - |
-| Pressure | 9.0 bar (static) | - |
+The simulator provides mock data that updates every 500ms:
+
+| Value | Range | Notes |
+|-------|-------|-------|
+| Brew Temp | 90-96°C | Random fluctuations |
+| Steam Temp | 140-150°C | Random fluctuations |
+| Pressure | 9.0 bar | Static |
+| Setpoints | 94°C / 145°C | Fixed |
+
+### Round Display Mask
+
+The window shows corner masks to simulate the actual 2.1" round display - content in the corners won't be visible on real hardware.
+
+## Architecture
+
+The simulator compiles the **same UI code** as ESP32 by using a platform abstraction layer:
+
+```
+src/esp32/
+├── include/
+│   └── platform/
+│       ├── platform.h      ← Common interface
+│       ├── arduino_impl.h  ← ESP32 implementation
+│       └── native_impl.h   ← Simulator implementation
+├── src/
+│   ├── ui/                 ← Shared UI screens
+│   │   ├── screen_home.cpp
+│   │   ├── screen_idle.cpp
+│   │   └── ...
+│   └── simulator/
+│       └── main.cpp        ← Simulator entry point
+```
+
+### Making UI Code Portable
+
+UI files use `#include "platform/platform.h"` instead of `<Arduino.h>`:
+
+```cpp
+// Before (Arduino-dependent)
+#include <Arduino.h>
+LOG_I("message");  // Uses Serial
+
+// After (platform-agnostic)
+#include "platform/platform.h"
+LOG_I("message");  // Uses platform_log()
+```
 
 ## Editing Theme Colors
 
 Theme colors are defined in `src/esp32/include/display/theme.h`:
 
 ```c
-// Background colors (from brand palette)
-#define COLOR_BG_DARK           lv_color_hex(0x1A0F0A)  // Darkest coffee
-#define COLOR_BG_CARD           lv_color_hex(0x361E12)  // Dark brown
-#define COLOR_BG_ELEVATED       lv_color_hex(0x4A2A1A)  // Elevated surface
-
-// Accent colors
-#define COLOR_ACCENT_PRIMARY    lv_color_hex(0xD5A071)  // Caramel/tan
-#define COLOR_ACCENT_ORANGE     lv_color_hex(0xC4703C)  // Warm orange
-#define COLOR_ACCENT_COPPER     lv_color_hex(0x714C30)  // Medium brown
-
-// Text colors
-#define COLOR_TEXT_PRIMARY      lv_color_hex(0xFBFCF8)  // Cream white
-#define COLOR_TEXT_SECONDARY    lv_color_hex(0xD5A071)  // Caramel
-#define COLOR_TEXT_MUTED        lv_color_hex(0x9B6E46)  // Light coffee
+#define COLOR_BG_DARK           lv_color_hex(0x1A0F0A)  // Background
+#define COLOR_ACCENT_PRIMARY    lv_color_hex(0xD5A071)  // Caramel accent
+#define COLOR_TEXT_PRIMARY      lv_color_hex(0xFBFCF8)  // Text
 ```
 
-After editing, rebuild and run:
+After editing any UI file, rebuild:
 
 ```bash
 pio run -e simulator && .pio/build/simulator/program
 ```
 
-## Simulator Source Files
+## Simulator Files
 
 | File | Purpose |
 |------|---------|
-| `src/esp32/src/simulator/main.cpp` | Simulator entry point and demo UI |
-| `src/esp32/include/simulator/lv_tick.h` | Native tick source for LVGL |
-| `src/esp32/platformio.ini` | `[env:simulator]` build config |
+| `src/simulator/main.cpp` | SDL setup, encoder input, mock state |
+| `include/platform/platform.h` | Platform abstraction |
+| `include/platform/native_impl.h` | Native implementations |
 
 ## Limitations
 
-The simulator is a **standalone theme preview** - it does not compile the full ESP32 UI because those files depend on Arduino and ESP-IDF APIs.
-
-To test the actual UI screens:
-1. Flash to hardware: `pio run -t upload`
-2. Use the web dashboard at `http://<device-ip>`
+- **BBW Screen excluded** - Has BLE scale dependencies
+- **No actual hardware** - Uses mock machine state
+- **No WiFi/MQTT** - Connectivity features not simulated
 
 ## Troubleshooting
 

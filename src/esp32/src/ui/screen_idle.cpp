@@ -4,11 +4,10 @@
  * Power on screen with heating strategy selection
  */
 
-#include <Arduino.h>
+#include "platform/platform.h"
 #include "ui/screen_idle.h"
 #include "display/theme.h"
 #include "display/display_config.h"
-#include "config.h"
 
 // Strategy names
 static const char* strategy_names[] = {
@@ -115,7 +114,8 @@ lv_obj_t* screen_idle_create(void) {
         lv_obj_set_size(strategy_dots[i], 8, 8);
         lv_obj_set_style_radius(strategy_dots[i], LV_RADIUS_CIRCLE, 0);
         lv_obj_set_style_border_width(strategy_dots[i], 0, 0);
-        lv_obj_set_style_margin_all(strategy_dots[i], 4, 0);
+        lv_obj_set_style_pad_left(strategy_dots[i], 4, 0);
+        lv_obj_set_style_pad_right(strategy_dots[i], 4, 0);
         
         if (i == selected_index) {
             lv_obj_set_style_bg_color(strategy_dots[i], COLOR_ACCENT_AMBER, 0);
@@ -129,7 +129,30 @@ lv_obj_t* screen_idle_create(void) {
     lv_label_set_text(hint_label, LV_SYMBOL_LOOP " Rotate to change strategy");
     lv_obj_set_style_text_font(hint_label, FONT_SMALL, 0);
     lv_obj_set_style_text_color(hint_label, COLOR_TEXT_MUTED, 0);
-    lv_obj_align(hint_label, LV_ALIGN_BOTTOM_MID, 0, -50);
+    lv_obj_align(hint_label, LV_ALIGN_BOTTOM_MID, 0, -80);
+    
+    // === Make container focusable for encoder input ===
+    lv_group_t* group = lv_group_get_default();
+    if (group) {
+        lv_obj_add_flag(container, LV_OBJ_FLAG_CLICKABLE);
+        lv_group_add_obj(group, container);
+        
+        // Handle encoder events (KEY for rotation, PRESSED for click)
+        lv_obj_add_event_cb(container, [](lv_event_t* e) {
+            lv_event_code_t code = lv_event_get_code(e);
+            if (code == LV_EVENT_KEY) {
+                uint32_t key = lv_event_get_key(e);
+                if (key == LV_KEY_RIGHT || key == LV_KEY_NEXT) {
+                    screen_idle_select_strategy(selected_index + 1);
+                } else if (key == LV_KEY_LEFT || key == LV_KEY_PREV) {
+                    screen_idle_select_strategy(selected_index - 1);
+                }
+            }
+        }, LV_EVENT_KEY, NULL);
+        
+        // Set as editable so encoder rotation sends KEY events
+        lv_group_set_editing(group, true);
+    }
     
     LOG_I("Idle screen created");
     return screen;

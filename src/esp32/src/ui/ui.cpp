@@ -4,7 +4,7 @@
  * Manages all screens and navigation
  */
 
-#include <Arduino.h>
+#include "platform/platform.h"
 #include "ui/ui.h"
 #include "ui/screen_setup.h"
 #include "ui/screen_idle.h"
@@ -15,7 +15,6 @@
 #include "ui/screen_alarm.h"
 #include "display/theme.h"
 #include "display/display_config.h"
-#include "config.h"
 
 // Global UI instance
 UI ui;
@@ -144,6 +143,24 @@ void UI::showScreen(screen_id_t screen) {
     
     // Use fade animation for transitions
     lv_scr_load_anim(_screens[screen], LV_SCR_LOAD_ANIM_FADE_ON, 200, 0, false);
+    
+    // Focus an object on the new screen (for encoder navigation)
+    lv_group_t* group = lv_group_get_default();
+    if (group) {
+        // Focus next until we find an object on the current screen
+        lv_obj_t* focused = lv_group_get_focused(group);
+        if (focused && lv_obj_get_screen(focused) != _screens[screen]) {
+            // Current focus is on wrong screen, find one on the right screen
+            uint32_t count = lv_group_get_obj_count(group);
+            for (uint32_t i = 0; i < count; i++) {
+                lv_group_focus_next(group);
+                focused = lv_group_get_focused(group);
+                if (focused && lv_obj_get_screen(focused) == _screens[screen]) {
+                    break;
+                }
+            }
+        }
+    }
     
     LOG_I("Switched to screen: %d", screen);
 }

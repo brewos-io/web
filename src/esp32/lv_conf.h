@@ -17,7 +17,12 @@
 #define LV_COLOR_DEPTH 16
 
 /* Swap the 2 bytes of RGB565 color for SPI displays */
-#define LV_COLOR_16_SWAP 1
+/* Disabled for simulator (native builds) */
+#ifdef SIMULATOR
+    #define LV_COLOR_16_SWAP 0
+#else
+    #define LV_COLOR_16_SWAP 1
+#endif
 
 /* Enable more complex drawing routines for gradient, etc. */
 #define LV_DRAW_COMPLEX 1
