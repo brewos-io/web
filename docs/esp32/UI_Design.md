@@ -1,6 +1,6 @@
 # ESP32 Display UI Design
 
-> **Status:** Planning  
+> **Status:** ✅ Implemented  
 > **Last Updated:** 2025-11-29  
 > **Display:** 480×480 Round IPS with Rotary Encoder
 
@@ -665,36 +665,39 @@ The BrewOS UI runs on a 2.1" round display with rotary encoder navigation. The d
 
 ## Implementation Priority
 
-### Phase 1: Core Screens
+### Phase 1: Core Screens ✅
 ```
 [x] Display driver and LVGL setup
-[ ] Home screen with temperature arcs
-[ ] Idle screen with turn on/off
-[ ] Basic brewing screen (timer only)
+[x] Home screen with temperature arcs
+[x] Idle screen with turn on/off
+[x] Basic brewing screen (timer + weight)
 ```
 
-### Phase 2: Settings
+### Phase 2: Settings ✅
 ```
-[ ] Settings menu navigation
-[ ] Temperature adjustment
-[ ] Heating mode selection
-[ ] Display settings
+[x] Settings menu navigation
+[x] Temperature adjustment screen (placeholder)
+[x] Heating mode selection (in Idle screen)
+[ ] Display settings (backlight, timeout)
 ```
 
 ### Phase 3: Scale Integration
 ```
-[ ] Scale pairing screen
-[ ] Weight display in brewing
-[ ] Brew by weight settings
-[ ] Auto-stop functionality
+[x] Scale pairing screen (placeholder)
+[x] Weight display in brewing
+[x] Target weight adjustment
+[ ] BLE scale driver
+[ ] Auto-stop functionality (WEIGHT_STOP_PIN)
 ```
 
 ### Phase 4: Polish
 ```
-[ ] Setup screen with QR code
-[ ] Shot complete summary
-[ ] Alarm handling
-[ ] Animations and transitions
+[x] Setup screen with WiFi info
+[x] Shot complete summary
+[x] Alarm handling
+[x] Screen transitions (fade animations)
+[ ] QR code for WiFi setup
+[ ] Advanced animations
 ```
 
 ---

@@ -1,7 +1,8 @@
 /**
  * BrewOS UI Manager
  * 
- * Manages all UI screens and navigation
+ * Manages all UI screens and navigation for the round display
+ * See docs/esp32/UI_Design.md for screen specifications
  */
 
 #ifndef UI_H
@@ -14,13 +15,45 @@
 // =============================================================================
 
 typedef enum {
-    SCREEN_HOME,
-    SCREEN_BREW,
-    SCREEN_SETTINGS,
-    SCREEN_STATS,
-    SCREEN_WIFI,
+    SCREEN_SETUP,       // WiFi setup (first boot / no WiFi)
+    SCREEN_IDLE,        // Machine off, can turn on
+    SCREEN_HOME,        // Main dashboard (temps, pressure)
+    SCREEN_BREWING,     // Active brewing
+    SCREEN_COMPLETE,    // Shot complete summary
+    SCREEN_SETTINGS,    // Settings menu
+    SCREEN_TEMP_SETTINGS, // Temperature adjustment
+    SCREEN_SCALE,       // Scale pairing
+    SCREEN_ALARM,       // Alarm display
     SCREEN_COUNT
 } screen_id_t;
+
+// =============================================================================
+// Machine States (from Pico)
+// =============================================================================
+
+typedef enum {
+    STATE_INIT = 0,
+    STATE_IDLE = 1,
+    STATE_HEATING = 2,
+    STATE_READY = 3,
+    STATE_BREWING = 4,
+    STATE_STEAMING = 5,
+    STATE_COOLDOWN = 6,
+    STATE_FAULT = 7,
+    STATE_SAFE = 8
+} machine_state_t;
+
+// =============================================================================
+// Heating Strategies
+// =============================================================================
+
+typedef enum {
+    HEAT_BREW_ONLY = 0,
+    HEAT_SEQUENTIAL = 1,
+    HEAT_STEAM_PRIORITY = 2,
+    HEAT_PARALLEL = 3,
+    HEAT_SMART_STAGGER = 4
+} heating_strategy_t;
 
 // =============================================================================
 // Machine State for UI Display
@@ -33,20 +66,27 @@ typedef struct {
     float steam_temp;
     float steam_setpoint;
     
+    // Limits
+    float brew_max_temp;
+    float steam_max_temp;
+    
     // Pressure
     float pressure;
     
     // State
-    uint8_t machine_state;      // STATE_INIT, STATE_IDLE, etc.
+    uint8_t machine_state;      // machine_state_t
+    uint8_t heating_strategy;   // heating_strategy_t
     bool is_brewing;
     bool is_heating;
     bool water_low;
     bool alarm_active;
+    uint8_t alarm_code;
     
     // Brewing info
     uint32_t brew_time_ms;      // Current brew time
     float brew_weight;          // Current weight (from scale)
     float target_weight;        // Target weight
+    float dose_weight;          // Dose weight (for ratio)
     float flow_rate;            // ml/s
     
     // Connection status
@@ -57,8 +97,22 @@ typedef struct {
     
     // WiFi info
     char wifi_ssid[32];
+    char wifi_password[32];
+    char wifi_ip[16];
     int wifi_rssi;
+    bool wifi_ap_mode;
 } ui_state_t;
+
+// =============================================================================
+// Callback Types
+// =============================================================================
+
+typedef void (*ui_turn_on_callback_t)(void);
+typedef void (*ui_turn_off_callback_t)(void);
+typedef void (*ui_set_temp_callback_t)(bool is_steam, float temp);
+typedef void (*ui_set_strategy_callback_t)(heating_strategy_t strategy);
+typedef void (*ui_tare_scale_callback_t)(void);
+typedef void (*ui_set_target_weight_callback_t)(float weight);
 
 // =============================================================================
 // UI Manager Class
@@ -76,8 +130,14 @@ public:
     
     /**
      * Update UI with new state data
+     * Call periodically from main loop
      */
     void update(const ui_state_t& state);
+    
+    /**
+     * Get current state
+     */
+    const ui_state_t& getState() const { return _state; }
     
     /**
      * Switch to a specific screen
@@ -95,57 +155,90 @@ public:
     void showNotification(const char* message, uint16_t duration_ms = 3000);
     
     /**
-     * Show an error dialog
+     * Show an alarm
      */
-    void showError(const char* title, const char* message);
+    void showAlarm(uint8_t code, const char* message);
     
     /**
-     * Handle encoder button events
+     * Clear alarm
      */
-    void handleButtonPress(bool long_press);
+    void clearAlarm();
     
+    /**
+     * Handle encoder rotation
+     * @param direction: positive = CW, negative = CCW
+     */
+    void handleEncoder(int direction);
+    
+    /**
+     * Handle button press
+     */
+    void handleButtonPress();
+    
+    /**
+     * Handle long press (2 seconds)
+     */
+    void handleLongPress();
+    
+    /**
+     * Handle double press
+     */
+    void handleDoublePress();
+    
+    // Callbacks
+    void onTurnOn(ui_turn_on_callback_t cb) { _onTurnOn = cb; }
+    void onTurnOff(ui_turn_off_callback_t cb) { _onTurnOff = cb; }
+    void onSetTemp(ui_set_temp_callback_t cb) { _onSetTemp = cb; }
+    void onSetStrategy(ui_set_strategy_callback_t cb) { _onSetStrategy = cb; }
+    void onTareScale(ui_tare_scale_callback_t cb) { _onTareScale = cb; }
+    void onSetTargetWeight(ui_set_target_weight_callback_t cb) { _onSetTargetWeight = cb; }
+
 private:
     screen_id_t _currentScreen;
+    screen_id_t _previousScreen;
     ui_state_t _state;
+    
+    // Callbacks
+    ui_turn_on_callback_t _onTurnOn;
+    ui_turn_off_callback_t _onTurnOff;
+    ui_set_temp_callback_t _onSetTemp;
+    ui_set_strategy_callback_t _onSetStrategy;
+    ui_tare_scale_callback_t _onTareScale;
+    ui_set_target_weight_callback_t _onSetTargetWeight;
     
     // Screen objects
     lv_obj_t* _screens[SCREEN_COUNT];
     
-    // Home screen elements
-    lv_obj_t* _homeBrewTempLabel;
-    lv_obj_t* _homeBrewTempArc;
-    lv_obj_t* _homeSteamTempLabel;
-    lv_obj_t* _homeSteamTempArc;
-    lv_obj_t* _homePressureLabel;
-    lv_obj_t* _homePressureBar;
-    lv_obj_t* _homeStatusLabel;
-    lv_obj_t* _homeStatusIndicator;
-    
-    // Brew screen elements
-    lv_obj_t* _brewTimerLabel;
-    lv_obj_t* _brewWeightLabel;
-    lv_obj_t* _brewWeightArc;
-    lv_obj_t* _brewFlowLabel;
-    lv_obj_t* _brewStopBtn;
-    
     // Screen creation methods
+    void createSetupScreen();
+    void createIdleScreen();
     void createHomeScreen();
-    void createBrewScreen();
+    void createBrewingScreen();
+    void createCompleteScreen();
     void createSettingsScreen();
-    void createStatsScreen();
-    void createWiFiScreen();
+    void createTempSettingsScreen();
+    void createScaleScreen();
+    void createAlarmScreen();
     
     // Update methods
+    void updateSetupScreen();
+    void updateIdleScreen();
     void updateHomeScreen();
-    void updateBrewScreen();
+    void updateBrewingScreen();
+    void updateCompleteScreen();
+    void updateSettingsScreen();
+    void updateAlarmScreen();
     
     // Helper methods
     const char* getStateText(uint8_t state);
+    const char* getStrategyText(uint8_t strategy);
     lv_color_t getStateColor(uint8_t state);
+    
+    // Auto screen switching based on machine state
+    void checkAutoScreenSwitch();
 };
 
 // Global UI instance
 extern UI ui;
 
 #endif // UI_H
-

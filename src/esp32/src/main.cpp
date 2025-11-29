@@ -77,6 +77,40 @@ void setup() {
         LOG_E("UI initialization failed!");
     }
     
+    // Set up UI callbacks
+    ui.onTurnOn([]() {
+        LOG_I("UI: Turn on requested");
+        // Send turn-on command to Pico
+        uint8_t cmd = 0x01;  // Turn on
+        picoUart.sendCommand(MSG_COMMAND, &cmd, 1);
+    });
+    
+    ui.onTurnOff([]() {
+        LOG_I("UI: Turn off requested");
+        // Send turn-off command to Pico
+        uint8_t cmd = 0x00;  // Turn off
+        picoUart.sendCommand(MSG_COMMAND, &cmd, 1);
+    });
+    
+    ui.onSetTemp([](bool is_steam, float temp) {
+        LOG_I("UI: Set %s temp to %.1f°C", is_steam ? "steam" : "brew", temp);
+        // Send temperature set command to Pico
+        uint8_t payload[5];
+        payload[0] = is_steam ? 0x02 : 0x01;  // Boiler ID
+        memcpy(&payload[1], &temp, sizeof(float));
+        picoUart.sendCommand(MSG_SET_TEMP, payload, 5);
+    });
+    
+    ui.onTareScale([]() {
+        LOG_I("UI: Tare scale requested");
+        // Future: BLE scale tare command
+    });
+    
+    ui.onSetTargetWeight([](float weight) {
+        LOG_I("UI: Set target weight to %.1fg", weight);
+        machineState.target_weight = weight;
+    });
+    
     // Initialize Pico UART
     picoUart.begin();
     
@@ -104,12 +138,13 @@ void setup() {
                 break;
             
             case MSG_ALARM: {
-                // Alarm - log prominently
+                // Alarm - show alarm screen
                 uint8_t alarmCode = packet.payload[0];
                 LOG_W("PICO ALARM: 0x%02X", alarmCode);
                 webServer.broadcastLog("Pico ALARM: " + String(alarmCode, HEX), "error");
                 machineState.alarm_active = true;
-                ui.showError("ALARM", "Machine alarm triggered");
+                machineState.alarm_code = alarmCode;
+                ui.showAlarm(alarmCode, nullptr);
                 break;
             }
             
@@ -144,9 +179,11 @@ void setup() {
         LOG_I("WiFi connected!");
         webServer.broadcastLog("WiFi connected: " + wifiManager.getIP(), "info");
         machineState.wifi_connected = true;
+        machineState.wifi_ap_mode = false;
         // Get WiFi SSID from status
         WiFiStatus ws = wifiManager.getStatus();
         strncpy(machineState.wifi_ssid, ws.ssid.c_str(), sizeof(machineState.wifi_ssid) - 1);
+        strncpy(machineState.wifi_ip, ws.ip.c_str(), sizeof(machineState.wifi_ip) - 1);
         machineState.wifi_rssi = WiFi.RSSI();
         ui.showNotification("WiFi Connected", 2000);
         
@@ -164,7 +201,9 @@ void setup() {
     wifiManager.onAPStarted([]() {
         LOG_I("AP mode started - connect to: %s", WIFI_AP_SSID);
         LOG_I("Open http://%s to configure", WIFI_AP_IP.toString().c_str());
-        ui.showNotification("WiFi: BrewOS-Setup", 5000);
+        machineState.wifi_ap_mode = true;
+        machineState.wifi_connected = false;
+        ui.showScreen(SCREEN_SETUP);
     });
     
     wifiManager.begin();
@@ -172,10 +211,16 @@ void setup() {
     // Start web server
     webServer.begin();
     
+    // Initialize MQTT
+    mqttClient.begin();
+    
     // Set default state values for demo
     machineState.brew_setpoint = 93.0f;
     machineState.steam_setpoint = 145.0f;
     machineState.target_weight = 36.0f;
+    machineState.brew_max_temp = 105.0f;
+    machineState.steam_max_temp = 160.0f;
+    machineState.dose_weight = 18.0f;
     
     LOG_I("Setup complete. Free heap: %d bytes", ESP.getFreeHeap());
 }
@@ -275,15 +320,7 @@ void parsePicoStatus(const uint8_t* payload, uint8_t length) {
     memcpy(&machineState.brew_setpoint, &payload[14], sizeof(float));
     memcpy(&machineState.steam_setpoint, &payload[18], sizeof(float));
     
-    // Switch to brew screen automatically when brewing starts
-    if (machineState.is_brewing && ui.getCurrentScreen() != SCREEN_BREW) {
-        ui.showScreen(SCREEN_BREW);
-    }
-    // Return to home when brewing stops
-    if (!machineState.is_brewing && ui.getCurrentScreen() == SCREEN_BREW) {
-        ui.showScreen(SCREEN_HOME);
-        ui.showNotification("Brew Complete!", 3000);
-    }
+    // Auto-switch screens is now handled by UI::checkAutoScreenSwitch()
 }
 
 /**
@@ -293,17 +330,17 @@ void handleEncoderEvent(int32_t diff, button_state_t btn) {
     // Log significant events
     if (diff != 0) {
         LOG_D("Encoder: %+d", diff);
+        ui.handleEncoder(diff);
     }
     
     if (btn == BTN_PRESSED) {
         LOG_D("Button: short press");
-        ui.handleButtonPress(false);
+        ui.handleButtonPress();
     } else if (btn == BTN_LONG_PRESSED) {
         LOG_D("Button: long press");
-        ui.handleButtonPress(true);
+        ui.handleLongPress();
     } else if (btn == BTN_DOUBLE_PRESSED) {
         LOG_D("Button: double press");
-        // Double press could be used for special actions
-        // e.g., quick tare scale, toggle units, etc.
+        ui.handleDoublePress();
     }
 }

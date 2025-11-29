@@ -24,7 +24,7 @@ The ESP32-S3 serves as the connectivity and UI hub for the BrewOS coffee machine
 | Basic Dashboard UI | ✅ Complete | Temperature, pressure display |
 | MQTT Integration | ✅ Complete | [Details](integrations/MQTT.md) |
 | Web API | ✅ Complete | [Details](integrations/Web_API.md) |
-| LVGL Display | 🔲 In Progress | Round display UI |
+| LVGL Display | ✅ Complete | Round display UI |
 | BLE Scale | 🔲 Planned | Brew by weight |
 | Cloud Integration | 🔲 Planned | Remote monitoring |
 
@@ -54,18 +54,18 @@ The ESP32-S3 serves as the connectivity and UI hub for the BrewOS coffee machine
 | 8 | PICO_RUN (Reset) | ✅ |
 | 9 | PICO_BOOTSEL | ✅ |
 | 10 | WEIGHT_STOP | ✅ |
-| 14 | Encoder CLK | 🔲 |
-| 13 | Encoder DT | 🔲 |
-| 15 | Encoder SW | 🔲 |
+| 14 | Encoder CLK | ✅ |
+| 13 | Encoder DT | ✅ |
+| 15 | Encoder SW | ✅ |
 
 ### Tasks
 
 ```
-[ ] HW-1: Configure LVGL for 480x480 round display
-[ ] HW-2: Initialize display driver (ST7701)
-[ ] HW-3: Implement rotary encoder with debouncing
-[ ] HW-4: Button press detection (short/long/double)
-[ ] HW-5: Backlight PWM control
+[x] HW-1: Configure LVGL for 480x480 round display
+[x] HW-2: Initialize display driver
+[x] HW-3: Implement rotary encoder with debouncing
+[x] HW-4: Button press detection (short/long/double)
+[x] HW-5: Backlight PWM control
 [ ] HW-6: Display sleep mode
 [ ] HW-7: ESP32 OTA self-update
 [ ] HW-8: Hardware watchdog
@@ -83,26 +83,27 @@ Round display screens with rotary encoder navigation.
 
 | Screen | Description | Status |
 |--------|-------------|--------|
-| Setup | WiFi AP info, QR code | 🔲 |
-| Idle | Turn on, heating strategy | 🔲 |
-| Home | Brew/Steam temps, pressure | 🔲 |
-| Brewing | Timer, weight, flow | 🔲 |
-| Shot Complete | Summary, save option | 🔲 |
-| Settings | Menu navigation | 🔲 |
-| Scale Pairing | BLE scale connection | 🔲 |
-| Alarm | Error display | 🔲 |
+| Setup | WiFi AP info | ✅ Complete |
+| Idle | Turn on, heating strategy | ✅ Complete |
+| Home | Brew/Steam temps, pressure | ✅ Complete |
+| Brewing | Timer, weight, flow | ✅ Complete |
+| Shot Complete | Summary, save option | ✅ Complete |
+| Settings | Menu navigation | ✅ Complete |
+| Temperature | Setpoint adjustment | ✅ Placeholder |
+| Scale Pairing | BLE scale connection | ✅ Placeholder |
+| Alarm | Error display | ✅ Complete |
 
 ### Tasks
 
 ```
-[ ] UI-1: Setup screen with AP info
-[ ] UI-2: Idle screen with heating strategy
-[ ] UI-3: Home screen with temperature arcs
-[ ] UI-4: Brewing screen with timer/weight
-[ ] UI-5: Settings menu navigation
-[ ] UI-6: Scale pairing flow
-[ ] UI-7: Alarm handling
-[ ] UI-8: Screen transitions and animations
+[x] UI-1: Setup screen with AP info
+[x] UI-2: Idle screen with heating strategy
+[x] UI-3: Home screen with temperature arcs
+[x] UI-4: Brewing screen with timer/weight
+[x] UI-5: Settings menu navigation
+[x] UI-6: Scale pairing screen (placeholder)
+[x] UI-7: Alarm handling
+[x] UI-8: Screen transitions and animations
 ```
 
 ---
@@ -220,22 +221,43 @@ See [Web API Reference](integrations/Web_API.md) for full documentation.
 src/esp32/
 ├── include/
 │   ├── config.h
+│   ├── mqtt_client.h
+│   ├── pico_uart.h
+│   ├── web_server.h
+│   ├── wifi_manager.h
 │   ├── display/
 │   │   ├── display.h
+│   │   ├── display_config.h
 │   │   ├── encoder.h
 │   │   └── theme.h
-│   ├── network/           # Planned reorganization
-│   │   ├── mqtt_client.h
-│   │   ├── web_server.h
-│   │   └── wifi_manager.h
 │   └── ui/
+│       ├── ui.h
+│       ├── screen_alarm.h
+│       ├── screen_brewing.h
+│       ├── screen_complete.h
 │       ├── screen_home.h
-│       └── ui.h
+│       ├── screen_idle.h
+│       ├── screen_settings.h
+│       └── screen_setup.h
 ├── src/
 │   ├── main.cpp
+│   ├── mqtt_client.cpp
+│   ├── pico_uart.cpp
+│   ├── web_server.cpp
+│   ├── wifi_manager.cpp
 │   ├── display/
-│   ├── network/
+│   │   ├── display.cpp
+│   │   ├── encoder.cpp
+│   │   └── theme.cpp
 │   └── ui/
+│       ├── ui.cpp
+│       ├── screen_alarm.cpp
+│       ├── screen_brewing.cpp
+│       ├── screen_complete.cpp
+│       ├── screen_home.cpp
+│       ├── screen_idle.cpp
+│       ├── screen_settings.cpp
+│       └── screen_setup.cpp
 ├── data/                  # Web UI (LittleFS)
 └── platformio.ini
 ```
