@@ -27,8 +27,6 @@ const getNavigation = (isCloud: boolean, deviceId?: string) => {
     { name: 'Brewing', href: `${basePath}/brewing`, icon: Coffee },
     { name: 'Scale', href: `${basePath}/scale`, icon: Scale },
     { name: 'Schedules', href: `${basePath}/schedules`, icon: Calendar },
-    { name: 'Settings', href: `${basePath}/settings`, icon: Settings },
-    { name: 'System', href: `${basePath}/system`, icon: Server },
   ];
   
   // In local mode, add Cloud tab for pairing/management
@@ -36,7 +34,12 @@ const getNavigation = (isCloud: boolean, deviceId?: string) => {
     items.push({ name: 'Cloud', href: '/cloud', icon: Cloud });
   }
   
-  items.push({ name: 'About', href: `${basePath}/about`, icon: Info });
+  // Settings, System, and About are always last
+  items.push(
+    { name: 'Settings', href: `${basePath}/settings`, icon: Settings },
+    { name: 'System', href: `${basePath}/system`, icon: Server },
+    { name: 'About', href: `${basePath}/about`, icon: Info }
+  );
   
   return items;
 };
