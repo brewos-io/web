@@ -45,8 +45,22 @@ void WebServer::loop() {
 }
 
 void WebServer::setupRoutes() {
-    // Serve static files from LittleFS
-    _server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+    // Root route - serve setup.html in AP mode, index.html otherwise
+    _server.on("/", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        if (_wifiManager.isAPMode()) {
+            request->send(LittleFS, "/setup.html", "text/html");
+        } else {
+            request->send(LittleFS, "/index.html", "text/html");
+        }
+    });
+    
+    // Explicit setup page route (accessible anytime)
+    _server.on("/setup", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->send(LittleFS, "/setup.html", "text/html");
+    });
+    
+    // Serve other static files from LittleFS
+    _server.serveStatic("/", LittleFS, "/");
     
     // API endpoints
     _server.on("/api/status", HTTP_GET, [this](AsyncWebServerRequest* request) {

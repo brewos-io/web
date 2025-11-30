@@ -218,12 +218,8 @@ async function fetchStatus() {
         elements.espHeap.textContent = formatBytes(data.esp32?.freeHeap || 0);
         elements.espUptime.textContent = formatUptime(data.esp32?.uptime || 0);
         
-        // Check if in AP mode
-        if (data.wifi?.mode === 1) {  // AP_MODE
-            elements.wifiSetup.classList.remove('hidden');
-        } else {
-            elements.wifiSetup.classList.add('hidden');
-        }
+        // Note: AP mode now redirects to /setup.html automatically
+        // WiFi setup section hidden by default in dashboard
         
         // Update MQTT status
         if (data.mqtt) {

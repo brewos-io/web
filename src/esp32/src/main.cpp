@@ -15,6 +15,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include <ESPmDNS.h>
 #include <cmath>
 #include "config.h"
 #include "wifi_manager.h"
@@ -263,6 +264,15 @@ void setup() {
         strncpy(machineState.wifi_ip, ws.ip.c_str(), sizeof(machineState.wifi_ip) - 1);
         machineState.wifi_rssi = WiFi.RSSI();
         ui.showNotification("WiFi Connected", 2000);
+        
+        // Start mDNS responder for brewos.local
+        if (MDNS.begin("brewos")) {
+            LOG_I("mDNS started: http://brewos.local");
+            MDNS.addService("http", "tcp", 80);
+            webServer.broadcastLog("Access via: http://brewos.local", "info");
+        } else {
+            LOG_W("mDNS failed to start");
+        }
         
         // Try MQTT connection if enabled
         if (mqttClient.getConfig().enabled) {

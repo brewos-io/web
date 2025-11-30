@@ -46,6 +46,7 @@ public:
     // Get current status
     WiFiStatus getStatus();
     WiFiManagerMode getMode() { return _mode; }
+    bool isAPMode() { return _mode == WiFiManagerMode::AP_MODE; }
     bool isConnected();
     String getIP();
     
