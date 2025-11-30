@@ -8,6 +8,11 @@ on:
       - 'src/web/**'
       - '.github/workflows/deploy.yml'
 
+# Only allow one deploy at a time - cancel older runs
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 jobs:
   # First, verify the build works in CI before deploying
   build-check:
