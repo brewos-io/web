@@ -25,6 +25,18 @@ The ESP32 provides a RESTful HTTP API for machine control, configuration, and mo
 | GET | `/api/mqtt/config` | Get MQTT config | ✅ |
 | POST | `/api/mqtt/config` | Set MQTT config | ✅ |
 | POST | `/api/mqtt/test` | Test MQTT connection | ✅ |
+| GET | `/api/schedules` | Get all schedules | ✅ |
+| POST | `/api/schedules` | Add schedule | ✅ |
+| POST | `/api/schedules/update` | Update schedule | ✅ |
+| POST | `/api/schedules/delete` | Delete schedule | ✅ |
+| POST | `/api/schedules/toggle` | Enable/disable schedule | ✅ |
+| GET | `/api/schedules/auto-off` | Get auto power-off settings | ✅ |
+| POST | `/api/schedules/auto-off` | Set auto power-off | ✅ |
+| GET | `/api/time` | Get time status & settings | ✅ |
+| POST | `/api/time` | Set time/NTP settings | ✅ |
+| POST | `/api/time/sync` | Force NTP sync | ✅ |
+| GET | `/api/eco/settings` | Get eco mode settings | ✅ |
+| POST | `/api/eco/settings` | Set eco mode settings | ✅ |
 
 ---
 
@@ -549,6 +561,223 @@ POST /api/scale/timer/start    # Start scale timer (Acaia)
 POST /api/scale/timer/stop     # Stop scale timer
 POST /api/scale/timer/reset    # Reset scale timer
 ```
+
+---
+
+## Schedule Endpoints
+
+### GET /api/schedules
+
+Get all schedules and auto power-off settings.
+
+**Response:**
+```json
+{
+  "schedules": [
+    {
+      "id": 1,
+      "enabled": true,
+      "days": 62,
+      "hour": 7,
+      "minute": 0,
+      "action": "on",
+      "strategy": 1,
+      "name": "Morning Coffee"
+    }
+  ],
+  "autoPowerOffEnabled": true,
+  "autoPowerOffMinutes": 60
+}
+```
+
+**Days Bitmask:**
+| Bit | Day |
+|-----|-----|
+| 0x01 | Sunday |
+| 0x02 | Monday |
+| 0x04 | Tuesday |
+| 0x08 | Wednesday |
+| 0x10 | Thursday |
+| 0x20 | Friday |
+| 0x40 | Saturday |
+
+### POST /api/schedules
+
+Add a new schedule.
+
+**Request:**
+```json
+{
+  "enabled": true,
+  "days": 62,
+  "hour": 7,
+  "minute": 0,
+  "action": "on",
+  "strategy": 1,
+  "name": "Morning Coffee"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "id": 1
+}
+```
+
+### POST /api/schedules/update
+
+Update an existing schedule.
+
+**Request:**
+```json
+{
+  "id": 1,
+  "enabled": true,
+  "days": 127,
+  "hour": 6,
+  "minute": 30,
+  "action": "on",
+  "strategy": 2,
+  "name": "Early Bird"
+}
+```
+
+### POST /api/schedules/delete
+
+Delete a schedule.
+
+**Request:**
+```json
+{
+  "id": 1
+}
+```
+
+### POST /api/schedules/toggle
+
+Enable or disable a schedule.
+
+**Request:**
+```json
+{
+  "id": 1,
+  "enabled": false
+}
+```
+
+### GET /api/schedules/auto-off
+
+Get auto power-off settings.
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "minutes": 60
+}
+```
+
+### POST /api/schedules/auto-off
+
+Set auto power-off settings.
+
+**Request:**
+```json
+{
+  "enabled": true,
+  "minutes": 90
+}
+```
+
+---
+
+## Time/NTP Endpoints
+
+### GET /api/time
+
+Get current time status and settings.
+
+**Response:**
+```json
+{
+  "synced": true,
+  "currentTime": "2025-11-30 16:30:00",
+  "timezone": "UTC+2",
+  "utcOffset": 7200,
+  "settings": {
+    "useNTP": true,
+    "ntpServer": "pool.ntp.org",
+    "utcOffsetMinutes": 120,
+    "dstEnabled": false,
+    "dstOffsetMinutes": 60
+  }
+}
+```
+
+### POST /api/time
+
+Update time settings.
+
+**Request:**
+```json
+{
+  "useNTP": true,
+  "ntpServer": "pool.ntp.org",
+  "utcOffsetMinutes": 120,
+  "dstEnabled": true,
+  "dstOffsetMinutes": 60
+}
+```
+
+### POST /api/time/sync
+
+Force NTP synchronization.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "message": "NTP sync initiated"
+}
+```
+
+---
+
+## Eco Mode Endpoints
+
+### GET /api/eco/settings
+
+Get eco mode configuration.
+
+**Response:**
+```json
+{
+  "enabled": true,
+  "brewTemp": 80.0,
+  "timeout": 30
+}
+```
+
+### POST /api/eco/settings
+
+Set eco mode configuration.
+
+**Request:**
+```json
+{
+  "enabled": true,
+  "brewTemp": 80.0,
+  "timeout": 30
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `enabled` | Eco mode feature enabled |
+| `brewTemp` | Temperature (°C) in eco mode |
+| `timeout` | Minutes idle before entering eco mode |
 
 ---
 

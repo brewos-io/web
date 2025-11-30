@@ -268,6 +268,15 @@ void setup() {
         machineState.wifi_rssi = WiFi.RSSI();
         ui.showNotification("WiFi Connected", 2000);
         
+        // Configure and sync NTP
+        auto& timeSettings = State.settings().time;
+        wifiManager.configureNTP(
+            timeSettings.ntpServer,
+            timeSettings.utcOffsetMinutes,
+            timeSettings.dstEnabled,
+            timeSettings.dstOffsetMinutes
+        );
+        
         // Start mDNS responder for brewos.local
         if (MDNS.begin("brewos")) {
             LOG_I("mDNS started: http://brewos.local");

@@ -198,3 +198,100 @@ void WiFiManager::saveCredentials(const String& ssid, const String& password) {
     _prefs.end();
 }
 
+// =============================================================================
+// NTP/Time Functions
+// =============================================================================
+
+void WiFiManager::configureNTP(const char* server, int16_t utcOffsetMinutes, bool dstEnabled, int16_t dstOffsetMinutes) {
+    strncpy(_ntpServer, server, sizeof(_ntpServer) - 1);
+    _utcOffsetSec = utcOffsetMinutes * 60;
+    _dstOffsetSec = dstEnabled ? (dstOffsetMinutes * 60) : 0;
+    _ntpConfigured = true;
+    
+    LOG_I("NTP configured: server=%s, UTC offset=%d min, DST=%s (%d min)",
+          _ntpServer, utcOffsetMinutes, dstEnabled ? "on" : "off", dstOffsetMinutes);
+    
+    // Apply configuration immediately if WiFi connected
+    if (_mode == WiFiManagerMode::STA_MODE) {
+        syncNTP();
+    }
+}
+
+void WiFiManager::syncNTP() {
+    if (!_ntpConfigured) {
+        // Use defaults if not configured
+        configureNTP("pool.ntp.org", 0, false, 0);
+    }
+    
+    LOG_I("Configuring NTP: %s (UTC%+d)", _ntpServer, _utcOffsetSec / 3600);
+    
+    // Configure time with timezone offset
+    // ESP32 uses POSIX timezone format: GMT-offset (inverted from what you'd expect)
+    // For UTC+2: "UTC-2" because POSIX uses the opposite sign
+    char tzStr[32];
+    int hours = _utcOffsetSec / 3600;
+    int mins = abs((_utcOffsetSec % 3600) / 60);
+    
+    if (_dstOffsetSec > 0) {
+        // With DST - format: STD-offset DST for simple rule
+        snprintf(tzStr, sizeof(tzStr), "UTC%+d", -hours);
+    } else {
+        snprintf(tzStr, sizeof(tzStr), "UTC%+d", -hours);
+    }
+    
+    // Set timezone and NTP server
+    configTzTime(tzStr, _ntpServer);
+    
+    LOG_I("NTP sync started, timezone: %s", tzStr);
+}
+
+bool WiFiManager::isTimeSynced() {
+    time_t now = time(nullptr);
+    // If time is after 2020, consider it synced (NTP provides epoch time)
+    return now > 1577836800;  // Jan 1, 2020
+}
+
+TimeStatus WiFiManager::getTimeStatus() {
+    TimeStatus status;
+    status.ntpSynced = isTimeSynced();
+    status.utcOffset = _utcOffsetSec + _dstOffsetSec;
+    
+    if (status.ntpSynced) {
+        status.currentTime = getFormattedTime();
+        
+        // Format timezone string
+        int totalOffsetMin = status.utcOffset / 60;
+        int hours = totalOffsetMin / 60;
+        int mins = abs(totalOffsetMin % 60);
+        char tz[16];
+        if (mins > 0) {
+            snprintf(tz, sizeof(tz), "UTC%+d:%02d", hours, mins);
+        } else {
+            snprintf(tz, sizeof(tz), "UTC%+d", hours);
+        }
+        status.timezone = tz;
+    } else {
+        status.currentTime = "Not synced";
+        status.timezone = "Unknown";
+    }
+    
+    return status;
+}
+
+time_t WiFiManager::getLocalTime() {
+    return time(nullptr);
+}
+
+String WiFiManager::getFormattedTime(const char* format) {
+    time_t now = time(nullptr);
+    struct tm* timeinfo = localtime(&now);
+    
+    if (!timeinfo) {
+        return "Invalid";
+    }
+    
+    char buffer[64];
+    strftime(buffer, sizeof(buffer), format, timeinfo);
+    return String(buffer);
+}
+

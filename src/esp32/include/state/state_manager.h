@@ -39,6 +39,7 @@ public:
     void saveBrewSettings();
     void savePowerSettings();
     void saveNetworkSettings();
+    void saveTimeSettings();
     void saveMQTTSettings();
     void saveCloudSettings();
     void saveScaleSettings();

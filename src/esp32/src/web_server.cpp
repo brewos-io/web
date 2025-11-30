@@ -493,6 +493,71 @@ void WebServer::setupRoutes() {
         }
     );
     
+    // ==========================================================================
+    // Time/NTP API endpoints
+    // ==========================================================================
+    
+    // Get time status and settings
+    _server.on("/api/time", HTTP_GET, [this](AsyncWebServerRequest* request) {
+        JsonDocument doc;
+        
+        // Current time status
+        TimeStatus timeStatus = _wifiManager.getTimeStatus();
+        doc["synced"] = timeStatus.ntpSynced;
+        doc["currentTime"] = timeStatus.currentTime;
+        doc["timezone"] = timeStatus.timezone;
+        doc["utcOffset"] = timeStatus.utcOffset;
+        
+        // Settings
+        JsonObject settings = doc["settings"].to<JsonObject>();
+        State.settings().time.toJson(settings);
+        
+        String response;
+        serializeJson(doc, response);
+        request->send(200, "application/json", response);
+    });
+    
+    // Update time settings
+    _server.on("/api/time", HTTP_POST,
+        [](AsyncWebServerRequest* request) {},
+        nullptr,
+        [this](AsyncWebServerRequest* request, uint8_t* data, size_t len, size_t index, size_t total) {
+            JsonDocument doc;
+            if (deserializeJson(doc, data, len)) {
+                request->send(400, "application/json", "{\"error\":\"Invalid JSON\"}");
+                return;
+            }
+            
+            auto& timeSettings = State.settings().time;
+            
+            if (!doc["useNTP"].isNull()) timeSettings.useNTP = doc["useNTP"].as<bool>();
+            if (!doc["ntpServer"].isNull()) strncpy(timeSettings.ntpServer, doc["ntpServer"].as<const char*>(), sizeof(timeSettings.ntpServer) - 1);
+            if (!doc["utcOffsetMinutes"].isNull()) timeSettings.utcOffsetMinutes = doc["utcOffsetMinutes"].as<int16_t>();
+            if (!doc["dstEnabled"].isNull()) timeSettings.dstEnabled = doc["dstEnabled"].as<bool>();
+            if (!doc["dstOffsetMinutes"].isNull()) timeSettings.dstOffsetMinutes = doc["dstOffsetMinutes"].as<int16_t>();
+            
+            State.saveTimeSettings();
+            
+            // Apply new NTP settings
+            _wifiManager.configureNTP(
+                timeSettings.ntpServer,
+                timeSettings.utcOffsetMinutes,
+                timeSettings.dstEnabled,
+                timeSettings.dstOffsetMinutes
+            );
+            
+            request->send(200, "application/json", "{\"status\":\"ok\"}");
+            broadcastLog("Time settings updated", "info");
+        }
+    );
+    
+    // Force NTP sync
+    _server.on("/api/time/sync", HTTP_POST, [this](AsyncWebServerRequest* request) {
+        _wifiManager.syncNTP();
+        request->send(200, "application/json", "{\"status\":\"ok\",\"message\":\"NTP sync initiated\"}");
+        broadcastLog("NTP sync initiated", "info");
+    });
+    
     // Temperature control endpoints
     _server.on("/api/temp/brew", HTTP_POST,
         [](AsyncWebServerRequest* request) {},

@@ -54,6 +54,17 @@ struct NetworkSettings {
     bool fromJson(JsonObjectConst obj);
 };
 
+struct TimeSettings {
+    bool useNTP = true;                 // Use NTP vs manual time
+    char ntpServer[64] = "pool.ntp.org";
+    int16_t utcOffsetMinutes = 0;       // Timezone offset in minutes from UTC
+    bool dstEnabled = false;            // Daylight saving time
+    int16_t dstOffsetMinutes = 60;      // DST offset (usually 60 min)
+    
+    void toJson(JsonObject& obj) const;
+    bool fromJson(JsonObjectConst obj);
+};
+
 struct MQTTSettings {
     bool enabled = false;
     char broker[64] = {0};
@@ -177,6 +188,7 @@ struct Settings {
     BrewSettings brew;
     PowerSettings power;
     NetworkSettings network;
+    TimeSettings time;
     MQTTSettings mqtt;
     CloudSettings cloud;
     ScaleSettings scale;

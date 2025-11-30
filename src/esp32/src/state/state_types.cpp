@@ -93,6 +93,27 @@ bool NetworkSettings::fromJson(JsonObjectConst obj) {
 }
 
 // =============================================================================
+// TimeSettings
+// =============================================================================
+
+void TimeSettings::toJson(JsonObject& obj) const {
+    obj["useNTP"] = useNTP;
+    obj["ntpServer"] = ntpServer;
+    obj["utcOffsetMinutes"] = utcOffsetMinutes;
+    obj["dstEnabled"] = dstEnabled;
+    obj["dstOffsetMinutes"] = dstOffsetMinutes;
+}
+
+bool TimeSettings::fromJson(JsonObjectConst obj) {
+    if (obj["useNTP"].is<bool>()) useNTP = obj["useNTP"];
+    if (obj["ntpServer"].is<const char*>()) strncpy(ntpServer, obj["ntpServer"] | "pool.ntp.org", sizeof(ntpServer) - 1);
+    if (obj["utcOffsetMinutes"].is<int16_t>()) utcOffsetMinutes = obj["utcOffsetMinutes"];
+    if (obj["dstEnabled"].is<bool>()) dstEnabled = obj["dstEnabled"];
+    if (obj["dstOffsetMinutes"].is<int16_t>()) dstOffsetMinutes = obj["dstOffsetMinutes"];
+    return true;
+}
+
+// =============================================================================
 // MQTTSettings
 // =============================================================================
 
@@ -193,6 +214,9 @@ void Settings::toJson(JsonDocument& doc) const {
     JsonObject networkObj = doc["network"].to<JsonObject>();
     network.toJson(networkObj);
     
+    JsonObject timeObj = doc["time"].to<JsonObject>();
+    time.toJson(timeObj);
+    
     JsonObject mqttObj = doc["mqtt"].to<JsonObject>();
     mqtt.toJson(mqttObj);
     
@@ -230,6 +254,12 @@ bool Settings::fromJson(const JsonDocument& doc) {
     if (networkVar.is<JsonObjectConst>()) {
         JsonObjectConst obj = networkVar.as<JsonObjectConst>();
         network.fromJson(obj);
+    }
+    
+    JsonVariantConst timeVar = doc["time"];
+    if (timeVar.is<JsonObjectConst>()) {
+        JsonObjectConst obj = timeVar.as<JsonObjectConst>();
+        time.fromJson(obj);
     }
     
     JsonVariantConst mqttVar = doc["mqtt"];

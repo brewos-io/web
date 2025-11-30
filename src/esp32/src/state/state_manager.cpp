@@ -92,6 +92,16 @@ void StateManager::loadSettings() {
         strcpy(_settings.network.hostname, "brewos");
     }
     
+    // Time/NTP
+    _settings.time.useNTP = _prefs.getBool("useNTP", true);
+    _prefs.getString("ntpSrv", _settings.time.ntpServer, sizeof(_settings.time.ntpServer));
+    if (strlen(_settings.time.ntpServer) == 0) {
+        strcpy(_settings.time.ntpServer, "pool.ntp.org");
+    }
+    _settings.time.utcOffsetMinutes = _prefs.getShort("utcOff", 0);
+    _settings.time.dstEnabled = _prefs.getBool("dstEn", false);
+    _settings.time.dstOffsetMinutes = _prefs.getShort("dstOff", 60);
+    
     // MQTT
     _settings.mqtt.enabled = _prefs.getBool("mqttEn", false);
     _prefs.getString("mqttBrk", _settings.mqtt.broker, sizeof(_settings.mqtt.broker));
@@ -177,6 +187,17 @@ void StateManager::saveNetworkSettings() {
     _prefs.putString("wifiPass", _settings.network.wifiPassword);
     _prefs.putBool("wifiCfg", _settings.network.wifiConfigured);
     _prefs.putString("hostname", _settings.network.hostname);
+    _prefs.end();
+    notifySettingsChanged();
+}
+
+void StateManager::saveTimeSettings() {
+    _prefs.begin(NVS_SETTINGS, false);
+    _prefs.putBool("useNTP", _settings.time.useNTP);
+    _prefs.putString("ntpSrv", _settings.time.ntpServer);
+    _prefs.putShort("utcOff", _settings.time.utcOffsetMinutes);
+    _prefs.putBool("dstEn", _settings.time.dstEnabled);
+    _prefs.putShort("dstOff", _settings.time.dstOffsetMinutes);
     _prefs.end();
     notifySettingsChanged();
 }
@@ -571,6 +592,9 @@ bool StateManager::applySettings(const char* section, const JsonObject& obj) {
     } else if (strcmp(section, "network") == 0) {
         _settings.network.fromJson(obj);
         saveNetworkSettings();
+    } else if (strcmp(section, "time") == 0) {
+        _settings.time.fromJson(obj);
+        saveTimeSettings();
     } else if (strcmp(section, "mqtt") == 0) {
         _settings.mqtt.fromJson(obj);
         saveMQTTSettings();
