@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { CloudDevice, ConnectionMode } from './types';
-import { isSupabaseConfigured, supabase } from './supabase';
+import { isSupabaseConfigured, getSupabase } from './supabase';
 import type { User, Session } from '@supabase/supabase-js';
 
 /**
@@ -80,7 +80,7 @@ export const useAppStore = create<AppState>()(
         }
 
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: { session } } = await getSupabase().auth.getSession();
           
           set({
             user: session?.user ?? null,
@@ -90,7 +90,7 @@ export const useAppStore = create<AppState>()(
           });
 
           // Listen for auth changes
-          supabase.auth.onAuthStateChange((_event, session) => {
+          getSupabase().auth.onAuthStateChange((_event, session) => {
             set({
               user: session?.user ?? null,
               session,
@@ -119,7 +119,7 @@ export const useAppStore = create<AppState>()(
         
         set({ authLoading: true });
         
-        const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await getSupabase().auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: `${window.location.origin}/auth/callback`,
@@ -135,7 +135,7 @@ export const useAppStore = create<AppState>()(
       signOut: async () => {
         if (!isSupabaseConfigured) return;
         
-        await supabase.auth.signOut();
+        await getSupabase().auth.signOut();
         set({ user: null, session: null, devices: [], selectedDeviceId: null });
       },
 

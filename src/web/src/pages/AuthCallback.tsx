@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { getSupabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 export function AuthCallback() {
@@ -9,7 +9,12 @@ export function AuthCallback() {
   useEffect(() => {
     // Handle the OAuth callback
     const handleCallback = async () => {
-      const { error } = await supabase.auth.getSession();
+      if (!isSupabaseConfigured) {
+        navigate('/');
+        return;
+      }
+      
+      const { error } = await getSupabase().auth.getSession();
       
       if (error) {
         console.error('Auth callback error:', error);
