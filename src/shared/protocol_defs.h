@@ -136,8 +136,7 @@ extern "C" {
 #define HEAT_STRATEGY_BREW_ONLY     0   // Heat only brew boiler
 #define HEAT_STRATEGY_SEQUENTIAL    1   // Brew first, then steam
 #define HEAT_STRATEGY_PARALLEL      2   // Both simultaneously
-#define HEAT_STRATEGY_STEAM_PRIORITY 3  // Prioritize steam boiler
-#define HEAT_STRATEGY_SMART_STAGGER 4   // Power-aware staggering
+#define HEAT_STRATEGY_SMART_STAGGER 3   // Power-aware staggering
 
 // =============================================================================
 // Configuration Types (for MSG_CMD_CONFIG)

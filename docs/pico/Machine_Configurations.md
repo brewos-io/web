@@ -51,12 +51,6 @@ Different heating strategies optimize for different use cases:
 │   • Power draw: ~12A peak (2800W)                                          │
 │   • ⚠️  May trip 15A breakers!                                              │
 │                                                                              │
-│   HEAT_STEAM_PRIORITY                                                       │
-│   ────────────────────                                                      │
-│   • Steam boiler heats first                                                │
-│   • Brew boiler starts after steam reaches threshold                       │
-│   • Use case: Milk drink priority, HX-like behavior                        │
-│                                                                              │
 │   HEAT_SMART_STAGGER                                                        │
 │   ───────────────────                                                       │
 │   • Time-shares between boilers to limit simultaneous ON time              │
@@ -149,11 +143,10 @@ All heating strategies control power via **SSR PWM** (Pulse Width Modulation):
 |----------|----------------------------------|--------------|
 | `HEAT_BREW_ONLY` | No (steam off) | ~6A |
 | `HEAT_SEQUENTIAL` | **No** (one after other) | **~6A** ✓ |
-| `HEAT_STEAM_PRIORITY` | **No** (one after other) | **~6A** ✓ |
 | `HEAT_PARALLEL` | **Yes** | ~12A |
 | `HEAT_SMART_STAGGER` | Partially (time-shared) | ~6-12A |
 
-**For breaker/generator protection:** Use `HEAT_SEQUENTIAL` or `HEAT_STEAM_PRIORITY` - these guarantee only one element is ever ON at a time.
+**For breaker/generator protection:** Use `HEAT_SEQUENTIAL` - this guarantees only one element is ever ON at a time.
 
 **`HEAT_SMART_STAGGER`** reduces *average* combined duty, but during the overlap periods, both elements CAN be ON simultaneously. It's better than `PARALLEL` but not as safe as `SEQUENTIAL` for current-limited installations.
 
@@ -332,8 +325,7 @@ typedef enum {
     HEAT_BREW_ONLY       = 0,  // Only brew boiler
     HEAT_SEQUENTIAL      = 1,  // Brew first, then steam
     HEAT_PARALLEL        = 2,  // Both simultaneously
-    HEAT_STEAM_PRIORITY  = 3,  // Steam first, then brew
-    HEAT_SMART_STAGGER   = 4,  // Staggered duty cycles
+    HEAT_SMART_STAGGER   = 3,  // Staggered duty cycles
 } heating_strategy_t;
 ```
 
@@ -343,7 +335,7 @@ typedef enum {
 typedef struct {
     heating_strategy_t strategy;
     
-    // For HEAT_SEQUENTIAL / HEAT_STEAM_PRIORITY:
+    // For HEAT_SEQUENTIAL:
     // Start second boiler when first reaches this % of setpoint
     uint8_t sequential_threshold_pct;  // e.g., 90 = start at 90% of setpoint
     

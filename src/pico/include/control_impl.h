@@ -25,8 +25,7 @@ typedef enum {
     HEAT_BREW_ONLY = 0,        // Only brew boiler heats
     HEAT_SEQUENTIAL = 1,       // Brew first, steam after threshold
     HEAT_PARALLEL = 2,         // Both heat simultaneously
-    HEAT_STEAM_PRIORITY = 3,   // Steam first, brew after threshold
-    HEAT_SMART_STAGGER = 4     // Both with limited combined duty
+    HEAT_SMART_STAGGER = 3     // Both with limited combined duty
 } heating_strategy_t;
 
 // =============================================================================

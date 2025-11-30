@@ -691,19 +691,6 @@ void apply_heating_strategy(
             *steam_duty = steam_demand;
             break;
             
-        case HEAT_STEAM_PRIORITY:
-            // Steam first, brew starts after steam reaches threshold
-            *steam_duty = steam_demand;
-            
-            float steam_pct = (steam_temp / steam_setpoint) * 100.0f;
-            
-            if (steam_pct >= cfg->sequential_threshold_pct) {
-                *brew_duty = brew_demand;
-            } else {
-                *brew_duty = 0;
-            }
-            break;
-            
         case HEAT_SMART_STAGGER:
             // Both heat, but combined duty is limited
             {
@@ -723,7 +710,7 @@ void apply_heating_strategy(
                         *brew_duty = fminf(brew_demand, max_combined);
                         *steam_duty = fminf(steam_demand, max_combined - *brew_duty);
                     } else {
-                        // Steam priority
+                        // Steam gets priority in stagger mode
                         *steam_duty = fminf(steam_demand, max_combined);
                         *brew_duty = fminf(brew_demand, max_combined - *steam_duty);
                     }

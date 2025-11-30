@@ -65,8 +65,7 @@ struct ScheduleEntry {
 | 0 | BREW_ONLY | Heat only brew boiler |
 | 1 | SEQUENTIAL | Brew first, then steam (default) |
 | 2 | PARALLEL | Heat both simultaneously |
-| 3 | STEAM_PRIORITY | Steam first, then brew |
-| 4 | SMART_STAGGER | Power-aware intelligent heating |
+| 3 | SMART_STAGGER | Power-aware intelligent heating |
 
 ## API Endpoints
 

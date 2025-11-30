@@ -9,24 +9,30 @@
 #include "display/theme.h"
 #include "display/display_config.h"
 
-// Strategy names
+// Strategy names (matching protocol_defs.h values)
 static const char* strategy_names[] = {
-    "Brew Only",
-    "Sequential",
-    "Steam Priority",
-    "Parallel",
-    "Smart Stagger"
+    "Brew Only",      // 0
+    "Sequential",     // 1
+    "Parallel",       // 2
+    "Smart Stagger"   // 3
 };
 
 static const char* strategy_descriptions[] = {
     "Heat brew boiler only",
     "Heat brew first, then steam",
-    "Heat steam first, then brew",
     "Heat both simultaneously",
     "Stagger for power efficiency"
 };
 
-#define STRATEGY_COUNT 5
+// Map array index to protocol strategy value (note: value 3 is unused)
+static const uint8_t strategy_values[] = {
+    0,  // BREW_ONLY
+    1,  // SEQUENTIAL
+    2,  // PARALLEL
+    3   // SMART_STAGGER
+};
+
+#define STRATEGY_COUNT 4
 
 // Static elements
 static lv_obj_t* screen = nullptr;
@@ -197,7 +203,10 @@ void screen_idle_select_strategy(int index) {
 }
 
 heating_strategy_t screen_idle_get_selected_strategy(void) {
-    return (heating_strategy_t)selected_index;
+    if (selected_index >= 0 && selected_index < STRATEGY_COUNT) {
+        return (heating_strategy_t)strategy_values[selected_index];
+    }
+    return HEAT_BREW_ONLY;
 }
 
 void screen_idle_set_turn_on_callback(idle_turn_on_callback_t callback) {

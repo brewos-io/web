@@ -81,7 +81,6 @@
 | **Heating Strategy: BREW_ONLY** | ✅ | `control_common.c` | Brew boiler only |
 | **Heating Strategy: SEQUENTIAL** | ✅ | `control_common.c` | Brew first, then steam |
 | **Heating Strategy: PARALLEL** | ✅ | `control_common.c` | Both boilers simultaneously |
-| **Heating Strategy: STEAM_PRIORITY** | ✅ | `control_common.c` | Steam first, then brew |
 | **Heating Strategy: SMART_STAGGER** | ✅ | `control_common.c` | Intelligent staggering with current limiting |
 | **Strategy Validation** | ✅ | `control_common.c` | Validates against electrical limits |
 | **Current Limiting** | ✅ | `control_common.c` | Real-time current limiting for parallel strategies |

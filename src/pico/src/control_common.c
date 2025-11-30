@@ -168,13 +168,6 @@ void apply_heating_strategy(
             break;
         }
             
-        case HEAT_STEAM_PRIORITY: {
-            *steam_duty = steam_demand;
-            float steam_pct = (steam_temp / steam_setpoint) * 100.0f;
-            *brew_duty = (steam_pct >= g_sequential_threshold_pct) ? brew_demand : 0.0f;
-            break;
-        }
-            
         case HEAT_SMART_STAGGER: {
             float brew_current = elec_state.brew_heater_current * (brew_demand / 100.0f);
             float steam_current = elec_state.steam_heater_current * (steam_demand / 100.0f);
@@ -451,8 +444,7 @@ static float calculate_strategy_max_current(uint8_t strategy) {
     
     switch (strategy) {
         case HEAT_BREW_ONLY: return brew;
-        case HEAT_SEQUENTIAL:
-        case HEAT_STEAM_PRIORITY: return fmaxf(brew, steam);
+        case HEAT_SEQUENTIAL: return fmaxf(brew, steam);
         case HEAT_PARALLEL:
         case HEAT_SMART_STAGGER: return brew + steam;
         default: return 0.0f;

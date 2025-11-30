@@ -139,8 +139,7 @@ enum HeatingStrategy : uint8_t {
     STRATEGY_BREW_ONLY = 0,
     STRATEGY_SEQUENTIAL = 1,
     STRATEGY_PARALLEL = 2,
-    STRATEGY_STEAM_PRIORITY = 3,
-    STRATEGY_SMART_STAGGER = 4
+    STRATEGY_SMART_STAGGER = 3
 };
 
 // Single schedule entry

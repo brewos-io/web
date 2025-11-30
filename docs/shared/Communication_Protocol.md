@@ -175,8 +175,7 @@ typedef struct __attribute__((packed)) {
 | 0 | HEAT_BREW_ONLY | Only brew boiler heats |
 | 1 | HEAT_SEQUENTIAL | Brew first, then steam |
 | 2 | HEAT_PARALLEL | Both simultaneously |
-| 3 | HEAT_STEAM_PRIORITY | Steam first, then brew |
-| 4 | HEAT_SMART_STAGGER | Both with limited combined duty |
+| 3 | HEAT_SMART_STAGGER | Both with limited combined duty |
 
 ---
 
@@ -393,7 +392,7 @@ typedef struct __attribute__((packed)) {
 **Behavior:**
 - `MODE_IDLE`: Machine idle, no heating. Remote control, schedules, web access continue.
 - `MODE_BREW`: Machine turns on, heats brew boiler to brew temperature.
-- `MODE_STEAM`: Machine turns on, heats both boilers (steam priority, then brew).
+- `MODE_STEAM`: Machine turns on, heats both boilers sequentially (brew first, then steam).
 
 **Note:** Mode change is rejected if machine is currently brewing.
 

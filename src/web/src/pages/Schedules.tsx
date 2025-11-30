@@ -46,8 +46,7 @@ const STRATEGIES = [
   { value: 0, label: 'Brew Only', desc: 'Heat only brew boiler' },
   { value: 1, label: 'Sequential', desc: 'Brew first, then steam' },
   { value: 2, label: 'Parallel', desc: 'Heat both simultaneously' },
-  { value: 3, label: 'Steam Priority', desc: 'Steam first, then brew' },
-  { value: 4, label: 'Smart Stagger', desc: 'Power-aware heating' },
+  { value: 3, label: 'Smart Stagger', desc: 'Power-aware heating' },
 ];
 
 interface Schedule {

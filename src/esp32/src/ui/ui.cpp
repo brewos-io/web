@@ -558,7 +558,6 @@ const char* UI::getStrategyText(uint8_t strategy) {
     switch (strategy) {
         case HEAT_BREW_ONLY: return "Brew Only";
         case HEAT_SEQUENTIAL: return "Sequential";
-        case HEAT_STEAM_PRIORITY: return "Steam Priority";
         case HEAT_PARALLEL: return "Parallel";
         case HEAT_SMART_STAGGER: return "Smart Stagger";
         default: return "Unknown";

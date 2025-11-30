@@ -51,9 +51,8 @@ typedef enum {
 typedef enum {
     HEAT_BREW_ONLY = 0,
     HEAT_SEQUENTIAL = 1,
-    HEAT_STEAM_PRIORITY = 2,
-    HEAT_PARALLEL = 3,
-    HEAT_SMART_STAGGER = 4
+    HEAT_PARALLEL = 2,
+    HEAT_SMART_STAGGER = 3
 } heating_strategy_t;
 
 // =============================================================================

@@ -327,7 +327,6 @@ def adc_to_pressure(adc_value, vref=3.3, range_bar=16):
 | FUNC-011 | HEAT_BREW_ONLY: only brew boiler heats | HIGH |
 | FUNC-012 | HEAT_SEQUENTIAL: brew first, steam after brew reaches threshold | HIGH |
 | FUNC-013 | HEAT_PARALLEL: both boilers heat simultaneously | MEDIUM |
-| FUNC-014 | HEAT_STEAM_PRIORITY: steam first, then brew | MEDIUM |
 | FUNC-015 | HEAT_SMART_STAGGER: both with limited combined duty cycle | MEDIUM |
 | FUNC-016 | Default heating strategy: per machine config | MEDIUM |
 | FUNC-017 | Heating strategy changeable at runtime via ESP32 command | MEDIUM |

@@ -161,7 +161,6 @@ The BrewOS UI runs on a 2.1" round display ([VIEWE UEDX48480021-MD80E](https://g
 |----------|--------------|-------------|
 | `HEAT_BREW_ONLY` | Brew Only | Steam heater disabled |
 | `HEAT_SEQUENTIAL` | Sequential | Heat one boiler at a time |
-| `HEAT_STEAM_PRIORITY` | Steam Priority | Steam first, then brew |
 | `HEAT_PARALLEL` | Parallel | Both heaters (high power) |
 | `HEAT_SMART_STAGGER` | Smart | Intelligent time-sharing |
 
