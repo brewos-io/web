@@ -2,12 +2,7 @@
 name: Build Web
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - 'src/web/**'
-      - 'src/cloud/**'
-      - '.github/workflows/build_web.yml'
+  # Only run on PRs - push builds handled by deploy.yml and build_firmware.yml
   pull_request:
     branches: ["main"]
     paths:
