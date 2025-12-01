@@ -22,6 +22,7 @@ export type MessageType =
   | 'esp_status'
   | 'pico_status'
   | 'scale_status'
+  | 'stats'
   | 'event'
   | 'log'
   | 'error'
@@ -176,12 +177,38 @@ export interface PicoInfo {
   uptime: number;
 }
 
-// Statistics
+// Statistics (matches ESP32 state_types.h)
 export interface Statistics {
+  // Lifetime stats
   totalShots: number;
+  totalSteamCycles: number;
+  totalKwh: number;
+  totalOnTimeMinutes: number;
+  
+  // Daily stats (reset at midnight)
   shotsToday: number;
-  lastCleaning: string | null;
-  shotsSinceCleaning: number;
+  kwhToday: number;
+  onTimeToday: number;
+  
+  // Maintenance counters
+  shotsSinceDescale: number;
+  shotsSinceGroupClean: number;
+  shotsSinceBackflush: number;
+  lastDescaleTimestamp: number;
+  lastGroupCleanTimestamp: number;
+  lastBackflushTimestamp: number;
+  
+  // Pico statistics (from protocol)
+  avgBrewTimeMs: number;
+  minBrewTimeMs: number;
+  maxBrewTimeMs: number;
+  dailyCount: number;
+  weeklyCount: number;
+  monthlyCount: number;
+  
+  // Session
+  sessionStartTimestamp: number;
+  sessionShots: number;
 }
 
 // Alerts & Logs

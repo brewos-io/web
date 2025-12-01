@@ -152,10 +152,36 @@ const defaultPico: PicoInfo = {
 };
 
 const defaultStats: Statistics = {
+  // Lifetime stats
   totalShots: 0,
+  totalSteamCycles: 0,
+  totalKwh: 0,
+  totalOnTimeMinutes: 0,
+  
+  // Daily stats
   shotsToday: 0,
-  lastCleaning: null,
-  shotsSinceCleaning: 0,
+  kwhToday: 0,
+  onTimeToday: 0,
+  
+  // Maintenance counters
+  shotsSinceDescale: 0,
+  shotsSinceGroupClean: 0,
+  shotsSinceBackflush: 0,
+  lastDescaleTimestamp: 0,
+  lastGroupCleanTimestamp: 0,
+  lastBackflushTimestamp: 0,
+  
+  // Pico statistics
+  avgBrewTimeMs: 0,
+  minBrewTimeMs: 0,
+  maxBrewTimeMs: 0,
+  dailyCount: 0,
+  weeklyCount: 0,
+  monthlyCount: 0,
+  
+  // Session
+  sessionStartTimestamp: 0,
+  sessionShots: 0,
 };
 
 const defaultDevice: DeviceInfo = {
@@ -304,6 +330,35 @@ export const useStore = create<BrewOSState>()(
           }));
           break;
 
+        case 'stats':
+          set((state) => ({
+            stats: {
+              ...state.stats,
+              totalShots: (data.totalShots as number) ?? state.stats.totalShots,
+              totalSteamCycles: (data.totalSteamCycles as number) ?? state.stats.totalSteamCycles,
+              totalKwh: (data.totalKwh as number) ?? state.stats.totalKwh,
+              totalOnTimeMinutes: (data.totalOnTimeMinutes as number) ?? state.stats.totalOnTimeMinutes,
+              shotsToday: (data.shotsToday as number) ?? state.stats.shotsToday,
+              kwhToday: (data.kwhToday as number) ?? state.stats.kwhToday,
+              onTimeToday: (data.onTimeToday as number) ?? state.stats.onTimeToday,
+              shotsSinceDescale: (data.shotsSinceDescale as number) ?? state.stats.shotsSinceDescale,
+              shotsSinceGroupClean: (data.shotsSinceGroupClean as number) ?? state.stats.shotsSinceGroupClean,
+              shotsSinceBackflush: (data.shotsSinceBackflush as number) ?? state.stats.shotsSinceBackflush,
+              lastDescaleTimestamp: (data.lastDescaleTimestamp as number) ?? state.stats.lastDescaleTimestamp,
+              lastGroupCleanTimestamp: (data.lastGroupCleanTimestamp as number) ?? state.stats.lastGroupCleanTimestamp,
+              lastBackflushTimestamp: (data.lastBackflushTimestamp as number) ?? state.stats.lastBackflushTimestamp,
+              avgBrewTimeMs: (data.avgBrewTimeMs as number) ?? state.stats.avgBrewTimeMs,
+              minBrewTimeMs: (data.minBrewTimeMs as number) ?? state.stats.minBrewTimeMs,
+              maxBrewTimeMs: (data.maxBrewTimeMs as number) ?? state.stats.maxBrewTimeMs,
+              dailyCount: (data.dailyCount as number) ?? state.stats.dailyCount,
+              weeklyCount: (data.weeklyCount as number) ?? state.stats.weeklyCount,
+              monthlyCount: (data.monthlyCount as number) ?? state.stats.monthlyCount,
+              sessionShots: (data.sessionShots as number) ?? state.stats.sessionShots,
+              sessionStartTimestamp: (data.sessionStartTimestamp as number) ?? state.stats.sessionStartTimestamp,
+            },
+          }));
+          break;
+
         case 'scan_result':
           get().addScanResult(data as unknown as ScaleScanResult);
           break;
@@ -396,7 +451,10 @@ function handleEvent(
           ...state.stats,
           totalShots: state.stats.totalShots + 1,
           shotsToday: state.stats.shotsToday + 1,
-          shotsSinceCleaning: state.stats.shotsSinceCleaning + 1,
+          sessionShots: state.stats.sessionShots + 1,
+          shotsSinceDescale: state.stats.shotsSinceDescale + 1,
+          shotsSinceGroupClean: state.stats.shotsSinceGroupClean + 1,
+          shotsSinceBackflush: state.stats.shotsSinceBackflush + 1,
         },
       });
       break;

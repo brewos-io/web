@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
+import { getConnection } from '@/lib/connection';
 import { Card, CardHeader, CardTitle } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Badge } from '@/components/Badge';
@@ -8,7 +9,6 @@ import {
   Coffee, 
   Clock, 
   Zap,
-  Droplets,
   TrendingUp,
   Calendar,
   Sparkles,
@@ -16,14 +16,8 @@ import {
   Target,
   Timer,
   Flame,
+  Droplets,
 } from 'lucide-react';
-
-interface DailyStats {
-  date: string;
-  shots: number;
-  avgTime: number;
-  avgWeight: number;
-}
 
 interface WeeklyData {
   day: string;
@@ -33,10 +27,9 @@ interface WeeklyData {
 export function Stats() {
   const stats = useStore((s) => s.stats);
   const [weeklyData, setWeeklyData] = useState<WeeklyData[]>([]);
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Fetch extended stats
+  // Fetch extended stats from API
   useEffect(() => {
     fetchExtendedStats();
   }, []);
@@ -44,47 +37,60 @@ export function Stats() {
   const fetchExtendedStats = async () => {
     setLoading(true);
     try {
-      // Try to fetch from API
-      const response = await fetch('/api/stats/extended');
+      const response = await fetch('/api/stats');
       if (response.ok) {
         const data = await response.json();
-        if (data.weekly) setWeeklyData(data.weekly);
-        if (data.daily) setDailyStats(data.daily);
+        if (data.weekly) {
+          setWeeklyData(data.weekly);
+        }
       }
     } catch {
-      // Generate mock data for display
-      generateMockData();
+      // Generate estimated weekly data from available stats
+      generateWeeklyEstimate();
     }
     setLoading(false);
   };
 
-  const generateMockData = () => {
+  const generateWeeklyEstimate = () => {
+    // Create placeholder weekly data based on weeklyCount
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const weekly = days.map(day => ({
-      day,
-      shots: Math.floor(Math.random() * 5) + 1,
-    }));
+    const avgPerDay = stats.weeklyCount > 0 ? Math.round(stats.weeklyCount / 7) : 0;
+    const weekly = days.map((day, index) => {
+      // Today's day gets shotsToday, others get average estimate
+      const today = new Date().getDay();
+      const dayIndex = (index + 1) % 7; // Convert Mon=0 to Sun=0 format
+      return {
+        day,
+        shots: dayIndex === today ? stats.shotsToday : avgPerDay,
+      };
+    });
     setWeeklyData(weekly);
   };
 
-  const markCleaning = async () => {
-    try {
-      await fetch('/api/stats/cleaning', { method: 'POST' });
-      // Refresh stats
-      fetchExtendedStats();
-    } catch {
-      console.error('Failed to mark cleaning');
+  // Update weekly estimate when stats change
+  useEffect(() => {
+    if (weeklyData.length === 0 || stats.weeklyCount > 0) {
+      generateWeeklyEstimate();
     }
+  }, [stats.weeklyCount, stats.shotsToday]);
+
+  const markCleaning = (type: 'backflush' | 'groupClean' | 'descale') => {
+    getConnection()?.sendCommand('record_maintenance', { type });
   };
 
-  // Calculate averages
-  const avgShotsPerDay = stats.totalShots > 0 
-    ? (stats.totalShots / Math.max(1, Math.ceil((Date.now() - (stats.firstShotDate || Date.now())) / (1000 * 60 * 60 * 24)))).toFixed(1)
-    : '0';
+  // Calculate average shots per day
+  const avgShotsPerDay = stats.totalOnTimeMinutes > 0 && stats.totalShots > 0
+    ? (stats.totalShots / Math.max(1, Math.ceil(stats.totalOnTimeMinutes / 1440))).toFixed(1)
+    : stats.dailyCount > 0 ? stats.dailyCount.toString() : '0';
 
   const maxShots = weeklyData.length > 0 
     ? Math.max(...weeklyData.map(d => d.shots), 1) 
     : 5;
+
+  // Format avg shot time from ms to seconds
+  const avgShotTimeSec = stats.avgBrewTimeMs > 0 
+    ? (stats.avgBrewTimeMs / 1000).toFixed(1) 
+    : null;
 
   return (
     <div className="space-y-6">
@@ -117,17 +123,17 @@ export function Stats() {
         />
         <MetricCard
           icon={<Sparkles className="w-5 h-5" />}
-          label="Since Cleaning"
-          value={stats.shotsSinceCleaning}
-          warning={stats.shotsSinceCleaning > 100}
-          subtext={stats.shotsSinceCleaning > 100 ? 'Time to clean!' : 'Looking good'}
-          color={stats.shotsSinceCleaning > 100 ? 'amber' : 'blue'}
+          label="Since Backflush"
+          value={stats.shotsSinceBackflush}
+          warning={stats.shotsSinceBackflush > 100}
+          subtext={stats.shotsSinceBackflush > 100 ? 'Time to clean!' : 'Looking good'}
+          color={stats.shotsSinceBackflush > 100 ? 'amber' : 'blue'}
         />
         <MetricCard
           icon={<Timer className="w-5 h-5" />}
           label="Avg Shot Time"
-          value={stats.avgShotTime ? `${stats.avgShotTime.toFixed(1)}s` : '—'}
-          subtext="Last 10 shots"
+          value={avgShotTimeSec ? `${avgShotTimeSec}s` : '—'}
+          subtext={stats.minBrewTimeMs > 0 ? `${(stats.minBrewTimeMs/1000).toFixed(0)}-${(stats.maxBrewTimeMs/1000).toFixed(0)}s range` : undefined}
           color="purple"
         />
       </div>
@@ -136,14 +142,14 @@ export function Stats() {
       <Card>
         <CardHeader>
           <CardTitle icon={<BarChart3 className="w-5 h-5" />}>
-            This Week
+            This Week ({stats.weeklyCount} shots)
           </CardTitle>
         </CardHeader>
 
         <div className="h-48">
           {weeklyData.length > 0 ? (
             <div className="flex items-end justify-between h-full gap-2 pt-4">
-              {weeklyData.map((data, index) => (
+              {weeklyData.map((data) => (
                 <div key={data.day} className="flex-1 flex flex-col items-center">
                   <div className="w-full flex flex-col items-center justify-end h-32">
                     <span className="text-xs font-semibold text-coffee-700 mb-1">
@@ -175,30 +181,30 @@ export function Stats() {
         <Card>
           <CardHeader>
             <CardTitle icon={<Target className="w-5 h-5" />}>
-              Brewing Performance
+              Brewing Stats
             </CardTitle>
           </CardHeader>
 
           <div className="space-y-4">
             <StatRow 
-              label="Average Yield" 
-              value={stats.avgYield ? `${stats.avgYield.toFixed(1)}g` : '—'} 
-              icon={<Droplets className="w-4 h-4" />}
-            />
-            <StatRow 
-              label="Average Ratio" 
-              value={stats.avgRatio ? `1:${stats.avgRatio.toFixed(1)}` : '—'} 
-              icon={<TrendingUp className="w-4 h-4" />}
-            />
-            <StatRow 
-              label="Best Shot Time" 
-              value={stats.bestShotTime ? `${stats.bestShotTime}s` : '—'} 
+              label="Average Shot Time" 
+              value={avgShotTimeSec ? `${avgShotTimeSec}s` : '—'} 
               icon={<Timer className="w-4 h-4" />}
             />
             <StatRow 
-              label="Consistency Score" 
-              value={stats.consistencyScore ? `${stats.consistencyScore}%` : '—'} 
-              icon={<Sparkles className="w-4 h-4" />}
+              label="Fastest Shot" 
+              value={stats.minBrewTimeMs > 0 ? `${(stats.minBrewTimeMs / 1000).toFixed(1)}s` : '—'} 
+              icon={<TrendingUp className="w-4 h-4" />}
+            />
+            <StatRow 
+              label="Longest Shot" 
+              value={stats.maxBrewTimeMs > 0 ? `${(stats.maxBrewTimeMs / 1000).toFixed(1)}s` : '—'} 
+              icon={<Clock className="w-4 h-4" />}
+            />
+            <StatRow 
+              label="This Month" 
+              value={`${stats.monthlyCount} shots`} 
+              icon={<Calendar className="w-4 h-4" />}
             />
           </div>
         </Card>
@@ -214,23 +220,23 @@ export function Stats() {
           <div className="space-y-4">
             <StatRow 
               label="Total Runtime" 
-              value={formatRuntime(stats.totalRuntime || 0)} 
+              value={formatRuntime(stats.totalOnTimeMinutes * 60)} 
               icon={<Clock className="w-4 h-4" />}
             />
             <StatRow 
-              label="Heating Cycles" 
-              value={stats.heatingCycles?.toLocaleString() || '—'} 
-              icon={<Flame className="w-4 h-4" />}
+              label="Session Shots" 
+              value={stats.sessionShots.toString()} 
+              icon={<Coffee className="w-4 h-4" />}
+            />
+            <StatRow 
+              label="Steam Cycles" 
+              value={stats.totalSteamCycles.toLocaleString()} 
+              icon={<Droplets className="w-4 h-4" />}
             />
             <StatRow 
               label="Energy Used" 
-              value={stats.energyUsed ? `${stats.energyUsed.toFixed(1)} kWh` : '—'} 
+              value={stats.totalKwh > 0 ? `${stats.totalKwh.toFixed(1)} kWh` : '—'} 
               icon={<Zap className="w-4 h-4" />}
-            />
-            <StatRow 
-              label="Water Used" 
-              value={stats.waterUsed ? `${(stats.waterUsed / 1000).toFixed(1)} L` : '—'} 
-              icon={<Droplets className="w-4 h-4" />}
             />
           </div>
         </Card>
@@ -245,49 +251,31 @@ export function Stats() {
         </CardHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-          <div className="p-4 bg-cream-100 rounded-xl">
-            <div className="text-sm text-coffee-500 mb-1">Last Cleaning</div>
-            <div className="font-semibold text-coffee-900">
-              {stats.lastCleaning 
-                ? new Date(stats.lastCleaning).toLocaleDateString(undefined, { 
-                    month: 'short', 
-                    day: 'numeric',
-                    year: 'numeric'
-                  }) 
-                : 'Never'}
-            </div>
-          </div>
-          <div className="p-4 bg-cream-100 rounded-xl">
-            <div className="text-sm text-coffee-500 mb-1">Shots Since</div>
-            <div className={`font-semibold ${stats.shotsSinceCleaning > 100 ? 'text-amber-600' : 'text-coffee-900'}`}>
-              {stats.shotsSinceCleaning} shots
-            </div>
-          </div>
-          <div className="p-4 bg-cream-100 rounded-xl">
-            <div className="text-sm text-coffee-500 mb-1">Next Clean</div>
-            <div className="font-semibold text-coffee-900">
-              {stats.shotsSinceCleaning > 100 
-                ? 'Now!' 
-                : `In ~${Math.max(0, 100 - stats.shotsSinceCleaning)} shots`}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-cream-50 rounded-xl">
-          <div>
-            <h4 className="font-semibold text-coffee-800">Completed a cleaning cycle?</h4>
-            <p className="text-sm text-coffee-500">
-              Mark it to reset the counter and keep track of maintenance.
-            </p>
-          </div>
-          <Button onClick={markCleaning}>
-            <Sparkles className="w-4 h-4" />
-            Mark as Cleaned
-          </Button>
+          <MaintenanceCard
+            label="Backflush"
+            shotsSince={stats.shotsSinceBackflush}
+            lastTimestamp={stats.lastBackflushTimestamp}
+            threshold={100}
+            onMark={() => markCleaning('backflush')}
+          />
+          <MaintenanceCard
+            label="Group Clean"
+            shotsSince={stats.shotsSinceGroupClean}
+            lastTimestamp={stats.lastGroupCleanTimestamp}
+            threshold={50}
+            onMark={() => markCleaning('groupClean')}
+          />
+          <MaintenanceCard
+            label="Descale"
+            shotsSince={stats.shotsSinceDescale}
+            lastTimestamp={stats.lastDescaleTimestamp}
+            threshold={500}
+            onMark={() => markCleaning('descale')}
+          />
         </div>
       </Card>
 
-      {/* Achievements / Milestones */}
+      {/* Milestones */}
       {stats.totalShots > 0 && (
         <Card>
           <CardHeader>
@@ -379,6 +367,40 @@ function StatRow({ label, value, icon }: StatRowProps) {
   );
 }
 
+interface MaintenanceCardProps {
+  label: string;
+  shotsSince: number;
+  lastTimestamp: number;
+  threshold: number;
+  onMark: () => void;
+}
+
+function MaintenanceCard({ label, shotsSince, lastTimestamp, threshold, onMark }: MaintenanceCardProps) {
+  const isOverdue = shotsSince >= threshold;
+  const lastDate = lastTimestamp > 0 
+    ? new Date(lastTimestamp * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    : 'Never';
+
+  return (
+    <div className={`p-4 rounded-xl ${isOverdue ? 'bg-amber-50 border border-amber-200' : 'bg-cream-100'}`}>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-coffee-700">{label}</span>
+        {isOverdue && <Badge variant="warning">Due</Badge>}
+      </div>
+      <div className={`text-2xl font-bold ${isOverdue ? 'text-amber-600' : 'text-coffee-900'}`}>
+        {shotsSince}
+      </div>
+      <div className="text-xs text-coffee-500 mb-3">shots since last</div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-coffee-400">Last: {lastDate}</span>
+        <Button size="sm" variant={isOverdue ? 'primary' : 'secondary'} onClick={onMark}>
+          Mark Done
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 interface MilestoneCardProps {
   label: string;
   achieved: boolean;
@@ -404,6 +426,7 @@ function MilestoneCard({ label, achieved, icon }: MilestoneCardProps) {
 }
 
 function formatRuntime(seconds: number): string {
+  if (seconds <= 0) return '—';
   if (seconds < 3600) {
     return `${Math.floor(seconds / 60)}m`;
   } else if (seconds < 86400) {
@@ -412,4 +435,3 @@ function formatRuntime(seconds: number): string {
     return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`;
   }
 }
-
