@@ -1127,6 +1127,26 @@ void WebServer::handleWsMessage(AsyncWebSocketClient* client, uint8_t* data, siz
                 broadcastLog("Mode set to: " + mode, "info");
             }
         }
+        else if (cmd == "mqtt_test") {
+            // Test MQTT connection
+            MQTTConfig config = _mqttClient.getConfig();
+            
+            // Apply temporary config from command if provided
+            if (!doc["broker"].isNull()) strncpy(config.broker, doc["broker"].as<const char*>(), sizeof(config.broker) - 1);
+            if (!doc["port"].isNull()) config.port = doc["port"].as<uint16_t>();
+            if (!doc["username"].isNull()) strncpy(config.username, doc["username"].as<const char*>(), sizeof(config.username) - 1);
+            if (!doc["password"].isNull()) strncpy(config.password, doc["password"].as<const char*>(), sizeof(config.password) - 1);
+            
+            // Temporarily apply and test
+            config.enabled = true;
+            _mqttClient.setConfig(config);
+            
+            if (_mqttClient.testConnection()) {
+                broadcastLog("MQTT connection test successful", "info");
+            } else {
+                broadcastLog("MQTT connection test failed", "error");
+            }
+        }
         else if (cmd == "mqtt_config") {
             // Update MQTT config
             MQTTConfig config = _mqttClient.getConfig();
@@ -1230,6 +1250,129 @@ void WebServer::handleWsMessage(AsyncWebSocketClient* client, uint8_t* data, siz
         else if (cmd == "get_schedules") {
             // Return schedules to requesting client (if needed)
             // Usually schedules are sent via full state broadcast
+        }
+        // Scale commands
+        else if (cmd == "scale_scan") {
+            if (!scaleManager.isScanning()) {
+                if (scaleManager.isConnected()) {
+                    scaleManager.disconnect();
+                }
+                scaleManager.clearDiscovered();
+                scaleManager.startScan(15000);
+                broadcastLog("BLE scale scan started", "info");
+            }
+        }
+        else if (cmd == "scale_scan_stop") {
+            scaleManager.stopScan();
+            broadcastLog("BLE scale scan stopped", "info");
+        }
+        else if (cmd == "scale_connect") {
+            String address = doc["address"] | "";
+            if (!address.isEmpty()) {
+                scaleManager.connect(address.c_str());
+                broadcastLog("Connecting to scale: " + address, "info");
+            }
+        }
+        else if (cmd == "scale_disconnect") {
+            scaleManager.disconnect();
+            broadcastLog("Scale disconnected", "info");
+        }
+        else if (cmd == "tare" || cmd == "scale_tare") {
+            scaleManager.tare();
+            broadcastLog("Scale tared", "info");
+        }
+        else if (cmd == "scale_reset") {
+            scaleManager.tare();
+            brewByWeight.reset();
+            broadcastLog("Scale reset", "info");
+        }
+        // Brew-by-weight settings
+        else if (cmd == "set_bbw") {
+            if (!doc["target_weight"].isNull()) {
+                brewByWeight.setTargetWeight(doc["target_weight"].as<float>());
+            }
+            if (!doc["dose_weight"].isNull()) {
+                brewByWeight.setDoseWeight(doc["dose_weight"].as<float>());
+            }
+            if (!doc["stop_offset"].isNull()) {
+                brewByWeight.setStopOffset(doc["stop_offset"].as<float>());
+            }
+            if (!doc["auto_stop"].isNull()) {
+                brewByWeight.setAutoStop(doc["auto_stop"].as<bool>());
+            }
+            if (!doc["auto_tare"].isNull()) {
+                brewByWeight.setAutoTare(doc["auto_tare"].as<bool>());
+            }
+            broadcastLog("Brew-by-weight settings updated", "info");
+        }
+        // Power settings
+        else if (cmd == "set_power") {
+            uint16_t voltage = doc["voltage"] | 230;
+            uint8_t maxCurrent = doc["maxCurrent"] | 15;
+            
+            // Send to Pico as environmental config
+            uint8_t payload[4];
+            payload[0] = CONFIG_ENVIRONMENTAL;  // Config type
+            payload[1] = (voltage >> 8) & 0xFF;
+            payload[2] = voltage & 0xFF;
+            payload[3] = maxCurrent;
+            _picoUart.sendCommand(MSG_CMD_CONFIG, payload, 4);
+            
+            // Also save to local settings
+            State.settings().power.mainsVoltage = voltage;
+            State.settings().power.maxCurrent = (float)maxCurrent;
+            State.savePowerSettings();
+            
+            broadcastLog("Power settings updated: " + String(voltage) + "V, " + String(maxCurrent) + "A", "info");
+        }
+        // WiFi commands
+        else if (cmd == "wifi_forget") {
+            _wifiManager.clearCredentials();
+            broadcastLog("WiFi credentials cleared. Device will restart.", "warning");
+            delay(1000);
+            ESP.restart();
+        }
+        // System commands
+        else if (cmd == "restart") {
+            broadcastLog("Device restarting...", "warning");
+            delay(500);
+            ESP.restart();
+        }
+        else if (cmd == "factory_reset") {
+            broadcastLog("Factory reset initiated...", "warning");
+            State.factoryReset();
+            _wifiManager.clearCredentials();
+            delay(1000);
+            ESP.restart();
+        }
+        else if (cmd == "check_update") {
+            // TODO: Implement OTA update check
+            broadcastLog("Update check not implemented yet", "info");
+        }
+        else if (cmd == "ota_start") {
+            // TODO: Implement OTA update start
+            broadcastLog("OTA update not implemented yet", "info");
+        }
+        // Machine info (stored in network hostname for now)
+        else if (cmd == "set_machine_info" || cmd == "set_device_info") {
+            auto& networkSettings = State.settings().network;
+            
+            if (!doc["name"].isNull()) {
+                strncpy(networkSettings.hostname, doc["name"].as<const char*>(), sizeof(networkSettings.hostname) - 1);
+            }
+            // Note: model and machineType would need a dedicated struct in Settings
+            // For now, we just store the device name in hostname
+            
+            State.saveNetworkSettings();
+            broadcastLog("Device info updated: " + String(networkSettings.hostname), "info");
+        }
+        // Maintenance records
+        else if (cmd == "record_maintenance") {
+            String type = doc["type"] | "";
+            if (!type.isEmpty()) {
+                State.recordMaintenance(type.c_str());
+                broadcastLog("Maintenance recorded: " + type, "info");
+            }
         }
     }
 }
