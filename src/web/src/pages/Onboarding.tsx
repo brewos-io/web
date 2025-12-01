@@ -4,6 +4,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Logo } from '@/components/Logo';
+import { QRScanner } from '@/components/QRScanner';
 import { useAppStore } from '@/lib/mode';
 import { 
   Coffee, 
@@ -11,7 +12,6 @@ import {
   Wifi, 
   Check, 
   ArrowRight,
-  Smartphone,
   Loader2,
 } from 'lucide-react';
 
@@ -25,8 +25,9 @@ export function Onboarding() {
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState('');
 
-  const handleClaim = async () => {
-    if (!claimCode) return;
+  const handleClaim = async (code?: string) => {
+    const codeToUse = code || claimCode;
+    if (!codeToUse) return;
     
     setClaiming(true);
     setError('');
@@ -36,21 +37,21 @@ export function Onboarding() {
       let deviceId = '';
       let token = '';
       
-      if (claimCode.includes('?')) {
+      if (codeToUse.includes('?')) {
         // URL format
         try {
-          const url = new URL(claimCode);
+          const url = new URL(codeToUse);
           deviceId = url.searchParams.get('id') || '';
           token = url.searchParams.get('token') || '';
         } catch {
           // Try parsing as query string
-          const params = new URLSearchParams(claimCode.split('?')[1]);
+          const params = new URLSearchParams(codeToUse.split('?')[1]);
           deviceId = params.get('id') || '';
           token = params.get('token') || '';
         }
-      } else if (claimCode.includes(':')) {
+      } else if (codeToUse.includes(':')) {
         // Manual format: DEVICE_ID:TOKEN
-        const parts = claimCode.split(':');
+        const parts = codeToUse.split(':');
         deviceId = parts[0];
         token = parts[1] || '';
       } else {
@@ -123,32 +124,35 @@ export function Onboarding() {
 
         {step === 'scan' && (
           <Card>
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-coffee-900 mb-2">
+            <div className="text-center mb-4">
+              <h2 className="text-2xl font-bold text-theme mb-2">
                 Scan QR Code
               </h2>
-              <p className="text-coffee-500">
+              <p className="text-theme-muted">
                 Find the QR code on your BrewOS display or web interface.
               </p>
             </div>
 
-            <div className="bg-cream-100 rounded-2xl p-8 mb-6">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-48 h-48 bg-white rounded-xl flex items-center justify-center border-4 border-dashed border-cream-300">
-                  <div className="text-center text-coffee-400">
-                    <Smartphone className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">Point camera at QR</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2 text-sm text-coffee-500">
-                  <Wifi className="w-4 h-4" />
-                  <span>Make sure your machine is connected to WiFi</span>
-                </div>
-              </div>
+            {/* QR Scanner */}
+            <div className="mb-4">
+              <QRScanner 
+                onScan={(result) => {
+                  setClaimCode(result);
+                  // Auto-submit if valid URL
+                  if (result.includes('?') && result.includes('id=') && result.includes('token=')) {
+                    handleClaim(result);
+                  }
+                }}
+                onError={(err) => console.log('QR scan error:', err)}
+              />
             </div>
 
-            <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs text-theme-muted justify-center mb-4">
+              <Wifi className="w-4 h-4" />
+              <span>Make sure your machine is connected to WiFi</span>
+            </div>
+
+            <div className="border-t border-theme pt-4 space-y-4">
               <Input
                 label="Or paste the pairing URL"
                 placeholder="https://brewos.app/pair?id=BRW-..."
@@ -177,7 +181,7 @@ export function Onboarding() {
                 </Button>
                 <Button 
                   className="flex-1"
-                  onClick={handleClaim}
+                  onClick={() => handleClaim()}
                   loading={claiming}
                   disabled={!claimCode}
                 >
@@ -230,7 +234,7 @@ export function Onboarding() {
                 </Button>
                 <Button 
                   className="flex-1"
-                  onClick={handleClaim}
+                  onClick={() => handleClaim()}
                   loading={claiming}
                   disabled={!claimCode}
                 >
