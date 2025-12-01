@@ -322,28 +322,26 @@ interface MetricCardProps {
 }
 
 function MetricCard({ icon, label, value, subtext, warning, color = 'accent' }: MetricCardProps) {
-  const colorClasses = {
-    accent: 'from-accent/10 to-accent/5 text-accent',
-    emerald: 'from-emerald-500/10 to-emerald-500/5 text-emerald-500',
-    amber: 'from-amber-500/10 to-amber-500/5 text-amber-500',
-    blue: 'from-blue-500/10 to-blue-500/5 text-blue-500',
-    purple: 'from-purple-500/10 to-purple-500/5 text-purple-500',
+  const iconColorClasses = {
+    accent: 'text-accent',
+    emerald: 'text-emerald-500',
+    amber: 'text-amber-500',
+    blue: 'text-blue-500',
+    purple: 'text-purple-500',
   };
 
   return (
-    <Card className={`bg-gradient-to-br ${colorClasses[color].split(' ')[0]} ${colorClasses[color].split(' ')[1]}`}>
-      <div className="flex items-start justify-between mb-3">
-        <div className={`p-2 rounded-lg bg-theme-card ${colorClasses[color].split(' ')[2]}`}>
-          {icon}
-        </div>
-        {warning && <Badge variant="warning">!</Badge>}
+    <Card className="flex flex-col">
+      <div className="flex items-center gap-2 mb-3">
+        <span className={iconColorClasses[color]}>{icon}</span>
+        <span className="text-sm font-medium text-theme-muted">{label}</span>
+        {warning && <Badge variant="warning" className="ml-auto">!</Badge>}
       </div>
       <div className={`text-3xl font-bold ${warning ? 'text-amber-500' : 'text-theme'}`}>
         {value}
       </div>
-      <div className="text-sm text-theme-muted mt-1">{label}</div>
       {subtext && (
-        <div className="text-xs text-theme-muted mt-0.5 opacity-75">{subtext}</div>
+        <div className="text-xs text-theme-muted mt-1">{subtext}</div>
       )}
     </Card>
   );
