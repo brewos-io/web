@@ -1,7 +1,5 @@
 import {
   Coffee,
-  Thermometer,
-  Zap,
   Wifi,
   Scale as ScaleIcon,
   Cloud,
@@ -13,8 +11,6 @@ import {
 
 export type SettingsTab = 
   | 'machine' 
-  | 'temperature' 
-  | 'power' 
   | 'network' 
   | 'scale' 
   | 'cloud' 
@@ -32,8 +28,6 @@ export interface TabConfig {
 export const getSettingsTabs = (isCloud: boolean): TabConfig[] => {
   const tabs: TabConfig[] = [
     { id: 'machine', label: 'Machine', icon: Coffee },
-    { id: 'temperature', label: 'Temperature', icon: Thermometer },
-    { id: 'power', label: 'Power', icon: Zap },
     { id: 'network', label: 'Network', icon: Wifi },
     { id: 'scale', label: 'Scale', icon: ScaleIcon },
   ];

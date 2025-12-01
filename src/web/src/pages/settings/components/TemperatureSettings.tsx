@@ -50,7 +50,9 @@ export function TemperatureSettings() {
         />
       </div>
 
-      <Button onClick={saveTemps}>Save Temperatures</Button>
+      <div className="flex justify-end">
+        <Button onClick={saveTemps}>Save Temperatures</Button>
+      </div>
     </Card>
   );
 }

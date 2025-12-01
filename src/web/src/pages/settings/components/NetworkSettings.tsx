@@ -149,7 +149,7 @@ export function NetworkSettings() {
           </div>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={testMqtt} loading={testingMqtt}>
             {testingMqtt ? 'Testing...' : 'Test Connection'}
           </Button>

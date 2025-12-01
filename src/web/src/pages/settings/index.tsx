@@ -42,14 +42,14 @@ export function Settings() {
         onTabChange={setActiveTab}
       />
 
-      {/* Device Identity */}
-      {activeTab === 'machine' && <MachineSettings />}
-
-      {/* Temperature Settings */}
-      {activeTab === 'temperature' && <TemperatureSettings />}
-
-      {/* Power & Energy Settings */}
-      {activeTab === 'power' && <PowerSettings />}
+      {/* Machine Settings (Identity + Temperature + Power) */}
+      {activeTab === 'machine' && (
+        <>
+          <MachineSettings />
+          <TemperatureSettings />
+          <PowerSettings />
+        </>
+      )}
 
       {/* Network Settings (WiFi + MQTT) */}
       {activeTab === 'network' && <NetworkSettings />}

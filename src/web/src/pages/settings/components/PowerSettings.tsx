@@ -26,6 +26,43 @@ export function PowerSettings() {
 
   return (
     <>
+      {/* Eco Mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle icon={<Leaf className="w-5 h-5" />}>Eco Mode</CardTitle>
+        </CardHeader>
+
+        <p className="text-sm text-coffee-500 mb-4">
+          Reduce power consumption when idle by lowering boiler temperatures.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <Input
+            label="Eco Brew Temp"
+            type="number"
+            min={60}
+            max={90}
+            value={ecoSettings.brewTemp}
+            onChange={(e) => setEcoSettings({ ...ecoSettings, brewTemp: parseFloat(e.target.value) })}
+            unit="°C"
+          />
+          <Input
+            label="Auto-Eco After"
+            type="number"
+            min={5}
+            max={120}
+            step={5}
+            value={ecoSettings.timeout}
+            onChange={(e) => setEcoSettings({ ...ecoSettings, timeout: parseInt(e.target.value) })}
+            unit="min"
+          />
+        </div>
+
+        <div className="flex justify-end">
+          <Button onClick={saveEco}>Save Eco Settings</Button>
+        </div>
+      </Card>
+
       {/* Power Settings */}
       <Card>
         <CardHeader>
@@ -60,42 +97,9 @@ export function PowerSettings() {
           />
         </div>
 
-        <Button onClick={savePower}>Save Power Settings</Button>
-      </Card>
-
-      {/* Eco Mode */}
-      <Card>
-        <CardHeader>
-          <CardTitle icon={<Leaf className="w-5 h-5" />}>Eco Mode</CardTitle>
-        </CardHeader>
-
-        <p className="text-sm text-coffee-500 mb-4">
-          Reduce power consumption when idle by lowering boiler temperatures.
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-          <Input
-            label="Eco Brew Temp"
-            type="number"
-            min={60}
-            max={90}
-            value={ecoSettings.brewTemp}
-            onChange={(e) => setEcoSettings({ ...ecoSettings, brewTemp: parseFloat(e.target.value) })}
-            unit="°C"
-          />
-          <Input
-            label="Auto-Eco After"
-            type="number"
-            min={5}
-            max={120}
-            step={5}
-            value={ecoSettings.timeout}
-            onChange={(e) => setEcoSettings({ ...ecoSettings, timeout: parseInt(e.target.value) })}
-            unit="min"
-          />
+        <div className="flex justify-end">
+          <Button onClick={savePower}>Save Power Settings</Button>
         </div>
-
-        <Button onClick={saveEco}>Save Eco Settings</Button>
       </Card>
     </>
   );

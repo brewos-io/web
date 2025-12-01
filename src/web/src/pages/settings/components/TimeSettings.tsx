@@ -166,7 +166,7 @@ export function TimeSettings() {
         )}
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div className="flex justify-end gap-3 mt-6">
         <Button variant="secondary" onClick={syncNow} loading={syncing}>
           <RefreshCw className="w-4 h-4" />
           Sync Now

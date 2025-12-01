@@ -283,9 +283,11 @@ export function CloudSettings() {
                 placeholder="wss://cloud.brewos.io"
                 disabled={!cloudEnabled}
               />
-              <Button onClick={saveSettings} loading={saving} disabled={!cloudEnabled && !cloudConfig?.enabled} className="w-full">
-                Save Settings
-              </Button>
+              <div className="flex justify-end">
+                <Button onClick={saveSettings} loading={saving} disabled={!cloudEnabled && !cloudConfig?.enabled}>
+                  Save Settings
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
