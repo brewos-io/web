@@ -5,6 +5,7 @@ import { useAppStore } from '@/lib/mode';
 import { DeviceSelector } from './DeviceSelector';
 import { Logo } from './Logo';
 import { InstallPrompt, usePWAInstall } from './InstallPrompt';
+import { ConnectionOverlay } from './ConnectionOverlay';
 import { 
   LayoutGrid, 
   Coffee, 
@@ -205,6 +206,9 @@ export function Layout() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Outlet />
       </main>
+      
+      {/* Connection Overlay - Only for local mode */}
+      {!isCloud && <ConnectionOverlay />}
     </div>
   );
 }

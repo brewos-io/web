@@ -5,6 +5,7 @@ import { Input } from "@/components/Input";
 import { Logo } from "@/components/Logo";
 import { getConnection } from "@/lib/connection";
 import { useStore } from "@/lib/store";
+import { useToast } from "@/components/Toast";
 import {
   Coffee,
   Settings,
@@ -55,6 +56,8 @@ interface FirstRunWizardProps {
 
 export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
   const temperatureUnit = useStore((s) => s.preferences.temperatureUnit);
+  const connectionState = useStore((s) => s.connectionState);
+  const { success, error } = useToast();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
@@ -125,6 +128,11 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
 
   const saveMachineInfo = async () => {
     if (!selectedMachine) return;
+    
+    if (connectionState !== 'connected') {
+      error('Not connected to machine. Please wait for connection.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -140,7 +148,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
       });
 
       // Also save via REST API for immediate persistence
-      await fetch("/api/settings", {
+      const res = await fetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -151,8 +159,12 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
           machineId: selectedMachine.id,
         }),
       });
-    } catch (error) {
-      console.error("Failed to save machine info:", error);
+      
+      if (!res.ok) throw new Error('Failed to save');
+      success('Machine info saved');
+    } catch (err) {
+      console.error("Failed to save machine info:", err);
+      error('Failed to save machine info. Please try again.');
     }
     setSaving(false);
   };

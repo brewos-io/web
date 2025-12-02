@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { Toggle } from '@/components/Toggle';
 import { Badge } from '@/components/Badge';
 import { PageHeader } from '@/components/PageHeader';
+import { useToast } from '@/components/Toast';
 import { Coffee, Scale, Timer, Droplet } from 'lucide-react';
 import { formatDuration } from '@/lib/utils';
 
@@ -14,10 +15,13 @@ export function Brewing() {
   const bbw = useStore((s) => s.bbw);
   const shot = useStore((s) => s.shot);
   const scale = useStore((s) => s.scale);
+  const connectionState = useStore((s) => s.connectionState);
+  const { success, error } = useToast();
 
   // Local form state
   const [formState, setFormState] = useState(bbw);
   const [shotTime, setShotTime] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   // Sync with store
   useEffect(() => {
@@ -39,8 +43,28 @@ export function Brewing() {
     ? (formState.targetWeight / formState.doseWeight).toFixed(1) 
     : '0.0';
 
-  const saveSettings = () => {
-    getConnection()?.sendCommand('set_bbw', { ...formState });
+  const saveSettings = async () => {
+    if (connectionState !== 'connected') {
+      error('Not connected to machine. Please wait for connection.');
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      const connection = getConnection();
+      if (!connection) {
+        throw new Error('No connection available');
+      }
+      
+      connection.sendCommand('set_bbw', { ...formState });
+      await new Promise(resolve => setTimeout(resolve, 300));
+      success('Brewing settings saved');
+    } catch (err) {
+      console.error('Failed to save brewing settings:', err);
+      error('Failed to save settings. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const tareScale = () => {
@@ -166,7 +190,7 @@ export function Brewing() {
             <span className="text-sm text-theme-secondary">Auto-tare when portafilter placed</span>
           </label>
 
-          <Button onClick={saveSettings}>
+          <Button onClick={saveSettings} loading={saving}>
             Save Settings
           </Button>
         </div>

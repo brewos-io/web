@@ -4,6 +4,7 @@ import { getConnection } from '@/lib/connection';
 import { Card, CardHeader, CardTitle } from '@/components/Card';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
+import { useToast } from '@/components/Toast';
 import { Coffee, Save, ChevronDown, AlertCircle } from 'lucide-react';
 import { StatusRow } from './StatusRow';
 import { 
@@ -18,6 +19,8 @@ import { formatTemperatureWithUnit } from '@/lib/temperature';
 export function MachineSettings() {
   const device = useStore((s) => s.device);
   const temperatureUnit = useStore((s) => s.preferences.temperatureUnit);
+  const connectionState = useStore((s) => s.connectionState);
+  const { success, error } = useToast();
 
   // Device identity
   const [deviceName, setDeviceName] = useState(device.deviceName);
@@ -51,22 +54,42 @@ export function MachineSettings() {
 
   const saveMachineInfo = async () => {
     if (!deviceName.trim() || !selectedMachine) return;
+    
+    // Check if connected
+    if (connectionState !== 'connected') {
+      error('Not connected to machine. Please wait for connection.');
+      return;
+    }
+    
     setSavingMachine(true);
     
-    // Send machine info including the type
-    getConnection()?.sendCommand('set_machine_info', { 
-      name: deviceName.trim(),
-      brand: selectedMachine.brand,
-      model: selectedMachine.model,
-      machineType: selectedMachine.type,
-      machineId: selectedMachine.id,
-      // Also send default temperatures
-      defaultBrewTemp: selectedMachine.defaults.brewTemp,
-      defaultSteamTemp: selectedMachine.defaults.steamTemp,
-    });
-    
-    // Simulate success
-    setTimeout(() => setSavingMachine(false), 500);
+    try {
+      const connection = getConnection();
+      if (!connection) {
+        throw new Error('No connection available');
+      }
+      
+      // Send machine info including the type
+      connection.sendCommand('set_machine_info', { 
+        name: deviceName.trim(),
+        brand: selectedMachine.brand,
+        model: selectedMachine.model,
+        machineType: selectedMachine.type,
+        machineId: selectedMachine.id,
+        // Also send default temperatures
+        defaultBrewTemp: selectedMachine.defaults.brewTemp,
+        defaultSteamTemp: selectedMachine.defaults.steamTemp,
+      });
+      
+      // Wait a bit for command to be sent, then show success
+      await new Promise(resolve => setTimeout(resolve, 300));
+      success('Machine info saved successfully');
+    } catch (err) {
+      console.error('Failed to save machine info:', err);
+      error('Failed to save machine info. Please try again.');
+    } finally {
+      setSavingMachine(false);
+    }
   };
   
   const isMachineInfoValid = deviceName.trim() && selectedMachine;

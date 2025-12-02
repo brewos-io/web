@@ -5,6 +5,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Toggle } from '@/components/Toggle';
 import { PageHeader } from '@/components/PageHeader';
+import { useToast } from '@/components/Toast';
 import { 
   Clock, 
   Plus, 
@@ -84,12 +85,14 @@ const defaultSchedule: ScheduleFormData = {
 export function Schedules() {
   const preferences = useStore((s) => s.preferences);
   const device = useStore((s) => s.device);
+  const { success, error } = useToast();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [autoPowerOff, setAutoPowerOff] = useState({ enabled: false, minutes: 60 });
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<ScheduleFormData>(defaultSchedule);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Heating strategies only apply to dual boiler machines
   const isDualBoiler = device.machineType === 'dual_boiler';
@@ -122,65 +125,77 @@ export function Schedules() {
   };
 
   const saveSchedule = async () => {
+    setSaving(true);
     try {
-      if (isEditing) {
-        await fetch('/api/schedules/update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: isEditing, ...formData }),
-        });
-      } else {
-        await fetch('/api/schedules', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData),
-        });
-      }
+      const endpoint = isEditing ? '/api/schedules/update' : '/api/schedules';
+      const body = isEditing ? { id: isEditing, ...formData } : formData;
+      
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      
+      if (!res.ok) throw new Error('Failed to save');
+      
       await fetchSchedules();
       setIsEditing(null);
       setIsAdding(false);
       setFormData(defaultSchedule);
+      success(isEditing ? 'Schedule updated' : 'Schedule created');
     } catch (err) {
       console.error('Failed to save schedule:', err);
+      error('Failed to save schedule. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
   const deleteSchedule = async (id: number) => {
     if (!confirm('Delete this schedule?')) return;
     try {
-      await fetch('/api/schedules/delete', {
+      const res = await fetch('/api/schedules/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id }),
       });
+      if (!res.ok) throw new Error('Failed to delete');
       await fetchSchedules();
+      success('Schedule deleted');
     } catch (err) {
       console.error('Failed to delete schedule:', err);
+      error('Failed to delete schedule. Please try again.');
     }
   };
 
   const toggleSchedule = async (id: number, enabled: boolean) => {
     try {
-      await fetch('/api/schedules/toggle', {
+      const res = await fetch('/api/schedules/toggle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, enabled }),
       });
+      if (!res.ok) throw new Error('Failed to toggle');
       await fetchSchedules();
+      success(`Schedule ${enabled ? 'enabled' : 'disabled'}`);
     } catch (err) {
       console.error('Failed to toggle schedule:', err);
+      error('Failed to update schedule. Please try again.');
     }
   };
 
   const saveAutoPowerOff = async () => {
     try {
-      await fetch('/api/schedules/auto-off', {
+      const res = await fetch('/api/schedules/auto-off', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(autoPowerOff),
       });
+      if (!res.ok) throw new Error('Failed to save');
+      success('Auto power-off settings saved');
     } catch (err) {
       console.error('Failed to save auto power-off:', err);
+      error('Failed to save auto power-off settings.');
     }
   };
 
@@ -304,6 +319,7 @@ export function Schedules() {
                     setPresetDays={setPresetDays}
                     orderedDays={orderedDays}
                     isDualBoiler={isDualBoiler}
+                    saving={saving}
                   />
                 ) : (
                   <div className="flex items-center justify-between">
@@ -359,6 +375,7 @@ export function Schedules() {
                   setPresetDays={setPresetDays}
                   orderedDays={orderedDays}
                   isDualBoiler={isDualBoiler}
+                  saving={saving}
                 />
               </div>
             )}
@@ -425,9 +442,10 @@ interface ScheduleFormProps {
   setPresetDays: (preset: 'weekdays' | 'weekends' | 'everyday') => void;
   orderedDays: DayInfo[];
   isDualBoiler: boolean;
+  saving?: boolean;
 }
 
-function ScheduleForm({ data, onChange, onSave, onCancel, toggleDay, setPresetDays, orderedDays, isDualBoiler }: ScheduleFormProps) {
+function ScheduleForm({ data, onChange, onSave, onCancel, toggleDay, setPresetDays, orderedDays, isDualBoiler, saving }: ScheduleFormProps) {
   return (
     <div className="space-y-4">
       <Input
@@ -563,7 +581,7 @@ function ScheduleForm({ data, onChange, onSave, onCancel, toggleDay, setPresetDa
           <X className="w-4 h-4" />
           Cancel
         </Button>
-        <Button onClick={onSave} disabled={data.days === 0}>
+        <Button onClick={onSave} disabled={data.days === 0} loading={saving}>
           <Save className="w-4 h-4" />
           Save Schedule
         </Button>

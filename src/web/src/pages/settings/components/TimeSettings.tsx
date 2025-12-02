@@ -5,6 +5,7 @@ import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
 import { Toggle } from '@/components/Toggle';
 import { Badge } from '@/components/Badge';
+import { useToast } from '@/components/Toast';
 import { Clock, Globe, RefreshCw, Save, Thermometer } from 'lucide-react';
 import { TIMEZONES } from '../constants/timezones';
 import { getUnitLabel } from '@/lib/temperature';
@@ -25,6 +26,7 @@ interface TimeStatus {
 }
 
 export function TimeSettings() {
+  const { success, error } = useToast();
   const [timeStatus, setTimeStatus] = useState<TimeStatus | null>(null);
   const [settings, setSettings] = useState({
     useNTP: true,
@@ -67,9 +69,13 @@ export function TimeSettings() {
       });
       if (res.ok) {
         await fetchTimeStatus();
+        success('Time settings saved successfully');
+      } else {
+        throw new Error('Failed to save');
       }
     } catch (err) {
       console.error('Failed to save time settings:', err);
+      error('Failed to save time settings. Please try again.');
     }
     setSaving(false);
   };
@@ -77,10 +83,16 @@ export function TimeSettings() {
   const syncNow = async () => {
     setSyncing(true);
     try {
-      await fetch('/api/time/sync', { method: 'POST' });
-      setTimeout(fetchTimeStatus, 2000); // Fetch status after sync
+      const res = await fetch('/api/time/sync', { method: 'POST' });
+      if (res.ok) {
+        setTimeout(fetchTimeStatus, 2000); // Fetch status after sync
+        success('Time sync initiated');
+      } else {
+        throw new Error('Sync failed');
+      }
     } catch (err) {
       console.error('Failed to sync NTP:', err);
+      error('Failed to sync time. Please try again.');
     }
     setSyncing(false);
   };

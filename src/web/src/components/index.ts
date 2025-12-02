@@ -9,3 +9,5 @@ export { QRCodeDisplay } from './QRCode';
 export { QRScanner } from './QRScanner';
 export { DeviceSelector } from './DeviceSelector';
 export { InstallPrompt, usePWAInstall } from './InstallPrompt';
+export { ToastProvider, useToast } from './Toast';
+export { ConnectionOverlay } from './ConnectionOverlay';

@@ -6,6 +6,7 @@ import App from './App'
 import './styles/index.css'
 import { GOOGLE_CLIENT_ID } from './lib/auth'
 import { registerServiceWorker } from './lib/push-notifications'
+import { ToastProvider } from './components/Toast'
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
@@ -20,7 +21,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <BrowserRouter>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </BrowserRouter>
     </GoogleOAuthProvider>
   </React.StrictMode>,
