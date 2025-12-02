@@ -1,15 +1,16 @@
-import { useState } from 'react';
-import { Outlet, NavLink, useNavigate, useParams } from 'react-router-dom';
-import { useStore } from '@/lib/store';
-import { useAppStore } from '@/lib/mode';
-import { DeviceSelector } from './DeviceSelector';
-import { Logo } from './Logo';
-import { InstallPrompt, usePWAInstall } from './InstallPrompt';
-import { ConnectionOverlay } from './ConnectionOverlay';
-import { VersionWarning } from './VersionWarning';
-import { 
-  LayoutGrid, 
-  Coffee, 
+import { useState } from "react";
+import { Outlet, NavLink, useNavigate, useParams } from "react-router-dom";
+import { useStore } from "@/lib/store";
+import { useAppStore } from "@/lib/mode";
+import { DeviceSelector } from "./DeviceSelector";
+import { Logo } from "./Logo";
+import { InstallPrompt, usePWAInstall } from "./InstallPrompt";
+import { ConnectionOverlay } from "./ConnectionOverlay";
+import { VersionWarning } from "./VersionWarning";
+import { isDemoMode } from "@/lib/demo-mode";
+import {
+  LayoutGrid,
+  Coffee,
   Settings,
   Calendar,
   BarChart3,
@@ -18,21 +19,21 @@ import {
   Cloud,
   LogOut,
   Home,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Navigation items - adjust based on mode
 const getNavigation = (isCloud: boolean, deviceId?: string) => {
-  const basePath = isCloud && deviceId ? `/device/${deviceId}` : '';
-  
+  const basePath = isCloud && deviceId ? `/device/${deviceId}` : "";
+
   const items = [
-    { name: 'Dashboard', href: basePath || '/', icon: LayoutGrid },
-    { name: 'Brewing', href: `${basePath}/brewing`, icon: Coffee },
-    { name: 'Stats', href: `${basePath}/stats`, icon: BarChart3 },
-    { name: 'Schedules', href: `${basePath}/schedules`, icon: Calendar },
-    { name: 'Settings', href: `${basePath}/settings`, icon: Settings },
+    { name: "Dashboard", href: basePath || "/", icon: LayoutGrid },
+    { name: "Brewing", href: `${basePath}/brewing`, icon: Coffee },
+    { name: "Stats", href: `${basePath}/stats`, icon: BarChart3 },
+    { name: "Schedules", href: `${basePath}/schedules`, icon: Calendar },
+    { name: "Settings", href: `${basePath}/settings`, icon: Settings },
   ];
-  
+
   return items;
 };
 
@@ -45,25 +46,27 @@ export function Layout() {
   const { isMobile } = usePWAInstall();
   const [showInstallBanner, setShowInstallBanner] = useState(() => {
     // Check if user previously dismissed the banner
-    return localStorage.getItem('brewos-install-dismissed') !== 'true';
+    return localStorage.getItem("brewos-install-dismissed") !== "true";
   });
-  
-  const isCloud = mode === 'cloud';
+
+  const isCloud = mode === "cloud";
+  const isDemo = isDemoMode();
   const selectedDevice = getSelectedDevice();
-  
-  const isConnected = connectionState === 'connected';
-  const isConnecting = connectionState === 'connecting' || connectionState === 'reconnecting';
-  
+
+  const isConnected = connectionState === "connected";
+  const isConnecting =
+    connectionState === "connecting" || connectionState === "reconnecting";
+
   const dismissInstallBanner = () => {
     setShowInstallBanner(false);
-    localStorage.setItem('brewos-install-dismissed', 'true');
+    localStorage.setItem("brewos-install-dismissed", "true");
   };
-  
+
   const navigation = getNavigation(isCloud, deviceId || selectedDevice?.id);
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -75,10 +78,10 @@ export function Layout() {
             {/* Logo & Mode */}
             <div className="flex items-center gap-4">
               <Logo size="md" />
-              
+
               {/* Cloud: Device Selector */}
               {isCloud && <DeviceSelector />}
-              
+
               {/* Local: Machine Name */}
               {!isCloud && deviceName && (
                 <span className="hidden sm:block text-sm font-medium text-theme-secondary">
@@ -94,22 +97,30 @@ export function Layout() {
                 {isCloud ? (
                   <>
                     <Cloud className="w-4 h-4 text-accent" />
-                    <span className="text-xs font-medium text-theme-secondary">Cloud</span>
+                    <span className="text-xs font-medium text-theme-secondary">
+                      Cloud
+                    </span>
                   </>
                 ) : isConnected ? (
                   <>
                     <Wifi className="w-4 h-4 text-emerald-500" />
-                    <span className="text-xs font-medium text-theme-secondary">Local</span>
+                    <span className="text-xs font-medium text-theme-secondary">
+                      Local
+                    </span>
                   </>
                 ) : isConnecting ? (
                   <>
                     <Wifi className="w-4 h-4 text-amber-500 animate-pulse" />
-                    <span className="text-xs font-medium text-theme-secondary">Connecting...</span>
+                    <span className="text-xs font-medium text-theme-secondary">
+                      Connecting...
+                    </span>
                   </>
                 ) : (
                   <>
                     <WifiOff className="w-4 h-4 text-red-500" />
-                    <span className="text-xs font-medium text-theme-secondary">Disconnected</span>
+                    <span className="text-xs font-medium text-theme-secondary">
+                      Disconnected
+                    </span>
                   </>
                 )}
               </div>
@@ -118,7 +129,7 @@ export function Layout() {
               {isCloud && user && (
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => navigate('/devices')}
+                    onClick={() => navigate("/devices")}
                     className="p-2 rounded-lg hover:bg-theme-tertiary text-theme-secondary transition-colors"
                     title="Manage Devices"
                   >
@@ -147,8 +158,8 @@ export function Layout() {
       {/* Install App Banner - shown to mobile users only */}
       {showInstallBanner && isMobile && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          <InstallPrompt 
-            variant="banner" 
+          <InstallPrompt
+            variant="banner"
             onInstalled={dismissInstallBanner}
             onDismiss={dismissInstallBanner}
           />
@@ -169,13 +180,14 @@ export function Layout() {
               <NavLink
                 key={item.name}
                 to={item.href}
-                end={item.href === '/' || item.href.endsWith(`/${deviceId || selectedDevice?.id}`)}
+                end={
+                  item.href === "/" ||
+                  item.href.endsWith(`/${deviceId || selectedDevice?.id}`)
+                }
                 className={({ isActive }) =>
                   cn(
-                    'flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-xs font-medium transition-all min-w-0 flex-1 max-w-20',
-                    isActive
-                      ? 'nav-active'
-                      : 'nav-inactive'
+                    "flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl text-xs font-medium transition-all min-w-0 flex-1 max-w-20",
+                    isActive ? "nav-active" : "nav-inactive"
                   )
                 }
               >
@@ -190,13 +202,14 @@ export function Layout() {
               <NavLink
                 key={item.name}
                 to={item.href}
-                end={item.href === '/' || item.href.endsWith(`/${deviceId || selectedDevice?.id}`)}
+                end={
+                  item.href === "/" ||
+                  item.href.endsWith(`/${deviceId || selectedDevice?.id}`)
+                }
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all',
-                    isActive
-                      ? 'nav-active'
-                      : 'nav-inactive'
+                    "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all",
+                    isActive ? "nav-active" : "nav-inactive"
                   )
                 }
               >
@@ -212,9 +225,9 @@ export function Layout() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <Outlet />
       </main>
-      
-      {/* Connection Overlay - Only for local mode */}
-      {!isCloud && <ConnectionOverlay />}
+
+      {/* Connection Overlay - Only for local mode (not demo) */}
+      {!isCloud && !isDemo && <ConnectionOverlay />}
     </div>
   );
 }

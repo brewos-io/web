@@ -1,4 +1,4 @@
-import type { ConnectionConfig, ConnectionState, WebSocketMessage } from './types';
+import type { ConnectionConfig, ConnectionState, WebSocketMessage, IConnection } from './types';
 
 type MessageHandler = (message: WebSocketMessage) => void;
 type StateHandler = (state: ConnectionState) => void;
@@ -7,7 +7,7 @@ type StateHandler = (state: ConnectionState) => void;
  * WebSocket connection manager
  * Handles both local (ESP32 direct) and cloud connections
  */
-export class Connection {
+export class Connection implements IConnection {
   private ws: WebSocket | null = null;
   private config: ConnectionConfig;
   private state: ConnectionState = 'disconnected';
@@ -187,15 +187,33 @@ export class Connection {
 // Singleton instance
 let connection: Connection | null = null;
 
+// Active connection reference (can be real or demo)
+let activeConnection: IConnection | null = null;
+
 export function initConnection(config: ConnectionConfig): Connection {
   if (connection) {
     connection.disconnect();
   }
   connection = new Connection(config);
+  activeConnection = connection;
   return connection;
 }
 
 export function getConnection(): Connection | null {
   return connection;
+}
+
+/**
+ * Set the active connection (used by demo mode)
+ */
+export function setActiveConnection(conn: IConnection | null): void {
+  activeConnection = conn;
+}
+
+/**
+ * Get the currently active connection (real or demo)
+ */
+export function getActiveConnection(): IConnection | null {
+  return activeConnection;
 }
 

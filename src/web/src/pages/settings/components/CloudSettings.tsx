@@ -19,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { isDemoMode } from '@/lib/demo-mode';
 
 interface PairingData {
   deviceId: string;
@@ -33,20 +34,41 @@ interface CloudStatus {
   serverUrl: string;
 }
 
+// Demo mode mock data
+const DEMO_PAIRING: PairingData = {
+  deviceId: 'DEMO-ECM-001',
+  token: 'demo-token-abc123',
+  url: 'https://cloud.brewos.io/pair?device=DEMO-ECM-001&token=demo-token-abc123',
+  expiresIn: 300,
+};
+
+const DEMO_CLOUD_STATUS: CloudStatus = {
+  enabled: true,
+  connected: true,
+  serverUrl: 'wss://cloud.brewos.io',
+};
+
 export function CloudSettings() {
+  const isDemo = isDemoMode();
   const { sendCommand } = useCommand();
-  const [cloudConfig, setCloudConfig] = useState<CloudStatus | null>(null);
-  const [pairing, setPairing] = useState<PairingData | null>(null);
+  const [cloudConfig, setCloudConfig] = useState<CloudStatus | null>(isDemo ? DEMO_CLOUD_STATUS : null);
+  const [pairing, setPairing] = useState<PairingData | null>(isDemo ? DEMO_PAIRING : null);
   const [loadingQR, setLoadingQR] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   
-  const [cloudEnabled, setCloudEnabled] = useState(cloudConfig?.enabled || false);
+  const [cloudEnabled, setCloudEnabled] = useState(isDemo ? true : (cloudConfig?.enabled || false));
   const [cloudUrl, setCloudUrl] = useState(cloudConfig?.serverUrl || 'wss://cloud.brewos.io');
   const [saving, setSaving] = useState(false);
 
   const fetchPairingQR = async () => {
+    // Demo mode: use mock data
+    if (isDemo) {
+      setPairing({ ...DEMO_PAIRING, expiresIn: 300 });
+      return;
+    }
+
     setLoadingQR(true);
     setError(null);
     try {
@@ -62,6 +84,15 @@ export function CloudSettings() {
   };
 
   const refreshPairing = async () => {
+    // Demo mode: simulate refresh with new expiry
+    if (isDemo) {
+      setLoadingQR(true);
+      await new Promise(r => setTimeout(r, 500));
+      setPairing({ ...DEMO_PAIRING, expiresIn: 300 });
+      setLoadingQR(false);
+      return;
+    }
+
     setLoadingQR(true);
     setError(null);
     try {
@@ -97,6 +128,17 @@ export function CloudSettings() {
     if (saving) return; // Prevent double-click
     setSaving(true);
     
+    // Demo mode: just update local state
+    if (isDemo) {
+      setCloudConfig({
+        enabled: cloudEnabled,
+        connected: cloudEnabled,
+        serverUrl: cloudUrl,
+      });
+      setTimeout(() => setSaving(false), 600);
+      return;
+    }
+    
     const success = sendCommand('set_cloud_config', {
       enabled: cloudEnabled,
       serverUrl: cloudUrl,
@@ -115,6 +157,14 @@ export function CloudSettings() {
   };
 
   const fetchCloudStatus = async () => {
+    // Demo mode: use mock data
+    if (isDemo) {
+      setCloudConfig(DEMO_CLOUD_STATUS);
+      setCloudEnabled(true);
+      setCloudUrl(DEMO_CLOUD_STATUS.serverUrl);
+      return;
+    }
+
     try {
       const response = await fetch('/api/cloud/status');
       if (response.ok) {
@@ -129,9 +179,12 @@ export function CloudSettings() {
   };
 
   useEffect(() => {
+    // Skip API calls in demo mode - data already initialized
+    if (isDemo) return;
+    
     fetchPairingQR();
     fetchCloudStatus();
-  }, []);
+  }, [isDemo]);
 
   const isExpired = pairing?.expiresIn !== undefined && pairing.expiresIn <= 0;
 

@@ -14,6 +14,7 @@ import {
   DEFAULT_SCHEDULE,
   getOrderedDays,
 } from "@/components/schedules";
+import { isDemoMode, getDemoSchedules } from "@/lib/demo-mode";
 import { Clock, Plus, Moon, Calendar, Save } from "lucide-react";
 
 export function Schedules() {
@@ -35,11 +36,25 @@ export function Schedules() {
     [preferences.firstDayOfWeek]
   );
 
+  const isDemo = isDemoMode();
+
   useEffect(() => {
     fetchSchedules();
   }, []);
 
   const fetchSchedules = async () => {
+    // Use mock data in demo mode
+    if (isDemo) {
+      const demoData = getDemoSchedules();
+      setSchedules(demoData.schedules as Schedule[]);
+      setAutoPowerOff({
+        enabled: demoData.autoPowerOffEnabled,
+        minutes: demoData.autoPowerOffMinutes,
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("/api/schedules");
       const data = await res.json();
@@ -57,6 +72,27 @@ export function Schedules() {
 
   const saveSchedule = async () => {
     setSaving(true);
+    
+    // Demo mode: simulate save locally
+    if (isDemo) {
+      await new Promise(r => setTimeout(r, 300)); // Brief delay for UX
+      if (isEditing) {
+        setSchedules(prev => prev.map(s => 
+          s.id === isEditing ? { ...s, ...formData } : s
+        ));
+      } else {
+        const newSchedule: Schedule = {
+          id: Date.now(),
+          ...formData,
+        };
+        setSchedules(prev => [...prev, newSchedule]);
+      }
+      resetForm();
+      success(isEditing ? "Schedule updated" : "Schedule created");
+      setSaving(false);
+      return;
+    }
+
     try {
       const endpoint = isEditing ? "/api/schedules/update" : "/api/schedules";
       const body = isEditing ? { id: isEditing, ...formData } : formData;
@@ -82,6 +118,14 @@ export function Schedules() {
 
   const deleteSchedule = async (id: number) => {
     if (!confirm("Delete this schedule?")) return;
+    
+    // Demo mode: delete locally
+    if (isDemo) {
+      setSchedules(prev => prev.filter(s => s.id !== id));
+      success("Schedule deleted");
+      return;
+    }
+
     try {
       const res = await fetch("/api/schedules/delete", {
         method: "POST",
@@ -98,6 +142,15 @@ export function Schedules() {
   };
 
   const toggleSchedule = async (id: number, enabled: boolean) => {
+    // Demo mode: toggle locally
+    if (isDemo) {
+      setSchedules(prev => prev.map(s => 
+        s.id === id ? { ...s, enabled } : s
+      ));
+      success(`Schedule ${enabled ? "enabled" : "disabled"}`);
+      return;
+    }
+
     try {
       const res = await fetch("/api/schedules/toggle", {
         method: "POST",
@@ -114,6 +167,12 @@ export function Schedules() {
   };
 
   const saveAutoPowerOff = async () => {
+    // Demo mode: just show success
+    if (isDemo) {
+      success("Auto power-off settings saved");
+      return;
+    }
+
     try {
       const res = await fetch("/api/schedules/auto-off", {
         method: "POST",

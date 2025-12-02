@@ -6,7 +6,7 @@ export type ConnectionState =
   | 'reconnecting' 
   | 'error';
 
-export type ConnectionMode = 'local' | 'cloud';
+export type ConnectionMode = 'local' | 'cloud' | 'demo';
 
 export interface ConnectionConfig {
   mode: ConnectionMode;
@@ -14,6 +14,17 @@ export interface ConnectionConfig {
   cloudUrl?: string;
   authToken?: string;
   deviceId?: string;
+}
+
+// Common interface for connection classes (real and demo)
+export interface IConnection {
+  connect(): Promise<void>;
+  disconnect(): void;
+  send(type: string, payload?: Record<string, unknown>): void;
+  sendCommand(cmd: string, data?: Record<string, unknown>): void;
+  onMessage(handler: (message: WebSocketMessage) => void): () => void;
+  onStateChange(handler: (state: ConnectionState) => void): () => void;
+  getState(): ConnectionState;
 }
 
 // Message types from ESP32

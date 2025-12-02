@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { isDemoMode } from "@/lib/demo-mode";
 import {
   Card,
   CardHeader,
@@ -142,6 +143,7 @@ const notificationCategories = [
 ];
 
 export function PushNotificationSettings() {
+  const isDemo = isDemoMode();
   const {
     isSupported,
     isRegistered,
@@ -158,8 +160,6 @@ export function PushNotificationSettings() {
   const [loadingPrefs, setLoadingPrefs] = useState(false);
   const [savingPrefs, setSavingPrefs] = useState(false);
 
-  // Only show in cloud mode
-
   // Fetch notification preferences
   useEffect(() => {
     if (isSubscribed) {
@@ -168,6 +168,12 @@ export function PushNotificationSettings() {
   }, [isSubscribed]);
 
   const fetchPreferences = async () => {
+    // Demo mode: use default preferences
+    if (isDemo) {
+      setPreferences(defaultPreferences);
+      return;
+    }
+
     setLoadingPrefs(true);
     try {
       const response = await fetch("/api/push/preferences", {
@@ -190,6 +196,12 @@ export function PushNotificationSettings() {
   ) => {
     // Optimistically update UI
     setPreferences((prev) => ({ ...prev, [key]: value }));
+
+    // Demo mode: just update locally, no API call
+    if (isDemo) {
+      return;
+    }
+
     setSavingPrefs(true);
 
     try {
@@ -396,86 +408,89 @@ export function PushNotificationSettings() {
         </div>
       </Card>
 
-      {/* Notification Preferences Card - Only show when subscribed */}
-      {isSubscribed && (
-        <Card>
-          <CardHeader>
-            <CardTitle icon={<Settings2 className="w-5 h-5" />}>
-              Notification Preferences
-              {savingPrefs && (
-                <Loader2 className="w-4 h-4 ml-2 animate-spin inline" />
-              )}
-            </CardTitle>
-            <CardDescription>
-              Choose which notifications you want to receive
-            </CardDescription>
-          </CardHeader>
-
-          <div className="p-6">
-            {loadingPrefs ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-accent" />
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {notificationCategories.map((category) => (
-                  <div key={category.title}>
-                    <div className="mb-4">
-                      <h3 className="font-semibold text-coffee-900">
-                        {category.title}
-                      </h3>
-                      <p className="text-xs text-coffee-500">
-                        {category.description}
-                      </p>
-                    </div>
-                    <div className="space-y-3">
-                      {category.items.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <div
-                            key={item.key}
-                            className="flex items-start justify-between p-3 bg-cream-50 rounded-xl"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="p-2 bg-cream-200 rounded-lg">
-                                <Icon className="w-4 h-4 text-coffee-600" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium text-coffee-800">
-                                    {item.label}
-                                  </span>
-                                  {item.recommended && (
-                                    <Badge
-                                      variant="info"
-                                      className="text-[10px] px-1.5 py-0"
-                                    >
-                                      Recommended
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs text-coffee-500 mt-0.5">
-                                  {item.description}
-                                </p>
-                              </div>
-                            </div>
-                            <Toggle
-                              checked={preferences[item.key]}
-                              onChange={(checked) =>
-                                updatePreference(item.key, checked)
-                              }
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+      {/* Notification Preferences Card - Always visible, disabled when not subscribed */}
+      <Card className={!isSubscribed ? "opacity-60" : ""}>
+        <CardHeader>
+          <CardTitle icon={<Settings2 className="w-5 h-5" />}>
+            Notification Preferences
+            {savingPrefs && (
+              <Loader2 className="w-4 h-4 ml-2 animate-spin inline" />
             )}
-          </div>
-        </Card>
-      )}
+          </CardTitle>
+          <CardDescription>
+            {isSubscribed
+              ? "Choose which notifications you want to receive"
+              : "Enable push notifications above to configure preferences"}
+          </CardDescription>
+        </CardHeader>
+
+        <div className="p-6">
+          {loadingPrefs ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-accent" />
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {notificationCategories.map((category) => (
+                <div key={category.title}>
+                  <div className="mb-4">
+                    <h3 className="font-semibold text-theme">
+                      {category.title}
+                    </h3>
+                    <p className="text-xs text-theme-muted">
+                      {category.description}
+                    </p>
+                  </div>
+                  <div className="space-y-3">
+                    {category.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <div
+                          key={item.key}
+                          className={`flex items-start justify-between p-3 bg-theme-secondary rounded-xl ${
+                            !isSubscribed ? "pointer-events-none" : ""
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 bg-theme-tertiary rounded-lg">
+                              <Icon className="w-4 h-4 text-accent" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-theme">
+                                  {item.label}
+                                </span>
+                                {item.recommended && (
+                                  <Badge
+                                    variant="info"
+                                    className="text-[10px] px-1.5 py-0"
+                                  >
+                                    Recommended
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-theme-muted mt-0.5">
+                                {item.description}
+                              </p>
+                            </div>
+                          </div>
+                          <Toggle
+                            checked={preferences[item.key]}
+                            onChange={(checked) =>
+                              updatePreference(item.key, checked)
+                            }
+                            disabled={!isSubscribed}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
     </div>
   );
 }

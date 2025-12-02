@@ -50,7 +50,7 @@ export function ScaleSettings() {
     <div className="space-y-6">
       {/* Connected Scale */}
       {scale.connected && (
-        <Card className="bg-gradient-to-br from-emerald-50 to-cream-100 border-emerald-200">
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/30 dark:from-emerald-500/20 dark:to-emerald-500/10 dark:border-emerald-500/40">
           <CardHeader
             action={
               <Badge variant="success">
@@ -59,7 +59,7 @@ export function ScaleSettings() {
               </Badge>
             }
           >
-            <CardTitle icon={<ScaleIcon className="w-5 h-5 text-emerald-600" />}>
+            <CardTitle icon={<ScaleIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />}>
               {scale.name || 'BLE Scale'}
             </CardTitle>
           </CardHeader>
@@ -219,9 +219,9 @@ interface ScaleInfoItemProps {
 
 function ScaleInfoItem({ label, value, highlight, icon }: ScaleInfoItemProps) {
   return (
-    <div className="p-3 bg-theme-card/60 rounded-xl">
-      <div className="text-xs text-theme-muted mb-1">{label}</div>
-      <div className={`flex items-center gap-1.5 ${highlight ? 'text-xl font-bold' : 'font-semibold'} text-theme`}>
+    <div className="p-3 bg-white/50 dark:bg-white/10 rounded-xl">
+      <div className="text-xs text-emerald-700 dark:text-emerald-300/70 mb-1">{label}</div>
+      <div className={`flex items-center gap-1.5 ${highlight ? 'text-xl font-bold' : 'font-semibold'} text-emerald-900 dark:text-emerald-100`}>
         {icon}
         {value}
       </div>

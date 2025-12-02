@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useStore } from './store';
-import { getConnection } from './connection';
+import { getActiveConnection } from './connection';
 import { useToast } from '@/components/Toast';
 
 interface UseCommandOptions {
@@ -22,7 +22,7 @@ export function useCommand() {
   const isConnected = connectionState === 'connected';
   
   /**
-   * Send a command to the ESP32 with error handling
+   * Send a command to the ESP32 (or demo) with error handling
    */
   const sendCommand = useCallback((
     command: string, 
@@ -42,7 +42,7 @@ export function useCommand() {
     }
     
     try {
-      const connection = getConnection();
+      const connection = getActiveConnection();
       if (!connection) {
         error('No connection available');
         return false;

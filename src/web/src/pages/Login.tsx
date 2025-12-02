@@ -5,7 +5,8 @@ import { Card } from '@/components/Card';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/lib/auth';
 import { isGoogleAuthConfigured } from '@/lib/auth';
-import { AlertCircle } from 'lucide-react';
+import { enableDemoMode } from '@/lib/demo-mode';
+import { AlertCircle, Play } from 'lucide-react';
 
 export function Login() {
   const navigate = useNavigate();
@@ -34,6 +35,27 @@ export function Login() {
               brewos.local
             </a>
           </p>
+          <div className="border-t border-cream-300 pt-6 mt-6">
+            <button
+              onClick={() => {
+                enableDemoMode();
+                navigate('/');
+                window.location.reload(); // Reload to initialize demo mode
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 
+                         bg-gradient-to-r from-violet-500/10 to-purple-500/10 
+                         hover:from-violet-500/20 hover:to-purple-500/20
+                         border border-violet-500/30 hover:border-violet-500/50
+                         text-violet-700 font-medium rounded-lg transition-all
+                         group"
+            >
+              <Play className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              Try Demo
+            </button>
+            <p className="text-center text-xs text-coffee-400 mt-2">
+              Explore the app with simulated machine data
+            </p>
+          </div>
         </Card>
       </div>
     );
@@ -91,6 +113,35 @@ export function Login() {
             <a href="http://brewos.local" className="text-accent hover:underline">
               brewos.local
             </a>
+          </p>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-cream-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-coffee-400">or</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              enableDemoMode();
+              navigate('/');
+              window.location.reload(); // Reload to initialize demo mode
+            }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 
+                       bg-gradient-to-r from-violet-500/10 to-purple-500/10 
+                       hover:from-violet-500/20 hover:to-purple-500/20
+                       border border-violet-500/30 hover:border-violet-500/50
+                       text-violet-700 font-medium rounded-lg transition-all
+                       group"
+          >
+            <Play className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            Try Demo
+          </button>
+          <p className="text-center text-xs text-coffee-400">
+            Explore the app with simulated machine data
           </p>
         </div>
       </Card>

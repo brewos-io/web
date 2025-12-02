@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppStore } from '@/lib/mode';
 import { PageHeader } from '@/components/PageHeader';
 import { getSettingsTabs, SettingsTab } from './constants/tabs';
+import { isDemoMode } from '@/lib/demo-mode';
 import {
   SettingsNav,
   MachineSettings,
@@ -25,6 +26,7 @@ export function Settings() {
   const { mode } = useAppStore();
   
   const isCloud = mode === 'cloud';
+  const isDemo = isDemoMode();
   const SETTINGS_TABS = getSettingsTabs(isCloud);
 
   // Get active tab from URL hash, default to 'machine'
@@ -65,8 +67,13 @@ export function Settings() {
       {/* Scale Settings */}
       {activeTab === 'scale' && <ScaleSettings />}
 
-      {/* Cloud Settings (local mode only) */}
-      {activeTab === 'cloud' && !isCloud && <CloudSettings />}
+      {/* Cloud Settings (local mode only, or demo mode) */}
+      {activeTab === 'cloud' && (!isCloud || isDemo) && (
+        <>
+          <CloudSettings />
+          <PushNotificationSettings />
+        </>
+      )}
 
       {/* Regional Settings (Time, Locale, Units) */}
       {activeTab === 'regional' && (
@@ -81,12 +88,7 @@ export function Settings() {
       {activeTab === 'appearance' && <ThemeSettings />}
 
       {/* System Settings */}
-      {activeTab === 'system' && (
-        <>
-          <SystemSettings />
-          {isCloud && <PushNotificationSettings />}
-        </>
-      )}
+      {activeTab === 'system' && <SystemSettings />}
 
       {/* About */}
       {activeTab === 'about' && <AboutSection />}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useStore } from '@/lib/store';
-import { getConnection } from '@/lib/connection';
+import { getActiveConnection } from '@/lib/connection';
 import { Card, CardHeader, CardTitle } from '@/components/Card';
 import { Input } from '@/components/Input';
 import { Button } from '@/components/Button';
@@ -64,7 +64,7 @@ export function MachineSettings() {
     setSavingMachine(true);
     
     try {
-      const connection = getConnection();
+      const connection = getActiveConnection();
       if (!connection) {
         throw new Error('No connection available');
       }

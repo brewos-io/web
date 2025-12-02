@@ -13,15 +13,19 @@ import { AuthCallback } from '@/pages/AuthCallback';
 import { Pair } from '@/pages/Pair';
 import { Onboarding } from '@/pages/Onboarding';
 import { FirstRunWizard } from '@/pages/FirstRunWizard';
-import { initConnection, getConnection } from '@/lib/connection';
+import { initConnection, getConnection, setActiveConnection } from '@/lib/connection';
 import { initializeStore } from '@/lib/store';
 import { useAppStore } from '@/lib/mode';
 import { useThemeStore } from '@/lib/themeStore';
 import { Loading } from '@/components/Loading';
+import { DemoBanner } from '@/components/DemoBanner';
+import { getDemoConnection, clearDemoConnection } from '@/lib/demo-connection';
+import { isDemoMode, disableDemoMode } from '@/lib/demo-mode';
 
 function App() {
   const [loading, setLoading] = useState(true);
   const [setupComplete, setSetupComplete] = useState(true); // Default true to avoid flash
+  const [inDemoMode] = useState(() => isDemoMode());
   
   const { 
     mode,
@@ -35,7 +39,36 @@ function App() {
   
   const initTheme = useThemeStore((s) => s.initTheme);
 
+  // Initialize demo mode
   useEffect(() => {
+    if (!inDemoMode) return;
+
+    const initDemo = async () => {
+      initTheme();
+      
+      const demoConnection = getDemoConnection();
+      
+      // Set as active connection so useCommand works
+      setActiveConnection(demoConnection);
+      
+      initializeStore(demoConnection);
+      
+      await demoConnection.connect();
+      setLoading(false);
+    };
+
+    initDemo();
+
+    return () => {
+      setActiveConnection(null);
+      clearDemoConnection();
+    };
+  }, [inDemoMode, initTheme]);
+
+  // Initialize normal mode
+  useEffect(() => {
+    if (inDemoMode) return;
+    
     const init = async () => {
       // Initialize theme first for immediate visual consistency
       initTheme();
@@ -45,10 +78,11 @@ function App() {
     };
 
     init();
-  }, [initialize, initTheme]);
+  }, [initialize, initTheme, inDemoMode]);
 
   // Setup local mode connection after initialization
   useEffect(() => {
+    if (inDemoMode) return; // Skip if in demo mode
     if (!initialized) return;
 
     const setupLocalMode = async () => {
@@ -86,16 +120,48 @@ function App() {
     return () => {
       getConnection()?.disconnect();
     };
-  }, [initialized, mode, apMode]);
+  }, [initialized, mode, apMode, inDemoMode]);
 
   // Handle setup completion
   const handleSetupComplete = () => {
     setSetupComplete(true);
   };
 
+  // Handle demo exit
+  const handleExitDemo = () => {
+    // Clear demo mode from localStorage
+    disableDemoMode();
+    // Clear connection
+    setActiveConnection(null);
+    clearDemoConnection();
+    // Navigate to home without demo param
+    const url = new URL(window.location.href);
+    url.searchParams.delete('demo');
+    window.location.href = url.pathname;
+  };
+
   // Show loading state
-  if (loading || !initialized) {
+  if (loading || (!inDemoMode && !initialized)) {
     return <Loading />;
+  }
+
+  // ===== DEMO MODE =====
+  if (inDemoMode) {
+    return (
+      <>
+        <DemoBanner onExit={handleExitDemo} />
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="brewing" element={<Brewing />} />
+            <Route path="stats" element={<Stats />} />
+            <Route path="schedules" element={<Schedules />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </>
+    );
   }
 
   // ===== LOCAL MODE (ESP32) =====

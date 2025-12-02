@@ -20,8 +20,8 @@ import type {
   ScaleScanResult,
   WebSocketMessage,
   UserPreferences,
+  IConnection,
 } from './types';
-import { Connection } from './connection';
 
 interface BrewOSState {
   // Connection
@@ -505,7 +505,7 @@ function addAlert(
 }
 
 // Connection helper
-export function initializeStore(connection: Connection) {
+export function initializeStore(connection: IConnection) {
   connection.onStateChange((state) => {
     useStore.getState().setConnectionState(state);
   });

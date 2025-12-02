@@ -1,5 +1,5 @@
 import { useStore } from "@/lib/store";
-import { getConnection } from "@/lib/connection";
+import { getActiveConnection } from "@/lib/connection";
 import { cn } from "@/lib/utils";
 import { Wifi, WifiOff, RefreshCw, AlertTriangle, X } from "lucide-react";
 import { Button } from "./Button";
@@ -61,7 +61,7 @@ export function ConnectionOverlay() {
   const handleRetry = async () => {
     setRetrying(true);
     try {
-      await getConnection()?.connect();
+      await getActiveConnection()?.connect();
     } catch (e) {
       console.error("Retry failed:", e);
     }

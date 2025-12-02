@@ -8,6 +8,7 @@ import {
   unregisterPushSubscription,
 } from '@/lib/push-notifications';
 import { useAppStore } from '@/lib/mode';
+import { isDemoMode } from '@/lib/demo-mode';
 
 export interface PushNotificationState {
   isSupported: boolean;
@@ -22,11 +23,13 @@ export interface PushNotificationState {
  * Hook to manage push notifications
  */
 export function usePushNotifications() {
+  const isDemo = isDemoMode();
+  
   const [state, setState] = useState<PushNotificationState>({
-    isSupported: false,
-    isRegistered: false,
-    isSubscribed: false,
-    permission: 'default',
+    isSupported: isDemo ? true : false,
+    isRegistered: isDemo ? true : false,
+    isSubscribed: isDemo ? true : false, // Enabled by default in demo
+    permission: isDemo ? 'granted' : 'default',
     registration: null,
     subscription: null,
   });
@@ -35,6 +38,17 @@ export function usePushNotifications() {
 
   // Check support and initialize
   useEffect(() => {
+    // Demo mode: simulate supported state
+    if (isDemo) {
+      setState((prev) => ({
+        ...prev,
+        isSupported: true,
+        isRegistered: true,
+        permission: 'granted',
+      }));
+      return;
+    }
+
     const isSupported =
       'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
@@ -67,10 +81,20 @@ export function usePushNotifications() {
     };
 
     init();
-  }, []);
+  }, [isDemo]);
 
   // Subscribe to push notifications
   const subscribe = useCallback(async (): Promise<boolean> => {
+    // Demo mode: simulate successful subscription
+    if (isDemo) {
+      await new Promise(r => setTimeout(r, 500)); // Simulate delay
+      setState((prev) => ({
+        ...prev,
+        isSubscribed: true,
+      }));
+      return true;
+    }
+
     if (!state.registration) {
       console.error('[PWA] Service worker not registered');
       return false;
@@ -98,10 +122,20 @@ export function usePushNotifications() {
     }
 
     return success;
-  }, [state.registration, user, getSelectedDevice]);
+  }, [isDemo, state.registration, user, getSelectedDevice]);
 
   // Unsubscribe from push notifications
   const unsubscribe = useCallback(async (): Promise<boolean> => {
+    // Demo mode: simulate successful unsubscription
+    if (isDemo) {
+      await new Promise(r => setTimeout(r, 300)); // Simulate delay
+      setState((prev) => ({
+        ...prev,
+        isSubscribed: false,
+      }));
+      return true;
+    }
+
     if (!state.registration || !state.subscription) {
       return false;
     }
@@ -121,10 +155,12 @@ export function usePushNotifications() {
     }
 
     return success;
-  }, [state.registration, state.subscription]);
+  }, [isDemo, state.registration, state.subscription]);
 
-  // Update subscription when device changes
+  // Update subscription when device changes (skip in demo mode)
   useEffect(() => {
+    if (isDemo) return;
+    
     if (state.isSubscribed && state.subscription && user) {
       const selectedDevice = getSelectedDevice();
       registerPushSubscription(state.subscription, user.id, selectedDevice?.id).catch(
@@ -133,7 +169,7 @@ export function usePushNotifications() {
         }
       );
     }
-  }, [state.isSubscribed, state.subscription, user, getSelectedDevice]);
+  }, [isDemo, state.isSubscribed, state.subscription, user, getSelectedDevice]);
 
   return {
     ...state,
