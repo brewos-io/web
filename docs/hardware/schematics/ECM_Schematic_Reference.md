@@ -1,23 +1,27 @@
 # ECM Synchronika Control Board - Schematic Reference
+
 ## Detailed Circuit Schematics for PCB Design
 
 **Board Size:** 130mm × 80mm (2-layer, 2oz copper)  
 **Enclosure:** 150mm × 100mm mounting area  
-**Revision:** Matches ECM_Control_Board_Specification_v2.md (v2.16)
+**Revision:** Matches ECM_Control_Board_Specification_v2.md (v2.20)
 
 ---
 
-## ⚠️ KEY DESIGN CHANGES IN v2.16
+## ⚠️ KEY DESIGN CHANGES IN v2.20
 
-1. **OPA342 + TLV3201** for steam boiler level probe (AC sensing with common components)
-2. **PZEM-004T v3.0** external power meter (NO high current through PCB)
-3. **HLK-5M05** power supply (3A, compact 16mm height)
-4. **10A fuse** with PCB mount holder (Littelfuse 01000056Z)
-5. **Optimized NTC pull-ups**: R1=470Ω (brew 90°C), R2=150Ω (steam 135°C)
-6. **Pressure divider R4=4.7kΩ** (91% ADC range utilization)
-7. **Snubbers MANDATORY** for K2 (Pump) and K3 (Solenoid)
-8. **Mounting holes**: MH1=PE star point (PTH), MH2-4=NPTH (isolated)
-9. **K4 trace width 1.5mm** (future-proofed for high-current loads)
+1. **Unified J26 Screw Terminal (24-pos)** - ALL low-voltage connections consolidated into single Phoenix MKDS 1/24-5.08 terminal block
+2. **J26 includes:** Switches (S1-S4), NTCs (T1-T2), Thermocouple, Pressure transducer, CT clamp, SSR control outputs
+3. **Eliminates:** J10, J11, J12, J13, J18, J19, J25 (all merged into J26)
+4. **6.3mm spades retained ONLY for 220V AC**: Mains input (L, N, PE), K1 LED (J2), K2 Pump (J3), K3 Solenoid (J4)
+5. **OPA342 + TLV3201** for steam boiler level probe (AC sensing with common components)
+6. **PZEM-004T v3.0** external power meter (NO high current through PCB)
+7. **HLK-5M05** power supply (3A, compact 16mm height)
+8. **10A fuse** with PCB mount holder (Littelfuse 01000056Z)
+9. **Optimized NTC pull-ups**: R1=3.3kΩ (brew 93°C), R2=1.2kΩ (steam 135°C)
+10. **Pressure divider R4=4.7kΩ** (91% ADC range utilization)
+11. **Snubbers MANDATORY** for K2 (Pump) and K3 (Solenoid)
+12. **Mounting holes**: MH1=PE star point (PTH), MH2-4=NPTH (isolated)
 
 ---
 
@@ -112,10 +116,10 @@
             ─┴─                    ─┴─               ─┴─        ─┴─
             GND                    GND               GND        GND
 
-    
+
                         Ferrite Bead for Analog Section
                         ───────────────────────────────
-                        
+
     +3.3V ──────────┬───[FB1: 600Ω @ 100MHz]───┬──────────────────► +3.3V_ANALOG
                     │                          │
                 C6  │                      C7  │
@@ -149,7 +153,7 @@
     ════════════════════════════════════════════════════════════════════════════
 
                                 U1: Raspberry Pi Pico
-    
+
          +3.3V ◄────────────────┐           ┌────────────────► (Internal 3.3V)
                                 │           │
          +5V ───────────────────┤ VSYS  3V3 ├───────────────── (3.3V out, max 300mA)
@@ -169,7 +173,7 @@
                │     │          │           │                │
                │     │          │ GP5  GP21 ├────────────────┼── (Spare)
                │     │          │           │                │
-               │     │          │ GP6  GP20 ├────────────────┼─► K4_RELAY
+               │     │          │ GP6  GP20 ├────────────────┼─► (spare)
                │     │          │           │                │
                │     │          │ GP7  GP19 ├────────────────┼─► BUZZER
                │     │          │           │                │
@@ -241,7 +245,7 @@
 ```
                             RELAY DRIVER CIRCUIT
     ════════════════════════════════════════════════════════════════════════════
-    
+
     (Identical circuit for K1, K2, K3. K2 uses 16A relay for pump.)
 
                                         +5V
@@ -281,16 +285,17 @@
     ──────────
     GPIO LOW  → Transistor OFF → Relay OFF, LED OFF
     GPIO HIGH → Transistor ON  → Relay ON, LED ON
-    
+
     Relay coil current: ~70mA (through transistor collector)
     LED current: (5V - 2.0V) / 470Ω = 6.4mA (bright indicator)
 
-    Relay Contact Connections (to 6.3mm Spade Terminals):
-    ─────────────────────────────────────────────────────
+    Relay Contact Connections (All 220V AC - 6.3mm Spade Terminals):
+    ─────────────────────────────────────────────────────────────────
 
-    K1 (Water LED):           K2 (Pump):                K3 (Solenoid):
-    J2-COM ── K1-COM         J3-COM ── K2-COM          J4-COM ── K3-COM
-    J2-NO  ── K1-NO          J3-NO  ── K2-NO           J4-NO  ── K3-NO
+    K1 (Water LED):            K2 (Pump):                K3 (Solenoid):
+    J2-NO ── K1-NO             J3-NO ── K2-NO            J4-NO ── K3-NO
+    (6.3mm spade, 220V)        (6.3mm spade, 220V 5A)    (6.3mm spade, 220V)
+    COM internal to L_FUSED    COM internal to L_FUSED   COM internal to L_FUSED
 
     Component Values:
     ─────────────────
@@ -329,79 +334,11 @@
     K2 (Pump):     C50 (100nF X2) + R80 (100Ω 2W) - MANDATORY
     K3 (Solenoid): C51 (100nF X2) + R81 (100Ω 2W) - MANDATORY
     K1 (LED):      C52 (100nF X2) + R82 (100Ω 2W) - DNP (footprint only)
-    K4 (Spare):    C53 (100nF X2) + R83 (100Ω 2W) - DNP (footprint only)
 
     Snubber Component Values:
     ─────────────────────────
     C50-C53: 100nF X2, 275V AC (Vishay MKP1840 or TDK B32922)
     R80-R83: 100Ω 2W, Metal Film (1210 package or through-hole)
-```
-
-## 3.2 Spare Relay K4 (SPDT) - Universal, Floating Contacts
-
-```
-                            SPARE RELAY K4 (SPDT)
-                    ⚠️ CONTACTS FLOATING - NOT WIRED TO MAINS
-    ════════════════════════════════════════════════════════════════════════════
-
-    (Same driver circuit as K1-K3, but relay contacts are NOT pre-wired)
-    (User can wire for ANY voltage ≤250V AC/DC, 10A max)
-
-                                        +5V
-                                         │
-               ┌─────────────────────────┴─────────────────────────┐
-               │                                                   │
-          ┌────┴────┐                                         ┌────┴────┐
-          │  Relay  │                                         │  470Ω   │
-          │  Coil   │                                         │   R33   │
-          │   5V    │                                         │  (LED)  │
-          │   K4    │                                         └────┬────┘
-          │  SPDT   │                                              │
-          └────┬────┘                                         ┌────┴────┐
-               │                                              │   LED   │
-          ┌────┴────┐                                         │  Green  │
-          │   D4    │ ◄── Flyback diode                       │  LED4   │
-          │ 1N4007  │                                         └────┬────┘
-          └────┬────┘                                              │
-               │                                                   │
-               └───────────────────────┬───────────────────────────┤
-                                       │                           │
-                                  ┌────┴────┐                      │
-                                  │    C    │                      │
-                                  │   Q4    │  MMBT2222A           │
-                                  │   NPN   │                      │
-    GPIO20 ─────────────[1kΩ]────►│    B    │                      │
-                         R23      │    E    ├──────────────────────┘
-                           │      └────┬────┘
-                      ┌────┴────┐      │
-                      │  10kΩ   │     ─┴─
-                      │   R13   │     GND
-                      └────┬────┘
-                          ─┴─
-                          GND
-
-    K4 SPDT Contact Connections (FLOATING - Screw Terminals):
-    ──────────────────────────────────────────────────────────
-    J9: 3-position screw terminal (5.08mm pitch)
-    
-    J9-COM ── K4-COM (Common)      ─┐
-    J9-NO  ── K4-NO  (Normally Open) ├─► ALL FLOATING - User wires as needed
-    J9-NC  ── K4-NC  (Normally Closed)─┘
-    
-    ⚠️  K4 contacts are NOT connected to mains L_FUSED bus!
-        Safe for: 5V, 12V, 24V DC, or 220V AC - user provides power.
-        Maximum rating: 250V AC/DC, 10A
-
-    Component Values:
-    ─────────────────
-    K4:  Omron G5LE-1 DC5 (5V coil, 10A contacts, SPDT)
-    J9:  Phoenix Contact MKDS 1/3-5.08 (3-pos screw terminal)
-    D4:  1N4007 (1A, 1000V)
-    Q4:  MMBT2222A (SOT-23)
-    LED4: Green 0805, Vf~2.0V
-    R23: 1kΩ 5% 0805 (transistor base)
-    R33: 470Ω 5% 0805 (LED current limit)
-    R13: 10kΩ 5% 0805 (pull-down)
 ```
 
 ---
@@ -415,7 +352,7 @@
     ════════════════════════════════════════════════════════════════════════════
 
     (Identical circuit for SSR1 and SSR2)
-    
+
     IMPORTANT: SSR has internal current limiting - NO series resistor needed!
     SSR input spec: 4-32V DC (KS15 D-24Z25-LQ)
 
@@ -431,7 +368,7 @@
     ┌──────────────────┐                                      ┌────┴────┐
     │  To SSR Input    │                                      │   LED   │
     │  (+) Positive    │                                      │ Orange  │
-    │  J18-1 or J19-1  │                                      │ LED5/6  │
+    │ J26-19/21 (SSR+) │                                      │ LED5/6  │
     └────────┬─────────┘                                      └────┬────┘
              │                                                     │
              │    ┌───────────────────────────────┐                │
@@ -443,7 +380,7 @@
     ┌────────┴─────────┐                                           │
     │  To SSR Input    │                                           │
     │  (-) Negative    ├───────────────────────────────────────────┤
-    │  J18-2 or J19-2  │                                           │
+    │ J26-20/22 (SSR-) │                                           │
     └────────┬─────────┘                                      ┌────┴────┐
              │                                                │    C    │
              │                                                │  Q5/Q6  │  MMBT2222A
@@ -464,21 +401,21 @@
     ──────────
     GPIO LOW  → Transistor OFF → SSR- floating → SSR OFF (no current path)
     GPIO HIGH → Transistor ON  → SSR- to GND   → SSR ON  (~4.8V across SSR)
-    
+
     Voltage at SSR = 5V - Vce(sat) = 5V - 0.2V = 4.8V  ✓ (exceeds 4V minimum)
 
     External SSR Connections:
     ─────────────────────────
     SSR1 (Brew Heater):
-        J18-1 (SSR+) ── SSR Input (+)  ── from 5V rail
-        J18-2 (SSR-) ── SSR Input (-)  ── to transistor collector
+        J26-19 (SSR1+) ── SSR Input (+) ── from 5V rail
+        J26-20 (SSR1-) ── SSR Input (-) ── to transistor collector
         SSR AC Load side: Connected via EXISTING MACHINE WIRING (not through PCB)
 
     SSR2 (Steam Heater):
-        J19-1 (SSR+) ── SSR Input (+)  ── from 5V rail
-        J19-2 (SSR-) ── SSR Input (-)  ── to transistor collector
+        J26-21 (SSR2+) ── SSR Input (+) ── from 5V rail
+        J26-22 (SSR2-) ── SSR Input (-) ── to transistor collector
         SSR AC Load side: Connected via EXISTING MACHINE WIRING (not through PCB)
-    
+
     ⚠️ IMPORTANT: NO HIGH CURRENT THROUGH PCB
     ────────────────────────────────────────
     The PCB provides ONLY 5V control signals to the SSRs.
@@ -520,7 +457,7 @@
          │  ±1%    │  Optimized for 93°C         │  ±1%    │  Optimized for 135°C
          └────┬────┘                             └────┬────┘
               │                                       │
-    J10 ──────┼────┬───────► GPIO26           J11 ───┼────┬───────► GPIO27
+   J26-8 ─────┼────┬───────► GPIO26          J26-10 ──┼────┬───────► GPIO27
               │    │         (ADC0)                   │    │         (ADC1)
          ┌────┴────┐  ┌────┴────┐             ┌────┴────┐  ┌────┴────┐
          │   NTC   │  │  1kΩ    │             │   NTC   │  │  1kΩ    │
@@ -536,7 +473,7 @@
 
     ESD Protection (both channels):
     ────────────────────────────────
-    J10/11 Pin 1 ──┬──────────────────────────────────────────► To ADC
+    J26-8/10 (NTC) ┬──────────────────────────────────────────► To ADC
                    │
               ┌────┴────┐
               │ D10/D11 │  PESD5V0S1BL (ESD clamp)
@@ -551,9 +488,9 @@
     R5-R6:   1kΩ 1%, 0805 (series protection)
     C8-C9:   100nF 25V, 0805, Ceramic
     D10-D11: PESD5V0S1BL, SOD-323 (bidirectional ESD clamp)
-    
+
     NTC Sensors: 50kΩ @ 25°C, B25/85 ≈ 3950K (ECM Synchronika standard)
-    
+
     Resolution at Target Temps:
     ───────────────────────────
     • Brew (93°C):  ~31 ADC counts/°C → 0.032°C resolution
@@ -576,10 +513,10 @@
                       U4: MAX31855KASA+
                      ┌─────────────────────────┐
                      │                         │
-    J12 Pin 1 ───────┤ T+   (1)        VCC (8) ├───────────────────── +3.3V
+    J26-12 (TC+)─────┤ T+   (1)        VCC (8) ├───────────────────── +3.3V
     (TC+)            │                         │
                      │                         │
-    J12 Pin 2 ───┬───┤ T-   (2)        SCK (7) ├───────────────────── GPIO18 (SPI_SCK)
+    J26-13 (TC-)─┬───┤ T-   (2)        SCK (7) ├───────────────────── GPIO18 (SPI_SCK)
     (TC-)        │   │                         │
                  │   │                         │
             ┌────┴───┤ NC   (3)         CS (6) ├───────────────────── GPIO17 (SPI_CS)
@@ -594,18 +531,18 @@
 
     Thermocouple Connector:
     ───────────────────────
-    J12: 2-position screw terminal, 5.08mm pitch
+    J26-12/13: Thermocouple connections (part of unified 24-pos terminal)
     Pin 1: TC+ (Yellow for K-type, or check thermocouple wire color code)
     Pin 2: TC- (Red for K-type)
-    
+
     NOTE: Use proper K-type thermocouple connectors if available
-    
+
     Component Values:
     ─────────────────
     U4:  MAX31855KASA+, SOIC-8, K-type specific
     C40: 10nF 50V Ceramic, 0805 (differential noise filter)
     C10: 100nF 25V Ceramic, 0805 (VCC decoupling)
-    
+
     PCB Layout Notes:
     ─────────────────
     • Keep T+ and T- traces short and symmetric
@@ -613,25 +550,25 @@
     • Add ground guard ring around thermocouple traces
 ```
 
-## 5.3 Pressure Transducer Input (J13 - Amplified 0.5-4.5V)
+## 5.3 Pressure Transducer Input (J26 Pin 14-16 - Amplified 0.5-4.5V)
 
 ```
                     PRESSURE TRANSDUCER INPUT (AMPLIFIED TYPE)
     ════════════════════════════════════════════════════════════════════════════
 
-    J13: 3-position screw terminal (for 0.5-4.5V amplified transducers)
-    
+    J26-14/15/16: Pressure transducer (part of unified 24-pos terminal)
+
                             +5V
                              │
-    J13 Pin 1 ───────────────┴────────────────────────────────── Transducer VCC
+    J26-14 (P-5V)────────────┴────────────────────────────────── Transducer VCC
     (5V)                                                         (Red wire)
 
-    J13 Pin 2 ─────────────────────────────────────────────────── Transducer GND
+    J26-15 (P-GND)─────────────────────────────────────────────── Transducer GND
     (GND)           │                                            (Black wire)
                    ─┴─
                    GND
 
-    J13 Pin 3 ──────────────────────────┬─────────────────────── Transducer Signal
+    J26-16 (P-SIG)──────────────────────┬─────────────────────── Transducer Signal
     (Signal)                            │                        (Yellow/White wire)
     0.5V - 4.5V                         │
                                    ┌────┴────┐
@@ -665,7 +602,7 @@
     R3: 10kΩ ±1%, 0805 (to GND)
     R4: 4.7kΩ ±1%, 0805 (series, from signal)
     C11: 100nF 25V Ceramic, 0805
-    
+
     Selected Transducer: YD4060 Series
     ───────────────────────────────────
     - Pressure Range: 0-1.6 MPa (0-16 bar)
@@ -675,13 +612,28 @@
     - Wiring: Red=5V, Black=GND, Yellow=Signal
 ```
 
-## 5.4 Digital Switch Inputs
+## 5.4 Digital Switch Inputs (J26 - Low Voltage Only)
 
 ```
                         DIGITAL SWITCH INPUTS
     ════════════════════════════════════════════════════════════════════════════
 
-    (Identical circuit for Water Reservoir, Tank Level, Brew Handle switches)
+    All LOW VOLTAGE digital switch inputs are consolidated in J26 (8-position screw terminal).
+    (Water Reservoir, Tank Level, Level Probe, Brew Handle - ALL 3.3V LOGIC)
+
+    ⚠️ J26 is for LOW VOLTAGE (3.3V) inputs ONLY!
+    ⚠️ 220V relay outputs (K1, K2, K3) use 6.3mm spade terminals (J2, J3, J4)
+
+    J26 LOW-VOLTAGE SWITCH INPUT TERMINAL BLOCK (Phoenix MKDS 1/8-5.08):
+    ─────────────────────────────────────────────────────────────────────
+    ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+    │  1  │  2  │  3  │  4  │  5  │  6  │  7  │  8  │
+    │ S1  │S1-G │ S2  │S2-G │ S3  │ S4  │S4-G │ GND │
+    └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+     WtrRes GND  Tank  GND  Probe Brew  GND  Spare
+
+    SWITCH INPUT CIRCUIT (S1, S2, S4):
+    ───────────────────────────────────
 
                             +3.3V
                               │
@@ -690,7 +642,7 @@
                          │  R16-18 │  (or use Pico internal)
                          └────┬────┘
                               │
-    J5/J6/J8 Pin 1 ───────────┼───────────────────────┬──────────────► GPIO 2/3/5
+    J26 Pin 1/3/6  ───────────┼───────────────────────┬──────────────► GPIO 2/3/5
     (Switch Signal)           │                       │
                               │                  ┌────┴────┐
                          ┌────┴────┐             │  D12-14 │  ESD
@@ -698,8 +650,19 @@
                          │  N.O.   │             └────┬────┘
                          └────┬────┘                  │
                               │                       │
-    J5/J6/J8 Pin 2 ───────────┴───────────────────────┴──────────────── GND
+    J26 Pin 2/4/7  ───────────┴───────────────────────┴──────────────── GND
     (Switch GND)
+
+    J26 SIGNAL MAPPING (8-pin):
+    ───────────────────────────
+    Pin 1 (S1)  → GPIO2 (Water Reservoir Switch Signal)
+    Pin 2 (S1-G)→ GND   (Water Reservoir Switch Return)
+    Pin 3 (S2)  → GPIO3 (Tank Level Sensor Signal)
+    Pin 4 (S2-G)→ GND   (Tank Level Sensor Return)
+    Pin 5 (S3)  → GPIO4 (Steam Boiler Level Probe - via comparator)
+    Pin 6 (S4)  → GPIO5 (Brew Handle Switch Signal)
+    Pin 7 (S4-G)→ GND   (Brew Handle Switch Return)
+    Pin 8 (GND) → GND   (Common Ground - spare terminal)
 
 
     Steam Boiler Level Probe (OPA342 + TLV3201 AC Sensing):
@@ -745,8 +708,8 @@
     STAGE 2: PROBE & SIGNAL CONDITIONING                                     │
     ────────────────────────────────────                                      │
                                                                               │
-    AC_OUT ───[100Ω R94]───┬────────────────────► J7 (Level Probe)           │
-           (current limit) │                      6.3mm spade                 │
+    AC_OUT ───[100Ω R94]───┬────────────────────► J26 Pin 5 (Level Probe S3) │
+           (current limit) │                      Screw terminal (LV)         │
                            │                           │                      │
                       ┌────┴────┐                 ┌────┴────┐                 │
                       │   1µF   │                 │  Probe  │                 │
@@ -811,16 +774,16 @@
     C63: 100nF 25V, 0805 (TLV3201 decoupling)
     C64: 1µF 25V, 0805 (AC coupling to probe)
     C65: 100nF 25V, 0805 (sense filter)
-    
+
     ⚠️ PCB LAYOUT: GUARD RING REQUIRED
     ───────────────────────────────────
-    The trace from J7 (Level Probe) to OPA342 input is HIGH-IMPEDANCE
+    The trace from J26 Pin 5 (Level Probe) to OPA342 input is HIGH-IMPEDANCE
     and will pick up 50/60Hz mains hum if not properly shielded.
-    
+
     REQUIRED: Surround probe trace with GND guard ring on both sides.
-    Place OPA342 as CLOSE as possible to J7 connector (< 2cm trace).
+    Place OPA342 as CLOSE as possible to J26 terminal (< 2cm trace).
     Avoid routing near relay coils or mains traces.
-    
+
     Benefits of OPA342 + TLV3201:
     ─────────────────────────────
     • Uses commonly available, modern components
@@ -855,17 +818,17 @@
                                         └────┬────┘
                                              │
     J15 Pin 1 (5V) ──────────────────────────┴──────────────────────────────────
-    
+
     J15 Pin 2 (GND) ────────────────────────────────────────────────────── GND
-    
-    
+
+
     UART TX (GPIO0 → ESP32 RX):
     ───────────────────────────
                                     ┌────┐
     GPIO0 ──────────────────────────┤ 33Ω├─────────────────── J15 Pin 3 (TX)
     (UART0_TX)                      │R40 │
                                     └────┘
-    
+
     UART RX (ESP32 TX → GPIO1):
     ───────────────────────────
                                     ┌────┐
@@ -877,7 +840,7 @@
     ════════════════════════════════════════════════════════════════════════
     ESP32 → PICO CONTROL (OTA Firmware Updates)
     ════════════════════════════════════════════════════════════════════════
-    
+
     ESP32 updates ITSELF via WiFi OTA (standard ESP-IDF).
     ESP32 updates PICO via UART + RUN/BOOTSEL control below.
     Pico has no WiFi - relies on ESP32 as firmware update gateway.
@@ -1008,23 +971,23 @@
                             +3.3V
                               │
     J16 Pin 1 (3V3) ──────────┴───────────────────────────────────────────────
-    
+
     J16 Pin 2 (GND) ──────────────────────────────────────────────────── GND
-    
+
     SERVICE PORT (J16) - Shared with ESP32 on GPIO0/1:
     ─────────────────────────────────────────────────
     ⚠️ DISCONNECT ESP32 (J15) BEFORE USING SERVICE PORT
-    
+
                                     ┌────┐
     GPIO0 ──────────────────────────┤ 33Ω├──┬──────────────── J15 Pin 3 (ESP32 RX)
     (UART0_TX)                      │R40 │  │
                                     └────┘  └──────────────── J16 Pin 3 (Service TX)
-    
+
                                     ┌────┐
     GPIO1 ◄─────────────────────────┤ 33Ω├──┬──────────────── J15 Pin 4 (ESP32 TX)
     (UART0_RX)                      │R41 │  │
                                     └────┘  └──────────────── J16 Pin 4 (Service RX)
-    
+
     I2C ACCESSORY PORT (J23) - GPIO8/9:
     ────────────────────────────────────
                   3.3V
@@ -1041,7 +1004,7 @@
     Configuration:
     ──────────────
     Default baud rate: 115200, 8N1
-    
+
     Silkscreen: "3V3 GND TX RX" or "DEBUG"
 ```
 
@@ -1069,7 +1032,7 @@
                                                            GND
 
     Current: (3.3V - 2.0V) / 330Ω ≈ 4mA (clearly visible)
-    
+
     NOTE: Green LED chosen over blue because:
     • Blue LEDs have Vf=3.0-3.4V, leaving only 0-0.3V margin with 3.3V supply
     • Green LEDs have Vf=1.8-2.2V, providing reliable ~4mA current
@@ -1157,7 +1120,7 @@
                      │  Clamp  │    User-supplied with PZEM module
                      └────┬────┘
                           │ (2-wire cable)
-                          └─────────────────────► J25 Screw Terminal (on PCB)
+                          └─────────────────────► J26-17/18 (CT+/CT-)
                                                        │
                                                        └──► Routed to J24 CT+/CT-
 
@@ -1175,15 +1138,15 @@
     ─────────────────────────────────────────────
     J1-L (Live) ──►[FUSE F1: 10A]──► L_FUSED bus
                                         │
-                                        ├──► K1 COM (Water LED valve)
-                                        ├──► K2 COM (Pump ~5A)
-                                        └──► K3 COM (3-Way Valve)
+                                        ├──► K1 COM (Water LED → J2 spade, 220V)
+                                        ├──► K2 COM (Pump ~5A → J3 spade, 220V)
+                                        └──► K3 COM (3-Way Valve → J4 spade, 220V)
 
-    K4 (Spare): Contacts FLOATING via J9 screw terminals.
-                NOT connected to L_FUSED. User wires as needed.
+    J26 LOW-VOLTAGE INPUTS: 8-pos screw terminal for digital switch
+                            inputs (S1-S4) ONLY. 3.3V logic level.
 
     Note: Heaters connect to external SSRs via machine's existing wiring.
-          SSR control signals only come from PCB (J18, J19).
+          SSR control signals only come from PCB (J26 Pin 19-22).
           NO heater current flows through control PCB.
 
     J17 Pinout (UART - Right side of PZEM):
@@ -1196,12 +1159,12 @@
 
     J24 Pinout (HV+CT - Left side of PZEM):
     ───────────────────────────────────────
-    Pin 1: CT+ (routed to J25 Pin 1)
-    Pin 2: CT- (routed to J25 Pin 2)
+    Pin 1: CT+ (routed to J26-17)
+    Pin 2: CT- (routed to J26-18)
     Pin 3: N (from N bus)
     Pin 4: L (from L_FUSED bus) ⚠️ 220V!
 
-    J25 Pinout (CT Clamp Screw Terminal):
+    J26-17/18 (CT Clamp connections - part of unified terminal):
     ─────────────────────────────────────
     Pin 1: CT+ (from J24 Pin 1)
     Pin 2: CT- (from J24 Pin 2)
@@ -1210,14 +1173,14 @@
     ─────────────────
     J17:     Female Header 1×5 2.54mm
     J24:     Female Header 1×4 2.54mm (⚠️ HV!)
-    J25:     Screw Terminal 2-pos 5.08mm
+    J26:     Unified Screw Terminal 24-pos 5.08mm (Phoenix MKDS 1/24-5.08)
     R44-45:  33Ω 5%, 0805 (UART series protection)
 
     ⚠️ CRITICAL: J24 MILLING SLOT REQUIREMENT
     ─────────────────────────────────────────
     J24 carries Mains L and N on adjacent pins (2.54mm pitch).
     Mill a 1mm wide slot between Pin 3 (N) and Pin 4 (L) for safety.
-    
+
     J24 Top View:
     ┌─────────────────────────────┐
     │ Pin1  Pin2  Pin3 ║║ Pin4   │
@@ -1273,7 +1236,7 @@
     +3.3V        → Pico 3V3, Digital I/O, pull-ups
     +3.3V_ANALOG → ADC reference, NTC dividers, MAX31855
     GND          → System ground (isolated from mains PE)
-    
+
     HIGH VOLTAGE NETS (⚠️ MAINS):
     ─────────────────────────────
     L_IN         → J1-L (Mains Live Input)
@@ -1290,23 +1253,22 @@
     K1_COM       → Relay K1 Common (internal to L_FUSED)
     K2_COM       → Relay K2 Common (internal to L_FUSED)
     K3_COM       → Relay K3 Common (internal to L_FUSED)
-    K4_COM       → Relay K4 Common (J9-COM, FLOATING - user wires)
 
     GPIO NETS:
     ──────────
     GPIO0  → ESP32_TX (J15-3)
     GPIO1  → ESP32_RX (J15-4)
-    GPIO2  → WATER_SW (J5-1)
-    GPIO3  → TANK_LVL (J6-1)
-    GPIO4  → STEAM_LVL (J7-1)
-    GPIO5  → BREW_SW (J8-1)
+    GPIO2  → WATER_SW (J26-1, S1)
+    GPIO3  → TANK_LVL (J26-3, S2)
+    GPIO4  → STEAM_LVL (J26-5, S3 via comparator)
+    GPIO5  → BREW_SW (J26-6, S4)
     GPIO6  → PZEM_TX (UART to PZEM RX, J17-3)
     GPIO7  → PZEM_RX (UART from PZEM TX, J17-4)
     GPIO8  → I2C0_SDA (J23-3, with 4.7kΩ pull-up)
     GPIO9  → I2C0_SCL (J23-4, with 4.7kΩ pull-up)
-    GPIO10 → K1_DRIVE
-    GPIO11 → K2_DRIVE
-    GPIO12 → K3_DRIVE
+    GPIO10 → K1_DRIVE (relay coil, output to J2 spade - 220V)
+    GPIO11 → K2_DRIVE (relay coil, output to J3 spade - 220V)
+    GPIO12 → K3_DRIVE (relay coil, output to J4 spade - 220V)
     GPIO13 → SSR1_DRIVE
     GPIO14 → SSR2_DRIVE
     GPIO15 → STATUS_LED
@@ -1314,21 +1276,41 @@
     GPIO17 → SPI_CS (MAX31855 CS)
     GPIO18 → SPI_SCK (MAX31855 CLK)
     GPIO19 → BUZZER
-    GPIO20 → K4_DRIVE
+    GPIO20 → TP1 (spare - test point for future expansion)
     GPIO21 → WEIGHT_STOP (J15-7, ESP32 brew-by-weight signal)
     GPIO22 → SPARE (J15-8, reserved for future)
-    GPIO26 → ADC0_BREW_NTC (J10)
-    GPIO27 → ADC1_STEAM_NTC (J11)
-    GPIO28 → ADC2_PRESSURE (from J13 voltage divider)
+    GPIO26 → ADC0_BREW_NTC (J26-8/9)
+    GPIO27 → ADC1_STEAM_NTC (J26-10/11)
+    GPIO28 → ADC2_PRESSURE (from J26-16 voltage divider)
     RUN    → SW1_RESET
     BOOTSEL→ SW2_BOOT
 
-    SENSOR CONNECTOR NETS:
-    ──────────────────────
-    J10 (Brew NTC)    → NTC_BREW+ to R1, NTC_BREW- to GND
-    J11 (Steam NTC)   → NTC_STEAM+ to R2, NTC_STEAM- to GND
-    J12 (Thermocouple)→ TC+ to U4 pin 1, TC- to U4 pin 2
-    J13 (Pressure 0.5-4.5V) → 5V, GND, SIGNAL to R3/R4 divider
+    220V AC RELAY OUTPUTS (6.3mm Spade Terminals):
+    ──────────────────────────────────────────────
+    J2-NO  → Relay K1 N.O. output (Water LED, 220V ≤100mA)
+    J3-NO  → Relay K2 N.O. output (Pump, 220V 5A)
+    J4-NO  → Relay K3 N.O. output (Solenoid, 220V ~0.5A)
+
+    J26 LOW-VOLTAGE SWITCH INPUT TERMINAL BLOCK (8-pos, 3.3V):
+    ──────────────────────────────────────────────────────────
+    J26-1  (S1)    → Water Reservoir Switch Signal → GPIO2
+    J26-2  (S1-G)  → Water Reservoir Switch GND
+    J26-3  (S2)    → Tank Level Sensor Signal → GPIO3
+    J26-4  (S2-G)  → Tank Level Sensor GND
+    J26-5  (S3)    → Steam Boiler Level Probe → GPIO4 (via comparator)
+    J26-6  (S4)    → Brew Handle Switch Signal → GPIO5
+    J26-7  (S4-G)  → Brew Handle Switch GND
+    J26-8  (GND)   → Common Ground (spare)
+
+    ANALOG SENSOR CONNECTOR NETS:
+    ─────────────────────────────
+    J26-8/9 (Brew NTC)      → NTC_BREW+ to R1, NTC_BREW- to GND
+    J26-10/11 (Steam NTC)   → NTC_STEAM+ to R2, NTC_STEAM- to GND
+    J26-12/13 (Thermocouple)→ TC+ to U4 pin 1, TC- to U4 pin 2
+    J26-14/15/16 (Pressure) → 5V, GND, SIGNAL to R3/R4 divider
+    J26-17/18 (CT Clamp)    → CT+/CT- from PZEM J24
+    J26-19/20 (SSR1)        → +5V, SSR1_NEG (Brew heater control)
+    J26-21/22 (SSR2)        → +5V, SSR2_NEG (Steam heater control)
 
     SOLDER BRIDGE:
     ──────────────
@@ -1336,5 +1318,4 @@
 
 ---
 
-*End of Schematic Reference Document*
-
+_End of Schematic Reference Document_

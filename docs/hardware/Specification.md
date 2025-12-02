@@ -1,16 +1,63 @@
 # ECM Synchronika Custom Control Board
+
 ## Production Design Specification v2.0
 
 **Document Purpose:** Complete technical specification for PCB design and manufacturing  
 **Target:** Plug & play replacement for GICAR control board and PID controller  
-**Revision:** 2.17  
-**Date:** November 2025  
+**Revision:** 2.20  
+**Date:** December 2025
+
+---
+
+## ⚠️ DESIGN UPDATE IN v2.20 (Dec 2025)
+
+### ✅ Unified Low-Voltage Screw Terminal Block (J26 - 24 Position)
+
+- **ALL low-voltage connections** consolidated into **single 24-position screw terminal block**
+- **J26 includes:** Switch inputs (S1-S4), Analog sensors (NTC×2, Thermocouple, Pressure), CT clamp, SSR control outputs
+- **6.3mm spades retained ONLY for 220V AC:** Mains input (J1: L, N, PE), K1 LED (J2), K2 Pump (J3), K3 Solenoid (J4)
+- **Benefits:** Single terminal block for ALL low-voltage wiring, professional appearance, easier assembly
+
+### ✅ Spare Relay K4 Removed
+
+- **Simplified to 3 relays:** K1 (Water LED), K2 (Pump), K3 (Solenoid) - no spare relay
+- **Removed components:** K4, Q4, D4, LED4, R13, R23, R33, R83, C53, J9
+- **GPIO20 available:** Test point TP1 added for future expansion access
+- **Benefits:** Reduced BOM cost, smaller PCB footprint, simplified design
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────┐
+│                    J26 - UNIFIED LOW-VOLTAGE SCREW TERMINAL (24-pos)                         │
+│                           Phoenix MKDS 1/24-5.08 (5.08mm pitch)                              │
+│                                  ⚠️ LOW VOLTAGE ONLY ⚠️                                      │
+├──────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                              │
+│  SWITCHES (S1-S4)          ANALOG SENSORS              CT CLAMP    SSR OUTPUTS    SPARE     │
+│  ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐
+│  │ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │10 │11 │12 │13 │14 │15 │16 │17 │18 │19 │20 │21 │22 │23 │24 │
+│  │S1 │S1G│S2 │S2G│S3 │S4 │S4G│T1 │T1G│T2 │T2G│TC+│TC-│P5V│PGD│PSG│CT+│CT-│SR+│SR-│SR+│SR-│GND│GND│
+│  └───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘
+│   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │
+│   └─S1─┘   └─S2─┘  S3  └─S4─┘   └─Brew─┘   └Steam┘ └─TC──┘ └─Pressure─┘ └CT─┘ └SSR1─┘└SSR2─┘ Spare
+│   Water    Tank   Lvl  Brew     NTC      NTC     Thermo   Transducer  Clamp  Brew   Steam
+│   Res.     Level  Prb  Handle                    couple   (YD4060)           Heater Heater
+│                                                                                              │
+└──────────────────────────────────────────────────────────────────────────────────────────────┘
+
+220V AC RELAY OUTPUTS (6.3mm Spade - Unchanged):
+┌────────────────────────────────────────────────────────────────┐
+│  J2-NO: K1 Water LED (220V, ≤100mA)                           │
+│  J3-NO: K2 Pump Motor (220V, 5A) - HIGH POWER                 │
+│  J4-NO: K3 Solenoid Valve (220V, ~0.5A)                       │
+└────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## ⚠️ DESIGN UPDATE IN v2.17 (Nov 2025)
 
 ### ✅ Brew-by-Weight Support (J15 Expanded to 8-pin)
+
 - **J15 ESP32 connector expanded** from 6-pin to 8-pin JST-XH
 - **GPIO21:** WEIGHT_STOP signal - ESP32 → Pico for brew-by-weight
 - **GPIO22:** SPARE - Reserved for future expansion
@@ -36,6 +83,7 @@
 **This specification has been significantly simplified with two major component changes:**
 
 ### ✅ AC Level Sensing Circuit (OPA342 + TLV3201)
+
 - **Custom oscillator + comparator circuit** for liquid level detection
 - **AC excitation** (~1kHz) - prevents electrolysis and probe corrosion
 - **Uses commonly available, modern components** (OPA342, TLV3201)
@@ -43,6 +91,7 @@
 - **Logic entirely on PCB** - no external modules
 
 ### ✅ PZEM-004T-100A-D-P Power Meter (Direct PCB Mount)
+
 - **Model:** PZEM-004T-100A-D-P (Peacefair) - PCB-only with pin header
 - **CT clamp** measures current externally (non-invasive)
 - **Pre-calibrated** accuracy (±0.5%)
@@ -51,6 +100,7 @@
 - **Mounts directly on PCB** via female header (no cables, no standoffs)
 
 **Reference Documentation:**
+
 - 3D CAD Model: https://grabcad.com/library/pzem-004t-100a-d-p-v1-0-1
 - Datasheet & Pinout: https://drive.google.com/drive/folders/1cTDtjN7FfHVaoyw52r3qHqFwwIpdZBZA
 - Additional Resources: https://drive.google.com/drive/folders/1E1ezuaS2DtFCfYXmPIvocdi2Gv6OF-tW
@@ -91,15 +141,15 @@ This specification defines a custom control PCB to replace the factory GICAR con
 
 ## 1.2 Design Goals
 
-| Requirement | Description |
-|-------------|-------------|
-| Temperature Control | Dual PID control for brew and steam boilers |
-| Pressure Monitoring | Real-time pressure display and profiling |
-| Safety Interlocks | Water level, over-temperature, watchdog protection |
-| Connectivity | ESP32 display module for WiFi, MQTT, Web API |
-| Power Monitoring | Total machine power consumption metering |
-| User Feedback | Status LEDs, buzzer for alerts |
-| Serviceability | Debug port, accessible test points |
+| Requirement         | Description                                        |
+| ------------------- | -------------------------------------------------- |
+| Temperature Control | Dual PID control for brew and steam boilers        |
+| Pressure Monitoring | Real-time pressure display and profiling           |
+| Safety Interlocks   | Water level, over-temperature, watchdog protection |
+| Connectivity        | ESP32 display module for WiFi, MQTT, Web API       |
+| Power Monitoring    | Total machine power consumption metering           |
+| User Feedback       | Status LEDs, buzzer for alerts                     |
+| Serviceability      | Debug port, accessible test points                 |
 
 ## 1.3 System Architecture
 
@@ -159,37 +209,37 @@ This specification defines a custom control PCB to replace the factory GICAR con
 
 ## 2.1 Input Power
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input Voltage | 100-240V AC ±10% |
-| Frequency | 50/60 Hz |
-| Maximum Current | 16A (total machine load through relays) |
-| Power Factor | >0.9 (machine dependent) |
-| Inrush Current | Limited by machine's existing protection |
+| Parameter       | Specification                            |
+| --------------- | ---------------------------------------- |
+| Input Voltage   | 100-240V AC ±10%                         |
+| Frequency       | 50/60 Hz                                 |
+| Maximum Current | 16A (total machine load through relays)  |
+| Power Factor    | >0.9 (machine dependent)                 |
+| Inrush Current  | Limited by machine's existing protection |
 
 ## 2.2 Output Power Rails
 
-| Rail | Voltage | Current Capacity | Source | Purpose |
-|------|---------|------------------|--------|---------|
-| 5V DC | 5.0V ±5% | **3A minimum** | Isolated AC/DC module | Pico, relays, ESP32, SSR drivers |
-| 3.3V DC | 3.3V ±3% | 500mA minimum | LDO from 5V | Sensors, logic |
+| Rail    | Voltage  | Current Capacity | Source                | Purpose                          |
+| ------- | -------- | ---------------- | --------------------- | -------------------------------- |
+| 5V DC   | 5.0V ±5% | **3A minimum**   | Isolated AC/DC module | Pico, relays, ESP32, SSR drivers |
+| 3.3V DC | 3.3V ±3% | 500mA minimum    | LDO from 5V           | Sensors, logic                   |
 
 ## 2.3 Isolation Requirements
 
-| Boundary | Isolation Type | Requirement |
-|----------|----------------|-------------|
-| Mains → 5V DC | Reinforced | 3000V AC for 1 minute |
-| Relay Contacts → Coil | Basic | 2500V AC |
-| Power Meter → Logic | Functional | Via opto-isolated UART in PZEM-004T |
+| Boundary              | Isolation Type | Requirement                         |
+| --------------------- | -------------- | ----------------------------------- |
+| Mains → 5V DC         | Reinforced     | 3000V AC for 1 minute               |
+| Relay Contacts → Coil | Basic          | 2500V AC                            |
+| Power Meter → Logic   | Functional     | Via opto-isolated UART in PZEM-004T |
 
 ## 2.4 Environmental
 
-| Parameter | Specification |
-|-----------|---------------|
-| Operating Temperature | 0°C to +50°C |
-| Storage Temperature | -20°C to +70°C |
-| Humidity | 20% to 90% RH, non-condensing |
-| Altitude | Up to 2000m |
+| Parameter             | Specification                 |
+| --------------------- | ----------------------------- |
+| Operating Temperature | 0°C to +50°C                  |
+| Storage Temperature   | -20°C to +70°C                |
+| Humidity              | 20% to 90% RH, non-condensing |
+| Altitude              | Up to 2000m                   |
 
 ---
 
@@ -197,45 +247,44 @@ This specification defines a custom control PCB to replace the factory GICAR con
 
 ## 3.1 Inputs (Sensors & Switches)
 
-| ID | Component | Type | Signal | Connection |
-|----|-----------|------|--------|------------|
-| S1 | Water Reservoir Switch | SPST N.O. | Digital, Active Low | 6.3mm spade |
-| S2 | Tank Level Sensor | 2-wire Magnetic Float | Digital, Active Low | 6.3mm spade |
-| S3 | Steam Boiler Level Probe | Conductivity Probe | Digital/Analog | 6.3mm spade |
-| S4 | Brew Handle Switch | SPST N.O./N.C. | Digital, Active Low | 6.3mm spade |
-| T1 | Brew Boiler Temp | NTC 3.3kΩ @ 25°C | Analog (ADC) | Screw terminal |
-| T2 | Steam Boiler Temp | NTC 3.3kΩ @ 25°C | Analog (ADC) | Screw terminal |
-| T3 | Brew Head Temp | K-Type Thermocouple | SPI (MAX31855) | Screw terminal |
-| P1 | Pressure Transducer (YD4060) | 0.5-4.5V, 0-16 bar | Analog (ADC) | Screw terminal 3-pin |
+| ID  | Component                    | Type                  | Signal              | Connection    |
+| --- | ---------------------------- | --------------------- | ------------------- | ------------- |
+| S1  | Water Reservoir Switch       | SPST N.O.             | Digital, Active Low | J26 Pin 1-2   |
+| S2  | Tank Level Sensor            | 2-wire Magnetic Float | Digital, Active Low | J26 Pin 3-4   |
+| S3  | Steam Boiler Level Probe     | Conductivity Probe    | Digital/Analog      | J26 Pin 5     |
+| S4  | Brew Handle Switch           | SPST N.O./N.C.        | Digital, Active Low | J26 Pin 6-7   |
+| T1  | Brew Boiler Temp             | NTC 3.3kΩ @ 25°C      | Analog (ADC)        | J26 Pin 8-9   |
+| T2  | Steam Boiler Temp            | NTC 3.3kΩ @ 25°C      | Analog (ADC)        | J26 Pin 10-11 |
+| T3  | Brew Head Temp               | K-Type Thermocouple   | SPI (MAX31855)      | J26 Pin 12-13 |
+| P1  | Pressure Transducer (YD4060) | 0.5-4.5V, 0-16 bar    | Analog (ADC)        | J26 Pin 14-16 |
 
 ## 3.2 Outputs (Actuators)
 
-| ID | Component | Load Rating | Control | Connection |
-|----|-----------|-------------|---------|------------|
-| K1 | Water Status LED | 12V/24V LED, <100mA | Onboard Relay | 6.3mm spade |
-| K2 | Pump Motor | 100-240V AC, 65W | Onboard Relay (16A) | 6.3mm spade |
-| K3 | Solenoid Valve (3-way) | 100-240V AC, 15W | Onboard Relay (10A) | 6.3mm spade |
-| K4 | Spare (Universal) | Any voltage ≤250V AC, 10A | Onboard Relay SPDT | Screw term ×3 (floating) |
-| SSR1 | Brew Boiler Heater | 100-240V AC, 1400W | External SSR 40A | 2-pin connector |
-| SSR2 | Steam Boiler Heater | 100-240V AC, 1400W | External SSR 40A | 2-pin connector |
+| ID   | Component              | Load Rating         | Control             | Connection       |
+| ---- | ---------------------- | ------------------- | ------------------- | ---------------- |
+| K1   | Water Status LED       | 100-240V AC, ≤100mA | Onboard Relay       | J2 (6.3mm spade) |
+| K2   | Pump Motor             | 100-240V AC, 65W    | Onboard Relay (16A) | J3 (6.3mm spade) |
+| K3   | Solenoid Valve (3-way) | 100-240V AC, 15W    | Onboard Relay (10A) | J4 (6.3mm spade) |
+| SSR1 | Brew Boiler Heater     | 100-240V AC, 1400W  | External SSR 40A    | J26 Pin 19-20    |
+| SSR2 | Steam Boiler Heater    | 100-240V AC, 1400W  | External SSR 40A    | J26 Pin 21-22    |
 
 ## 3.3 Communication Interfaces
 
-| Interface | Purpose | Connector |
-|-----------|---------|-----------|
-| ESP32 Display | Main UI, WiFi, MQTT, OTA, Brew-by-Weight | JST-XH 8-pin |
-| Service/Debug | Firmware debug, emergency access | 2.54mm 4-pin header |
-| Power Meter | PZEM-004T external | 4-pin JST-XH (UART) |
+| Interface     | Purpose                                  | Connector           |
+| ------------- | ---------------------------------------- | ------------------- |
+| ESP32 Display | Main UI, WiFi, MQTT, OTA, Brew-by-Weight | JST-XH 8-pin        |
+| Service/Debug | Firmware debug, emergency access         | 2.54mm 4-pin header |
+| Power Meter   | PZEM-004T external                       | 4-pin JST-XH (UART) |
 
 ## 3.4 User Interface (Onboard)
 
-| Component | Purpose |
-|-----------|---------|
-| Status LED (Green) | System state indication |
-| 6× Indicator LEDs | Relay/SSR status (4 Green + 2 Orange) |
-| Buzzer (Passive) | Audio alerts (PWM tones) |
-| Reset Button (SMD) | Hardware reset |
-| Boot Button (SMD) | Bootloader mode entry |
+| Component          | Purpose                               |
+| ------------------ | ------------------------------------- |
+| Status LED (Green) | System state indication               |
+| 6× Indicator LEDs  | Relay/SSR status (4 Green + 2 Orange) |
+| Buzzer (Passive)   | Audio alerts (PWM tones)              |
+| Reset Button (SMD) | Hardware reset                        |
+| Boot Button (SMD)  | Bootloader mode entry                 |
 
 ---
 
@@ -243,20 +292,20 @@ This specification defines a custom control PCB to replace the factory GICAR con
 
 ## 4.1 Raspberry Pi Pico Specifications
 
-| Parameter | Value |
-|-----------|-------|
-| MCU | RP2040 Dual-core ARM Cortex-M0+ @ 133MHz |
-| Flash | 2MB onboard (W25Q16JV) |
-| SRAM | 264KB |
-| GPIO | 26 multi-function pins |
-| ADC | 3 channels, 12-bit, 500 ksps |
-| UART | 2× peripherals |
-| SPI | 2× peripherals |
-| I2C | 2× peripherals |
-| PWM | 8× slices (16 channels) |
-| PIO | 2× programmable I/O blocks |
-| Operating Voltage | 1.8V - 5.5V (via VSYS), 3.3V logic |
-| Temperature Range | -20°C to +85°C |
+| Parameter         | Value                                    |
+| ----------------- | ---------------------------------------- |
+| MCU               | RP2040 Dual-core ARM Cortex-M0+ @ 133MHz |
+| Flash             | 2MB onboard (W25Q16JV)                   |
+| SRAM              | 264KB                                    |
+| GPIO              | 26 multi-function pins                   |
+| ADC               | 3 channels, 12-bit, 500 ksps             |
+| UART              | 2× peripherals                           |
+| SPI               | 2× peripherals                           |
+| I2C               | 2× peripherals                           |
+| PWM               | 8× slices (16 channels)                  |
+| PIO               | 2× programmable I/O blocks               |
+| Operating Voltage | 1.8V - 5.5V (via VSYS), 3.3V logic       |
+| Temperature Range | -20°C to +85°C                           |
 
 ## 4.2 Complete GPIO Allocation
 
@@ -294,8 +343,7 @@ This specification defines a custom control PCB to replace the factory GICAR con
 │  │  ├── GPIO11 ─── Pump Relay (K2) + Green Indicator LED                   │  │
 │  │  ├── GPIO12 ─── Solenoid Relay (K3) + Green Indicator LED               │  │
 │  │  ├── GPIO13 ─── Brew SSR Trigger (SSR1) + Orange Indicator LED          │  │
-│  │  ├── GPIO14 ─── Steam SSR Trigger (SSR2) + Orange Indicator LED         │  │
-│  │  └── GPIO20 ─── Spare Relay (K4 SPDT) + Green Indicator LED             │  │
+│  │  └── GPIO14 ─── Steam SSR Trigger (SSR2) + Orange Indicator LED         │  │
 │  └─────────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────────┐  │
@@ -347,35 +395,35 @@ This specification defines a custom control PCB to replace the factory GICAR con
 
 ## 4.3 GPIO Summary Table
 
-| GPIO | Function | Direction | Type | Pull | Protection |
-|------|----------|-----------|------|------|------------|
-| 0 | UART0 TX → ESP32 | Output | Digital | None | 33Ω series |
-| 1 | UART0 RX ← ESP32 | Input | Digital | None | 33Ω series |
-| 2 | Water Reservoir Switch | Input | Digital | Internal PU | ESD clamp |
-| 3 | Tank Level Sensor | Input | Digital | Internal PU | ESD clamp |
-| 4 | Steam Boiler Level (Comparator) | Input | Digital | None | TLV3201 output |
-| 5 | Brew Handle Switch | Input | Digital | Internal PU | ESD clamp |
-| 6 | PZEM TX (UART1) | Output | Digital | None | 33Ω series (to PZEM RX) |
-| 7 | PZEM RX (UART1) | Input | Digital | None | 33Ω series (from PZEM TX) |
-| 8 | I2C0 SDA (Accessory) | I/O | Digital | 4.7kΩ ext. PU | Accessory expansion |
-| 9 | I2C0 SCL (Accessory) | Output | Digital | 4.7kΩ ext. PU | Accessory expansion |
-| 10 | Relay K1 + LED | Output | Digital | None | - |
-| 11 | Relay K2 + LED | Output | Digital | None | - |
-| 12 | Relay K3 + LED | Output | Digital | None | - |
-| 13 | SSR1 Trigger + LED | Output | Digital | None | - |
-| 14 | SSR2 Trigger + LED | Output | Digital | None | - |
-| 15 | Status LED | Output | Digital | None | - |
-| 16 | SPI0 MISO | Input | Digital | None | - |
-| 17 | SPI0 CS | Output | Digital | None | - |
-| 18 | SPI0 SCK | Output | Digital | None | - |
-| 19 | Buzzer PWM | Output | PWM | None | - |
-| 20 | Relay K4 (Spare) + LED | Output | Digital | None | SPDT relay driver |
-| 21 | WEIGHT_STOP (ESP32→Pico) | Input | Digital | Pull-down | Brew-by-weight signal (J15 Pin 7) |
-| 22 | SPARE (ESP32) | I/O | Digital | None | Reserved for future (J15 Pin 8) |
-| 23 | (Spare) | - | - | - | Available for expansion |
-| 26 | ADC0 - Brew NTC | Input | Analog | None | RC filter |
-| 27 | ADC1 - Steam NTC | Input | Analog | None | RC filter |
-| 28 | ADC2 - Pressure | Input | Analog | None | RC filter, divider |
+| GPIO | Function                        | Direction | Type    | Pull          | Protection                        |
+| ---- | ------------------------------- | --------- | ------- | ------------- | --------------------------------- |
+| 0    | UART0 TX → ESP32                | Output    | Digital | None          | 33Ω series                        |
+| 1    | UART0 RX ← ESP32                | Input     | Digital | None          | 33Ω series                        |
+| 2    | Water Reservoir Switch          | Input     | Digital | Internal PU   | ESD clamp                         |
+| 3    | Tank Level Sensor               | Input     | Digital | Internal PU   | ESD clamp                         |
+| 4    | Steam Boiler Level (Comparator) | Input     | Digital | None          | TLV3201 output                    |
+| 5    | Brew Handle Switch              | Input     | Digital | Internal PU   | ESD clamp                         |
+| 6    | PZEM TX (UART1)                 | Output    | Digital | None          | 33Ω series (to PZEM RX)           |
+| 7    | PZEM RX (UART1)                 | Input     | Digital | None          | 33Ω series (from PZEM TX)         |
+| 8    | I2C0 SDA (Accessory)            | I/O       | Digital | 4.7kΩ ext. PU | Accessory expansion               |
+| 9    | I2C0 SCL (Accessory)            | Output    | Digital | 4.7kΩ ext. PU | Accessory expansion               |
+| 10   | Relay K1 + LED                  | Output    | Digital | None          | -                                 |
+| 11   | Relay K2 + LED                  | Output    | Digital | None          | -                                 |
+| 12   | Relay K3 + LED                  | Output    | Digital | None          | -                                 |
+| 13   | SSR1 Trigger + LED              | Output    | Digital | None          | -                                 |
+| 14   | SSR2 Trigger + LED              | Output    | Digital | None          | -                                 |
+| 15   | Status LED                      | Output    | Digital | None          | -                                 |
+| 16   | SPI0 MISO                       | Input     | Digital | None          | -                                 |
+| 17   | SPI0 CS                         | Output    | Digital | None          | -                                 |
+| 18   | SPI0 SCK                        | Output    | Digital | None          | -                                 |
+| 19   | Buzzer PWM                      | Output    | PWM     | None          | -                                 |
+| 20   | (Spare)                         | -         | -       | -             | Test point TP1 for future use     |
+| 21   | WEIGHT_STOP (ESP32→Pico)        | Input     | Digital | Pull-down     | Brew-by-weight signal (J15 Pin 7) |
+| 22   | SPARE (ESP32)                   | I/O       | Digital | None          | Reserved for future (J15 Pin 8)   |
+| 23   | (Spare)                         | -         | -       | -             | Available for expansion           |
+| 26   | ADC0 - Brew NTC                 | Input     | Analog  | None          | RC filter                         |
+| 27   | ADC1 - Steam NTC                | Input     | Analog  | None          | RC filter                         |
+| 28   | ADC2 - Pressure                 | Input     | Analog  | None          | RC filter, divider                |
 
 ---
 
@@ -387,31 +435,31 @@ Use an integrated isolated AC/DC converter module for safety and simplicity.
 
 ### Power Budget Analysis
 
-| Consumer | Typical | Peak | Notes |
-|----------|---------|------|-------|
-| Raspberry Pi Pico | 50mA | 100mA | Via VSYS |
-| Relay coils (×4) | 150mA | 320mA | ~80mA each when active |
-| SSR drivers (×2) | 10mA | 20mA | Transistor current |
-| ESP32 module | 150mA | 500mA | **WiFi TX spikes!** |
-| Indicator LEDs (×7) | 35mA | 70mA | 4 relay + 2 SSR + 1 status |
-| Buzzer | 5mA | 30mA | When active |
-| 3.3V LDO load | 30mA | 50mA | Sensors, MAX31855 |
-| **TOTAL** | **~430mA** | **~1090mA** | |
+| Consumer            | Typical    | Peak        | Notes                      |
+| ------------------- | ---------- | ----------- | -------------------------- |
+| Raspberry Pi Pico   | 50mA       | 100mA       | Via VSYS                   |
+| Relay coils (×3)    | 120mA      | 240mA       | ~80mA each when active     |
+| SSR drivers (×2)    | 10mA       | 20mA        | Transistor current         |
+| ESP32 module        | 150mA      | 500mA       | **WiFi TX spikes!**        |
+| Indicator LEDs (×6) | 30mA       | 60mA        | 3 relay + 2 SSR + 1 status |
+| Buzzer              | 5mA        | 30mA        | When active                |
+| 3.3V LDO load       | 30mA       | 50mA        | Sensors, MAX31855          |
+| **TOTAL**           | **~395mA** | **~1000mA** |                            |
 
-**Minimum: 1.5A, Selected: Hi-Link HLK-5M05 (3A)** - 3× headroom over 1.1A peak, compact size
+**Minimum: 1.5A, Selected: Hi-Link HLK-5M05 (3A)** - 3× headroom over 1A peak, compact size
 
 ### AC/DC Module Selection
 
-| Parameter | **HLK-5M05** | Mean Well IRM-20-5 | Mean Well IRM-10-5 |
-|-----------|-------------|-------------------|-------------------|
-| Output Voltage | 5V DC ±2% | 5V DC ±5% | 5V DC ±5% |
-| **Output Current** | **3A** | 4A | 2A |
-| Input Voltage | 100-240V AC | 85-264V AC | 85-264V AC |
-| Isolation | 3000V AC | 3000V AC | 3000V AC |
-| Efficiency | 80% | 87% | 84% |
-| **Package** | **50×27×16mm** | 52×27×24mm | 45×25×21mm |
-| Safety | CE | UL, CE, CB | UL, CE, CB |
-| **Recommendation** | **Best choice** | Overkill | Insufficient |
+| Parameter          | **HLK-5M05**    | Mean Well IRM-20-5 | Mean Well IRM-10-5 |
+| ------------------ | --------------- | ------------------ | ------------------ |
+| Output Voltage     | 5V DC ±2%       | 5V DC ±5%          | 5V DC ±5%          |
+| **Output Current** | **3A**          | 4A                 | 2A                 |
+| Input Voltage      | 100-240V AC     | 85-264V AC         | 85-264V AC         |
+| Isolation          | 3000V AC        | 3000V AC           | 3000V AC           |
+| Efficiency         | 80%             | 87%                | 84%                |
+| **Package**        | **50×27×16mm**  | 52×27×24mm         | 45×25×21mm         |
+| Safety             | CE              | UL, CE, CB         | UL, CE, CB         |
+| **Recommendation** | **Best choice** | Overkill           | Insufficient       |
 
 **Selected: Hi-Link HLK-5M05** (3A, compact 16mm height, adequate for ~1.1A peak load)
 
@@ -581,16 +629,16 @@ Use an integrated isolated AC/DC converter module for safety and simplicity.
 
 ## 5.4 Decoupling Capacitor Placement
 
-| Location | Capacitor | Type | Notes |
-|----------|-----------|------|-------|
-| 5V rail main | 100µF | Electrolytic | Near HLK-PM05 output |
-| 5V at Pico VSYS | 100nF | Ceramic (0805) | Adjacent to pin |
-| 5V at each relay driver | 100nF | Ceramic (0805) | Suppress switching noise |
-| 3.3V LDO output | 47µF | Tantalum/Ceramic | Low ESR required |
-| 3.3V at Pico 3V3 | 100nF | Ceramic (0805) | Adjacent to pin |
-| 3.3V at MAX31855 | 100nF | Ceramic (0805) | Adjacent to VCC pin |
-| 3.3V at each ADC input | 100nF | Ceramic (0603) | Filter network |
-| AGND/DGND star point | 10µF | Ceramic | Optional, reduces noise |
+| Location                | Capacitor | Type             | Notes                    |
+| ----------------------- | --------- | ---------------- | ------------------------ |
+| 5V rail main            | 100µF     | Electrolytic     | Near HLK-PM05 output     |
+| 5V at Pico VSYS         | 100nF     | Ceramic (0805)   | Adjacent to pin          |
+| 5V at each relay driver | 100nF     | Ceramic (0805)   | Suppress switching noise |
+| 3.3V LDO output         | 47µF      | Tantalum/Ceramic | Low ESR required         |
+| 3.3V at Pico 3V3        | 100nF     | Ceramic (0805)   | Adjacent to pin          |
+| 3.3V at MAX31855        | 100nF     | Ceramic (0805)   | Adjacent to VCC pin      |
+| 3.3V at each ADC input  | 100nF     | Ceramic (0603)   | Filter network           |
+| AGND/DGND star point    | 10µF      | Ceramic          | Optional, reduces noise  |
 
 ---
 
@@ -603,7 +651,7 @@ All relays use identical driver circuits with integrated indicator LEDs.
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
 │                           RELAY DRIVER CIRCUIT                                  │
-│                    (Identical for K1, K2, K3, K4)                              │
+│                    (Identical for K1, K2, K3)                                  │
 ├────────────────────────────────────────────────────────────────────────────────┤
 │                                                                                 │
 │                                5V Rail                                          │
@@ -704,7 +752,6 @@ All relays use identical driver circuits with integrated indicator LEDs.
 │    • K2 (Pump) - MANDATORY (Ulka pump generates severe EMI spikes)          │
 │    • K3 (3-Way Valve) - MANDATORY (Solenoid back-EMF can crash RP2040)      │
 │    • K1 (Water LED) - OPTIONAL (depends on load type)                       │
-│    • K4 (Spare) - OPTIONAL (add footprint for flexibility)                  │
 │    • SSRs (heaters) - NOT NEEDED (resistive load)                           │
 │                                                                                │
 │    ⚠️  WARNING: Unsnubbed inductive loads (pump/solenoid) generate EMI      │
@@ -739,7 +786,7 @@ Solution: NPN transistor as low-side switch provides full 5V to SSR.
 │                        │  To External     │                                    │
 │                        │  SSR Input (+)   │                                    │
 │                        │                  │                                    │
-│                        │  (J18-1/J19-1)   │                                    │
+│                        │ (J26 Pin 19/21)  │                                    │
 │                        └────────┬─────────┘                                    │
 │                                 │                                              │
 │                                 │              ┌───────────────────┐           │
@@ -754,7 +801,7 @@ Solution: NPN transistor as low-side switch provides full 5V to SSR.
 │                        │  To External     │                                    │
 │                        │  SSR Input (-)   │                                    │
 │                        │                  │                                    │
-│                        │  (J18-2/J19-2)   │                         ┌────────┐ │
+│                        │ (J26 Pin 20/22)  │                         ┌────────┐ │
 │                        └────────┬─────────┘                         │   C    │ │
 │                                 │                                   │MMBT2222│ │
 │                                 │                                   │ Q5/Q6  │ │
@@ -818,7 +865,7 @@ Solution: NPN transistor as low-side switch provides full 5V to SSR.
 │    ⚠️  SSRs MUST be mounted on adequate heatsink!                             │
 │    ⚠️  Dissipation: ~1W per amp at full load                                  │
 │                                                                                 │
-│    Connector: 2-pin screw terminal (J18, J19)                                 │
+│    Connector: J26 Pin 19-20 (SSR1), Pin 21-22 (SSR2)                          │
 │                                                                                 │
 │    Component Values:                                                           │
 │    ─────────────────                                                           │
@@ -860,16 +907,6 @@ Solution: NPN transistor as low-side switch provides full 5V to SSR.
 │         NO  ──[6.3mm]──► To solenoid coil                                     │
 │         NC  ── Not connected                                                   │
 │                                                                                 │
-│    K4 - SPARE (Universal - NOT pre-wired to mains)                           │
-│    ─────────────────────────────────────────────────                          │
-│         COM ──[Screw]──► Floating - user wires as needed                     │
-│         NO  ──[Screw]──► Floating - user wires as needed                     │
-│         NC  ──[Screw]──► Floating - user wires as needed                     │
-│                                                                                │
-│    ⚠️  K4 contacts are NOT connected to mains! Safe for any voltage ≤250V.  │
-│    User can wire K4 for: 12V accessories, 24V valves, 220V loads, etc.       │
-│                                                                                │
-│    Note: K4 uses SPDT relay with all 3 terminals exposed for flexibility     │
 │                                                                                 │
 │    ⚠️  HIGH VOLTAGE WARNING:                                                  │
 │    ─────────────────────────                                                   │
@@ -1078,57 +1115,59 @@ For **50kΩ @ 25°C NTC thermistors** (typical B25/85 = 3950K) - ECM Synchronika
 
 ### Selected Transducer: YD4060
 
-| Parameter | Specification |
-|-----------|---------------|
-| Model | YD4060 Series |
-| **Pressure Range** | **0-1.6 MPa (0-16 bar)** ⚠️ Order correct range! |
-| Output Signal | 0.5-4.5V ratiometric |
-| Supply Voltage | 5VDC |
-| Operating Current | ≤3mA |
-| Accuracy | ±1.0% FS |
-| Operating Temperature | -40°C to +105°C |
-| Response Time | ≤3ms |
-| Thread | 1/8" NPT (use G1/8 or M6 adapter for espresso machine) |
-| Housing | 304 Stainless Steel, IP65 |
-| CE Certified | Yes |
+| Parameter             | Specification                                          |
+| --------------------- | ------------------------------------------------------ |
+| Model                 | YD4060 Series                                          |
+| **Pressure Range**    | **0-1.6 MPa (0-16 bar)** ⚠️ Order correct range!       |
+| Output Signal         | 0.5-4.5V ratiometric                                   |
+| Supply Voltage        | 5VDC                                                   |
+| Operating Current     | ≤3mA                                                   |
+| Accuracy              | ±1.0% FS                                               |
+| Operating Temperature | -40°C to +105°C                                        |
+| Response Time         | ≤3ms                                                   |
+| Thread                | 1/8" NPT (use G1/8 or M6 adapter for espresso machine) |
+| Housing               | 304 Stainless Steel, IP65                              |
+| CE Certified          | Yes                                                    |
 
 **Wiring (3-wire cable):**
 
-| Wire Color | Function | Connect To |
-|------------|----------|------------|
-| Red | Vcc (+5V) | J13 Pin 1 |
-| Black | GND | J13 Pin 2 |
-| Yellow/White | Signal (0.5-4.5V) | J13 Pin 3 |
+| Wire Color   | Function          | Connect To |
+| ------------ | ----------------- | ---------- |
+| Red          | Vcc (+5V)         | J26 Pin 14 |
+| Black        | GND               | J26 Pin 15 |
+| Yellow/White | Signal (0.5-4.5V) | J26 Pin 16 |
 
 **Pressure to Voltage/ADC Mapping (0-16 bar range, optimized divider):**
 
-| Pressure | Voltage Out | After Divider | ADC Count |
-|----------|-------------|---------------|-----------|
-| 0 bar | 0.5V | 0.34V | 422 |
-| 4 bar | 1.5V | 1.02V | 1266 |
-| 8 bar | 2.5V | 1.70V | 2109 |
-| 9 bar (typical brew) | 2.75V | 1.87V | 2320 |
-| 12 bar | 3.5V | 2.38V | 2953 |
-| 16 bar | 4.5V | 3.06V | 3795 |
+| Pressure             | Voltage Out | After Divider | ADC Count |
+| -------------------- | ----------- | ------------- | --------- |
+| 0 bar                | 0.5V        | 0.34V         | 422       |
+| 4 bar                | 1.5V        | 1.02V         | 1266      |
+| 8 bar                | 2.5V        | 1.70V         | 2109      |
+| 9 bar (typical brew) | 2.75V       | 1.87V         | 2320      |
+| 12 bar               | 3.5V        | 2.38V         | 2953      |
+| 16 bar               | 4.5V        | 3.06V         | 3795      |
 
 **Resolution:** 16 bar / (3795 - 422) = **0.0047 bar per ADC count**
 
 **Firmware Conversion:**
+
 ```python
 def adc_to_pressure(adc_count, range_bar=16):
     """Convert ADC reading to pressure in bar"""
     ADC_MIN = 422   # 0 bar (0.5V input, after 0.68 divider)
     ADC_MAX = 3795  # 16 bar (4.5V input, after 0.68 divider)
-    
+
     # Clamp to valid range
     adc_count = max(ADC_MIN, min(ADC_MAX, adc_count))
-    
+
     # Linear interpolation
     pressure = (adc_count - ADC_MIN) / (ADC_MAX - ADC_MIN) * range_bar
     return pressure
 ```
 
 ⚠️ **Important:** When ordering, specify:
+
 - Pressure range: **0-1.6 MPa (16 bar)** - NOT 0-60 MPa
 - Output: **0.5-4.5V**
 - Supply: **5VDC**
@@ -1253,8 +1292,8 @@ def adc_to_pressure(adc_count, range_bar=16):
 │    │    STAGE 2: PROBE & SIGNAL CONDITIONING                                 ││
 │    │    ─────────────────────────────────────────                            ││
 │    │                                                                          ││
-│    │    AC_OUT ───[100Ω R94]───┬────────────────► J7 (Level Probe)           ││
-│    │           (current limit) │                  6.3mm spade                ││
+│    │    AC_OUT ───[100Ω R94]───┬────────────────► J26 Pin 5 (Level Probe)    ││
+│    │           (current limit) │                  Screw terminal             ││
 │    │                           │                       │                     ││
 │    │                      ┌────┴────┐             ┌────┴────┐                ││
 │    │                      │  1µF    │             │  Probe  │                ││
@@ -1415,6 +1454,7 @@ def adc_to_pressure(adc_count, range_bar=16):
 ## 8.1 ESP32 Display Module Interface (UART0)
 
 **8-pin JST-XH connector** for external ESP32-based display module.
+
 - ESP32 has full control over Pico: RUN (reset) and BOOTSEL (bootloader entry) for OTA
 - **NEW: Brew-by-Weight support** via WEIGHT_STOP signal (Pin 7)
 - **SPARE pin** (Pin 8) reserved for future expansion
@@ -1867,7 +1907,7 @@ The PZEM-004T v3.0 uses an external current transformer (CT) clamp, eliminating 
 │                    │  Clamp  │                                                 │
 │                    └────┬────┘                                                 │
 │                         │ (2-wire cable)                                       │
-│                         └──────────────────────► J25 Screw Terminal (on PCB)  │
+│                         └──────────────────────► J26 Pin 17-18 (CT+/CT-)      │
 │                                                                                 │
 │    ═══════════════════════════════════════════════════════════════════════    │
 │                                                                                 │
@@ -1885,16 +1925,16 @@ The PZEM-004T v3.0 uses an external current transformer (CT) clamp, eliminating 
 │                                                                                 │
 │    J24 (Left side - HV+CT): Female header 4-pin (2.54mm pitch)                │
 │    ┌───────────────────────────────────────────────────────────────────────┐  │
-│    │    J25 Pin 1 ◄─────────────────────────────────  J24 Pin 1 (CT+)     │  │
-│    │    J25 Pin 2 ◄─────────────────────────────────  J24 Pin 2 (CT-)     │  │
+│    │    J26 Pin 17 ◄────────────────────────────────  J24 Pin 1 (CT+)     │  │
+│    │    J26 Pin 18 ◄────────────────────────────────  J24 Pin 2 (CT-)     │  │
 │    │    N_BUS ──────────────────────────────────────► J24 Pin 3 (N)       │  │
 │    │    L_FUSED ────────────────────────────────────► J24 Pin 4 (L) ⚠️220V│  │
 │    └───────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
-│    J25 (CT Clamp Screw Terminal): 2-pin (5.08mm pitch)                        │
+│    J26 (CT Clamp Terminals): Pin 17-18 (part of unified screw terminal)       │
 │    ┌───────────────────────────────────────────────────────────────────────┐  │
-│    │    CT+ wire from clamp ──────► J25 Pin 1                              │  │
-│    │    CT- wire from clamp ──────► J25 Pin 2                              │  │
+│    │    CT+ wire from clamp ──────► J26 Pin 17                             │  │
+│    │    CT- wire from clamp ──────► J26 Pin 18                             │  │
 │    └───────────────────────────────────────────────────────────────────────┘  │
 │                                                                                 │
 │    PZEM-004T v3.0 Specifications:                                             │
@@ -1949,31 +1989,31 @@ The PZEM-004T v3.0 uses an external current transformer (CT) clamp, eliminating 
 
 ## 10.2 J17 PZEM UART Connector (LV - Right Side)
 
-| Pin | Signal | Direction | Notes |
-|-----|--------|-----------|-------|
-| 1 | 5V | Power Out | PZEM-004T VCC (5V required) |
-| 2 | RX | Input | From PZEM TX (33Ω series) - GPIO7 |
-| 3 | TX | Output | To PZEM RX (33Ω series) - GPIO6 |
-| 4 | CF | NC | Pulse output - not connected |
-| 5 | GND | Ground | System ground |
+| Pin | Signal | Direction | Notes                             |
+| --- | ------ | --------- | --------------------------------- |
+| 1   | 5V     | Power Out | PZEM-004T VCC (5V required)       |
+| 2   | RX     | Input     | From PZEM TX (33Ω series) - GPIO7 |
+| 3   | TX     | Output    | To PZEM RX (33Ω series) - GPIO6   |
+| 4   | CF     | NC        | Pulse output - not connected      |
+| 5   | GND    | Ground    | System ground                     |
 
 ## 10.3 J24 PZEM HV+CT Connector (Left Side)
 
-| Pin | Signal | Source | Notes |
-|-----|--------|--------|-------|
-| 1 | CT+ | → J25 pin 1 | Routed to CT clamp screw terminal |
-| 2 | CT- | → J25 pin 2 | Routed to CT clamp screw terminal |
-| 3 | N | N bus | Neutral for PZEM voltage sensing |
-| 4 | L | L_FUSED bus | Fused Live for PZEM voltage sensing (⚠️ 220V!) |
+| Pin | Signal | Source       | Notes                                          |
+| --- | ------ | ------------ | ---------------------------------------------- |
+| 1   | CT+    | → J26 Pin 17 | Routed to unified screw terminal               |
+| 2   | CT-    | → J26 Pin 18 | Routed to unified screw terminal               |
+| 3   | N      | N bus        | Neutral for PZEM voltage sensing               |
+| 4   | L      | L_FUSED bus  | Fused Live for PZEM voltage sensing (⚠️ 220V!) |
 
-## 10.4 J25 CT Clamp Screw Terminal
+## 10.4 CT Clamp Connection (J26 Pin 17-18)
 
-| Pin | Signal | Notes |
-|-----|--------|-------|
-| 1 | CT+ | Connect CT clamp wire (polarity not critical) |
-| 2 | CT- | Connect CT clamp wire |
+| Pin | Signal | Notes                                         |
+| --- | ------ | --------------------------------------------- |
+| 1   | CT+    | Connect CT clamp wire (polarity not critical) |
+| 2   | CT-    | Connect CT clamp wire                         |
 
-**Note:** J17 (LV) and J24 (HV) are female headers that accept the PZEM-004T-100A-D-P module pin headers directly. J25 provides screw terminals for easy CT clamp wire connection, routed from J24 CT pins.
+**Note:** J17 (LV) and J24 (HV) are female headers that accept the PZEM-004T-100A-D-P module pin headers directly. J26 Pin 17-18 provide screw terminals for easy CT clamp wire connection, routed from J24 CT pins.
 
 ### ⚠️ CRITICAL: J24 Milling Slot Requirement
 
@@ -2072,9 +2112,9 @@ The PZEM-004T v3.0 uses an external current transformer (CT) clamp, eliminating 
 │    With external PZEM-004T, heater current does NOT flow through the PCB.   │
 │    The on-board fuse only protects relay-switched loads:                     │
 │    • K2 (Pump): ~5A peak (Ulka EP5)                                          │
-│    • K1, K3 (Valves): ~0.5A each                                             │
-│    • K4 (Spare): variable                                                     │
-│    Total relay-switched: ~6-7A maximum                                        │
+│    • K1 (LED): ≤100mA                                                        │
+│    • K3 (Solenoid): ~0.5A                                                    │
+│    Total relay-switched: ~6A maximum                                          │
 │                                                                                │
 │    10A fuse provides adequate margin for relay-switched loads.               │
 │    Standard 5×20mm fuse holders (rated 10A) are now acceptable.              │
@@ -2234,14 +2274,14 @@ The PZEM-004T v3.0 uses an external current transformer (CT) clamp, eliminating 
 
 ## 12.1 Board Specifications
 
-| Parameter | Specification |
-|-----------|---------------|
-| **Dimensions** | **130mm × 80mm** |
+| Parameter               | Specification                                               |
+| ----------------------- | ----------------------------------------------------------- |
+| **Dimensions**          | **130mm × 80mm**                                            |
 | Enclosure Mounting Area | 150mm × 100mm (leaves room for terminals + enclosure walls) |
-| **Layers** | **2-layer** |
-| Copper Weight | 2oz (70µm) both layers for high-current traces |
-| Board Thickness | 1.6mm |
-| Material | FR-4, Tg 130°C minimum, UL 94V-0 flammability rating |
+| **Layers**              | **2-layer**                                                 |
+| Copper Weight           | 2oz (70µm) both layers for high-current traces              |
+| Board Thickness         | 1.6mm                                                       |
+| Material                | FR-4, Tg 130°C minimum, UL 94V-0 flammability rating        |
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
@@ -2299,6 +2339,7 @@ The PZEM-004T v3.0 uses an external current transformer (CT) clamp, eliminating 
 │                                                                                │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
+
 | Surface Finish | ENIG preferred (HASL acceptable) |
 | Solder Mask | Both sides, green or black |
 | Silkscreen | Both sides, white |
@@ -2307,30 +2348,32 @@ The PZEM-004T v3.0 uses an external current transformer (CT) clamp, eliminating 
 
 ## 12.2 Trace Width Requirements
 
-| Signal/Power | Current | Width (2oz Cu) | Notes |
-|--------------|---------|----------------|-------|
-| Mains Live/Neutral | 6A peak | 1.5mm (60 mil) | Relay-switched loads only |
-| Relay K2 (Pump) | 5A peak | 1.5mm (60 mil) | Ulka pump |
-| Relay K4 (Spare) | 5A peak | 1.5mm (60 mil) | Future-proofed for high-current load |
-| Relay K1/K3 (Valves) | 0.5A | 1.0mm (40 mil) | Solenoid valves |
-| 5V power rail | 1A | 1.0mm (40 mil) | Main distribution |
-| 5V to Pico VSYS | 500mA | 0.5mm (20 mil) | |
-| 3.3V power rail | 500mA | 0.5mm (20 mil) | |
-| Relay coil drive | 80mA | 0.3mm (12 mil) | |
-| Signal traces | <10mA | 0.25mm (10 mil) | GPIO, UART, SPI |
-| Ground returns | - | Match signal width | Use ground plane |
+| Signal/Power        | Current | Width (2oz Cu)     | Notes                     |
+| ------------------- | ------- | ------------------ | ------------------------- |
+| Mains Live/Neutral  | 6A peak | 1.5mm (60 mil)     | Relay-switched loads only |
+| Relay K2 (Pump)     | 5A peak | 1.5mm (60 mil)     | Ulka pump                 |
+| Relay K1 (LED)      | 100mA   | 0.5mm (20 mil)     | Water status LED          |
+| Relay K3 (Solenoid) | 0.5A    | 1.0mm (40 mil)     | 3-way solenoid valve      |
+| 5V power rail       | 1A      | 1.0mm (40 mil)     | Main distribution         |
+| 5V to Pico VSYS     | 500mA   | 0.5mm (20 mil)     |                           |
+| 3.3V power rail     | 500mA   | 0.5mm (20 mil)     |                           |
+| Relay coil drive    | 80mA    | 0.3mm (12 mil)     |                           |
+| Signal traces       | <10mA   | 0.25mm (10 mil)    | GPIO, UART, SPI           |
+| Ground returns      | -       | Match signal width | Use ground plane          |
 
 ### ✅ SIMPLIFIED PCB DESIGN (PZEM-004T External Metering)
 
 **With PZEM-004T external power metering, heater current (12A+) does NOT flow through the control PCB.**
 
 The PCB only handles relay-switched loads:
+
 - **K2 (Pump):** 5A peak (Ulka EP5)
-- **K1, K3 (Valves):** 0.5A each
-- **K4 (Spare):** 5A capable (traces sized for future high-current accessory)
-- **Total maximum:** ~6-7A
+- **K1 (LED):** ≤100mA
+- **K3 (Solenoid):** ~0.5A
+- **Total maximum:** ~6A
 
 **Benefits of PZEM-004T Design:**
+
 - ✅ No 16A shunt resistor required
 - ✅ No solder mask openings on high-current traces needed
 - ✅ Standard thermal relief is acceptable
@@ -2342,6 +2385,7 @@ The PCB only handles relay-switched loads:
 ### Standard PCB Practices Apply
 
 For the relay-switched loads (max ~6A):
+
 1. Use 1.5mm trace width for pump relay (K2) traces
 2. Standard solder mask is fine
 3. Thermal relief can be used on all pads
@@ -2433,7 +2477,7 @@ For the relay-switched loads (max ~6A):
 │                                                                                 │
 │    3. LEVEL PROBE GUARD RING (High-Impedance Trace Protection)                │
 │    ────────────────────────────────────────────────────────────               │
-│    The trace from Level Probe connector (J7) to OPA342 input is:              │
+│    The trace from Level Probe (J26 Pin 5) to OPA342 input is:                 │
 │    • High-impedance (MΩ range)                                                │
 │    • Very sensitive to noise pickup                                           │
 │    • Susceptible to 50/60Hz mains hum                                         │
@@ -2444,7 +2488,7 @@ For the relay-switched loads (max ~6A):
 │    ┌─────────────────────────────────────────────────────────────────────┐    │
 │    │  GND ─────────────────────────────────────────────────────────── GND│    │
 │    │   │                                                               │ │    │
-│    │   │   J7 (Probe) ────────────────────────────────► OPA342 IN+    │ │    │
+│    │   │   J26-5 (Probe) ─────────────────────────────► OPA342 IN+    │ │    │
 │    │   │                                                               │ │    │
 │    │  GND ─────────────────────────────────────────────────────────── GND│    │
 │    └─────────────────────────────────────────────────────────────────────┘    │
@@ -2453,7 +2497,7 @@ For the relay-switched loads (max ~6A):
 │    • Route GND traces on BOTH sides of the probe signal trace                 │
 │    • Connect guard traces to GND plane with vias every 5mm                    │
 │    • Keep probe trace as SHORT as possible (< 2cm ideal)                      │
-│    • Place OPA342 physically CLOSE to J7 connector                            │
+│    • Place OPA342 physically CLOSE to J26 screw terminal                      │
 │    • Avoid routing probe trace near relay coils or mains traces               │
 │                                                                                 │
 │    This prevents 50Hz mains hum from coupling into the AC level sensing.      │
@@ -2604,30 +2648,31 @@ For the relay-switched loads (max ~6A):
 
 ## 12.7 Silkscreen Requirements
 
-| Marking | Location | Purpose |
-|---------|----------|---------|
-| ⚠️ HIGH VOLTAGE | Near AC input and relays | Safety warning |
-| ⚠️ DISCONNECT MAINS BEFORE USB DEBUG | Near USB/service header | Ground loop warning |
-| Dashed boundary line | Between HV and LV zones | Visual separation |
-| L, N, ⏚ | Mains input terminal | Wire identification |
-| ⏚ (PE symbol) | At MH1 mounting hole | PE star point / bonding screw location |
-| K1, K2, K3, K4 | Relay terminals | Function identification |
-| SSR1+, SSR1-, etc. | SSR connectors | Polarity marking |
-| Pin numbers | All connectors | Wiring reference |
-| R1, C1, U1, etc. | All components | Assembly reference |
-| Version, date | Board corner | Revision tracking |
-| Polarity marks | Electrolytic caps, diodes, LEDs | Assembly guidance |
-| Pin 1 indicator | ICs, Pico socket | Orientation |
+| Marking                              | Location                        | Purpose                                |
+| ------------------------------------ | ------------------------------- | -------------------------------------- |
+| ⚠️ HIGH VOLTAGE                      | Near AC input and relays        | Safety warning                         |
+| ⚠️ DISCONNECT MAINS BEFORE USB DEBUG | Near USB/service header         | Ground loop warning                    |
+| Dashed boundary line                 | Between HV and LV zones         | Visual separation                      |
+| L, N, ⏚                              | Mains input terminal            | Wire identification                    |
+| ⏚ (PE symbol)                        | At MH1 mounting hole            | PE star point / bonding screw location |
+| K1, K2, K3                           | Relay terminals                 | Function identification                |
+| SSR1+, SSR1-, etc.                   | SSR connectors                  | Polarity marking                       |
+| Pin numbers                          | All connectors                  | Wiring reference                       |
+| R1, C1, U1, etc.                     | All components                  | Assembly reference                     |
+| Version, date                        | Board corner                    | Revision tracking                      |
+| Polarity marks                       | Electrolytic caps, diodes, LEDs | Assembly guidance                      |
+| Pin 1 indicator                      | ICs, Pico socket                | Orientation                            |
 
 ---
 
 # 13. Connector Specifications
 
-## 13.1 6.3mm Spade Terminals (Machine Connections)
+## 13.1 6.3mm Spade Terminals (High-Power Machine Connections)
 
-All connections to original machine wiring use 6.3mm (0.25") spade terminals for plug & play compatibility.
+High-current connections to original machine wiring use 6.3mm (0.25") spade terminals for plug & play compatibility.
 
 ### Power Metering Wiring
+
 Relay-switched loads (pump, valves) are fused and distributed via internal bus. Power metering is handled by external PZEM-004T with CT clamp (no high current through PCB).
 
 ```
@@ -2649,11 +2694,8 @@ Relay-switched loads (pump, valves) are fused and distributed via internal bus. 
 │   N_IN ──────────────────────────────────────────────┬──► N (to all loads)      │
 │                                                      └──► J24-N (PZEM 220V)     │
 │                                                                                  │
-│   K4 (Spare): Contacts FLOATING - not connected to mains bus.                   │
-│               User wires J9 (COM/NO/NC) as needed for any voltage ≤250V.        │
-│                                                                                  │
 │   ⚠️ SSR heater power: Mains → SSR → Heater (via existing machine wiring)       │
-│      NOT through this PCB! PCB only provides 5V control signals via J18/J19.    │
+│      NOT through this PCB! PCB provides 5V control signals via J26 Pin 19-22.   │
 │                                                                                  │
 │   N_IN ──────────────────────────────────────────────────► N (to all loads)     │
 │   (J1-N)                                                                         │
@@ -2664,62 +2706,112 @@ Relay-switched loads (pump, valves) are fused and distributed via internal bus. 
 └─────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Terminal Assignments
+### High-Power Terminal Assignments (6.3mm Spade)
 
-| Designator | Function | Terminal Type | Wire Gauge | Notes |
-|------------|----------|---------------|------------|-------|
-| **Mains Input** |
-| J1-L | Mains Live Input | 6.3mm male | 14 AWG | Fused, to relay COMs |
-| J1-N | Mains Neutral Input | 6.3mm male | 14 AWG | Common neutral bus |
-| J1-PE | Protective Earth | 6.3mm male | 14 AWG | To chassis |
-| **Relay Outputs (Onboard Relays)** |
-| J2-NO | Relay K1 N.O. | 6.3mm male | 16 AWG | LED output (COM internal) |
-| J3-NO | Relay K2 N.O. | 6.3mm male | 14 AWG | Pump output (COM internal) |
-| J4-NO | Relay K3 N.O. | 6.3mm male | 16 AWG | Solenoid output (COM internal) |
-| **⚠️ Spare Relay K4 (SCREW TERMINALS - NOT spade! NOT pre-wired to mains)** |
-| J9-COM | Relay K4 Common | **Screw term (Phoenix MKDS 1/3-5.08)** | 16 AWG | Floating - user wires as needed |
-| J9-NO | Relay K4 N.O. | **Screw term** | 16 AWG | Floating - user wires as needed |
-| J9-NC | Relay K4 N.C. | **Screw term** | 16 AWG | Floating - user wires as needed |
-| **Sensor/Switch Inputs** |
-| J5 | Water Res. Switch | 6.3mm male ×2 | 18 AWG | Signal + GND |
-| J6 | Tank Level Sensor | 6.3mm male ×2 | 18 AWG | Signal + GND |
-| J7 | Steam Boiler Level | 6.3mm male ×1 | 18 AWG | Probe only |
-| J8 | Brew Handle Switch | 6.3mm male ×2 | 18 AWG | Signal + GND |
+| Designator                                                   | Function            | Terminal Type | Wire Gauge | Notes                           |
+| ------------------------------------------------------------ | ------------------- | ------------- | ---------- | ------------------------------- |
+| **Mains Input**                                              |
+| J1-L                                                         | Mains Live Input    | 6.3mm male    | 14 AWG     | Fused, to relay COMs            |
+| J1-N                                                         | Mains Neutral Input | 6.3mm male    | 14 AWG     | Common neutral bus              |
+| J1-PE                                                        | Protective Earth    | 6.3mm male    | 14 AWG     | To chassis                      |
+| **220V AC Relay Outputs (All COMs internal to L_FUSED bus)** |
+| J2-NO                                                        | Relay K1 N.O.       | 6.3mm male    | 16 AWG     | Water LED output (≤100mA, 220V) |
+| J3-NO                                                        | Relay K2 N.O.       | 6.3mm male    | 14 AWG     | Pump output (5A peak, 220V)     |
+| J4-NO                                                        | Relay K3 N.O.       | 6.3mm male    | 16 AWG     | Solenoid output (~0.5A, 220V)   |
 
 **Note:** Relay K1, K2, K3 COMs are connected internally to the fused live bus - no external COM terminals needed.
 
-**K4 (Spare Relay):** All contacts (COM, NO, NC) are FLOATING - NOT connected to mains. User wires J9 screw terminals as needed. Safe for 12V, 24V, 220V, or any voltage ≤250V AC/DC.
-
 **Spade Terminal Part Numbers:**
+
 - PCB Mount: Keystone 1285 or TE 63951-1 (6.3mm blade)
 - Use vertical or right-angle spade terminals depending on enclosure
 
-## 13.2 Screw Terminals (Sensors)
+## 13.1a Unified Low-Voltage Screw Terminal Block (J26 - 24 Position)
 
-| Designator | Function | Terminals | Pitch | Notes |
-|------------|----------|-----------|-------|-------|
-| J10 | Brew NTC Thermistor | 2-pin | 5.08mm | Signal, GND |
-| J11 | Steam NTC Thermistor | 2-pin | 5.08mm | Signal, GND |
-| J12 | K-Type Thermocouple | 2-pin | 5.08mm | TC+, TC- |
-| J13 | Pressure Transducer | 3-pin | 5.08mm | 5V, Signal, GND (0.5-4.5V type) |
+**ALL low-voltage connections are consolidated into a single 24-position screw terminal block.**
 
-**Screw Terminal Part Numbers:**
-- Phoenix Contact MKDS 1/2-5.08 (2-pos), MKDS 1/3-5.08 (3-pos), MKDS 1/4-5.08 (4-pos)
-- Wurth 691213710002 (2-pos), 691213710003 (3-pos), 691213710004 (4-pos)
+**⚠️ J26 is for LOW VOLTAGE ONLY! 220V AC relay outputs (K1, K2, K3) use 6.3mm spade terminals.**
 
-## 13.3 Pin Headers and JST Connectors
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                    UNIFIED LOW-VOLTAGE SCREW TERMINAL BLOCK (J26 - 24 Position)                      │
+│                              Phoenix MKDS 1/24-5.08 (5.08mm pitch)                                   │
+│                                    ⚠️ LOW VOLTAGE ONLY ⚠️                                            │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│  SECTION A: SWITCHES     SECTION B: ANALOG SENSORS           SECTION C: CT    SECTION D: SSR   SPARE│
+│  ────────────────────    ─────────────────────────────────   ──────────────   ──────────────   ─────│
+│                                                                                                      │
+│  ┌───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┬───┐  │
+│  │ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │ 8 │ 9 │10 │11 │12 │13 │14 │15 │16 │17 │18 │19 │20 │21 │22 │23 │24 │  │
+│  │S1 │S1G│S2 │S2G│S3 │S4 │S4G│T1 │T1G│T2 │T2G│TC+│TC-│P5V│PGD│PSG│CT+│CT-│SR+│SR-│SR+│SR-│GND│GND│  │
+│  └───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┴───┘  │
+│   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │   │         │
+│   └─S1─┘   └─S2─┘  S3  └─S4─┘   └─T1──┘   └─T2──┘ └─TC──┘ └──Pressure──┘ └CT─┘ └SSR1─┘ └SSR2─┘ Spare │
+│   Water    Tank   Lvl  Brew     Brew     Steam   Thermo    Transducer   Clamp  Brew    Steam         │
+│   Res.     Level  Prb  Handle   NTC      NTC     couple    (YD4060)            Heater  Heater        │
+│                                                                                                      │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                      │
+│  COMPLETE PIN ASSIGNMENT TABLE:                                                                      │
+│  ══════════════════════════════                                                                      │
+│                                                                                                      │
+│  │ Pin │ Label │ Function                    │ Wire   │ Signal      │ Notes                       │ │
+│  │─────│───────│─────────────────────────────│────────│─────────────│─────────────────────────────│ │
+│  │  1  │ S1    │ Water Reservoir Switch      │ 22 AWG │ GPIO2       │ Digital input, active low   │ │
+│  │  2  │ S1-G  │ Water Reservoir GND         │ 22 AWG │ GND         │ Switch return               │ │
+│  │  3  │ S2    │ Tank Level Sensor           │ 22 AWG │ GPIO3       │ Digital input, active low   │ │
+│  │  4  │ S2-G  │ Tank Level GND              │ 22 AWG │ GND         │ Sensor return               │ │
+│  │  5  │ S3    │ Steam Boiler Level Probe    │ 22 AWG │ PROBE       │ Via OPA342/TLV3201→GPIO4    │ │
+│  │  6  │ S4    │ Brew Handle Switch          │ 22 AWG │ GPIO5       │ Digital input, active low   │ │
+│  │  7  │ S4-G  │ Brew Handle GND             │ 22 AWG │ GND         │ Switch return               │ │
+│  │  8  │ T1    │ Brew NTC Signal             │ 22 AWG │ NTC1_SIG    │ To ADC via divider          │ │
+│  │  9  │ T1-G  │ Brew NTC GND                │ 22 AWG │ GND         │ Sensor return               │ │
+│  │ 10  │ T2    │ Steam NTC Signal            │ 22 AWG │ NTC2_SIG    │ To ADC via divider          │ │
+│  │ 11  │ T2-G  │ Steam NTC GND               │ 22 AWG │ GND         │ Sensor return               │ │
+│  │ 12  │ TC+   │ Thermocouple +              │ 22 AWG │ TC_POS      │ K-type to MAX31855          │ │
+│  │ 13  │ TC-   │ Thermocouple -              │ 22 AWG │ TC_NEG      │ K-type to MAX31855          │ │
+│  │ 14  │ P-5V  │ Pressure Transducer +5V     │ 22 AWG │ +5V         │ Power for YD4060            │ │
+│  │ 15  │ P-GND │ Pressure Transducer GND     │ 22 AWG │ GND         │ Sensor return               │ │
+│  │ 16  │ P-SIG │ Pressure Transducer Signal  │ 22 AWG │ PRESS_SIG   │ 0.5-4.5V to ADC divider     │ │
+│  │ 17  │ CT+   │ CT Clamp +                  │ 22 AWG │ CT_POS      │ From PZEM CT output         │ │
+│  │ 18  │ CT-   │ CT Clamp -                  │ 22 AWG │ CT_NEG      │ From PZEM CT output         │ │
+│  │ 19  │ SSR1+ │ SSR1 Control +5V            │ 22 AWG │ +5V         │ Brew heater SSR power       │ │
+│  │ 20  │ SSR1- │ SSR1 Control -              │ 22 AWG │ SSR1_NEG    │ Brew heater SSR trigger     │ │
+│  │ 21  │ SSR2+ │ SSR2 Control +5V            │ 22 AWG │ +5V         │ Steam heater SSR power      │ │
+│  │ 22  │ SSR2- │ SSR2 Control -              │ 22 AWG │ SSR2_NEG    │ Steam heater SSR trigger    │ │
+│  │ 23  │ GND   │ Spare Ground                │ 22 AWG │ GND         │ Extra GND terminal          │ │
+│  │ 24  │ GND   │ Spare Ground                │ 22 AWG │ GND         │ Extra GND terminal          │ │
+│                                                                                                      │
+│  WIRING NOTES:                                                                                       │
+│  ─────────────                                                                                       │
+│  • SWITCHES (Pin 1-7): N.O. switches connect between signal and adjacent GND pin                    │
+│  • S3 (Pin 5): Level probe single wire, ground return via boiler body (PE connection)               │
+│  • NTCs (Pin 8-11): 2-wire thermistors, polarity doesn't matter                                     │
+│  • TC (Pin 12-13): OBSERVE POLARITY - red wire = TC-, yellow wire = TC+                             │
+│  • PRESSURE (Pin 14-16): 3-wire transducer: +5V (red), GND (black), Signal (yellow/white)           │
+│  • CT CLAMP (Pin 17-18): From PZEM module CT output header                                          │
+│  • SSRs (Pin 19-22): Connect to SSR DC input terminals (+5V to SSR+, SSR- to SSR DC-)               │
+│  • SPARE GND (Pin 23-24): Extra ground terminals for convenience                                     │
+│                                                                                                      │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
-| Designator | Function | Type | Pitch | Notes |
-|------------|----------|------|-------|-------|
-| J15 | ESP32 Display | JST-XH 8-pin | 2.54mm | Keyed, locking (incl. WEIGHT_STOP, SPARE) |
-| J16 | Service/Debug | Pin header 4-pin | 2.54mm | 3V3, GND, TX, RX (shared GPIO0/1) |
-| J23 | I2C Accessory | Pin header 4-pin | 2.54mm | 3V3, GND, SDA, SCL (GPIO8/9) |
-| J17 | PZEM UART (LV) | Female header 5-pin | 2.54mm | Right side: 5V, RX, TX, CF*, GND (*CF not used) |
-| J24 | PZEM HV+CT | Female header 4-pin | 2.54mm | Left side: CT+, CT-, N, L_FUSED (⚠️ 220V!) |
-| J25 | CT Clamp Input | Screw terminal 2-pin | 5.08mm | Routed from J24 CT+/CT- for clamp wires |
-| J18 | SSR1 Control (Brew) | Screw terminal 2-pin | 5.08mm | SSR+, SSR- (5V trigger) |
-| J19 | SSR2 Control (Steam) | Screw terminal 2-pin | 5.08mm | SSR+, SSR- (5V trigger) |
-| J20 | Pico Socket | 2×20 female header | 2.54mm | Or solder direct |
+**Screw Terminal Part Number:**
+
+- Phoenix Contact MKDS 1/24-5.08 (24-position, 5.08mm pitch)
+- Alternative: 3× Phoenix MKDS 1/8-5.08 ganged together
+
+## 13.2 Pin Headers and JST Connectors
+
+| Designator | Function       | Type                | Pitch  | Notes                                           |
+| ---------- | -------------- | ------------------- | ------ | ----------------------------------------------- |
+| J15        | ESP32 Display  | JST-XH 8-pin        | 2.54mm | Keyed, locking (incl. WEIGHT_STOP, SPARE)       |
+| J16        | Service/Debug  | Pin header 4-pin    | 2.54mm | 3V3, GND, TX, RX (shared GPIO0/1)               |
+| J23        | I2C Accessory  | Pin header 4-pin    | 2.54mm | 3V3, GND, SDA, SCL (GPIO8/9)                    |
+| J17        | PZEM UART (LV) | Female header 5-pin | 2.54mm | Right side: 5V, RX, TX, CF*, GND (*CF not used) |
+| J24        | PZEM HV+CT     | Female header 4-pin | 2.54mm | Left side: CT+, CT-, N, L_FUSED (⚠️ 220V!)      |
+| J20        | Pico Socket    | 2×20 female header  | 2.54mm | Or solder direct                                |
 
 ### Complete SSR Wiring (Each SSR has 2 connections to the board)
 
@@ -2735,13 +2827,13 @@ Relay-switched loads (pump, valves) are fused and distributed via internal bus. 
 │   ┌─────────────────┐                      ┌─────────────────┐                  │
 │   │                 │    5V CONTROL        │   SSR-40DA      │                  │
 │   │  ┌───────────┐  │    (LOW VOLTAGE)     │   (or similar)  │                  │
-│   │  │  J18      │  │    ───────────       │                 │                  │
+│   │  │ J26:19-20 │  │    ───────────       │                 │                  │
 │   │  │  SSR1+  ──┼──┼───────────────────►──┼── DC+ (3-32V)   │                  │
 │   │  │  SSR1-  ──┼──┼───────────────────►──┼── DC- (control) │                  │
 │   │  └───────────┘  │                      │                 │    ┌─────────┐  │
 │   │                 │                      │                 │    │  BREW   │  │
 │   │  ┌───────────┐  │                      │   AC Load 1   ──┼───►│ HEATER  │  │
-│   │  │  J19      │  │                      │                 │    │ 1400W   │  │
+│   │  │ J26:21-22 │  │                      │                 │    │ 1400W   │  │
 │   │  │  SSR2+  ──┼──┼───► (to SSR2)        │   AC Load 2   ◄─┼────┤         │  │
 │   │  │  SSR2-  ──┼──┼───► (to SSR2)        │                 │    └─────────┘  │
 │   │  └───────────┘  │                      └────────┬────────┘         ▲       │
@@ -2773,8 +2865,8 @@ Relay-switched loads (pump, valves) are fused and distributed via internal bus. 
 │   ─────────────────────                                                          │
 │   │ Connection      │ Source           │ Type       │ Voltage │                 │
 │   │─────────────────│──────────────────│────────────│─────────│                 │
-│   │ Control DC+     │ PCB J18/J19-1    │ Screw term │ 5V DC   │                 │
-│   │ Control DC-     │ PCB J18/J19-2    │ Screw term │ GND     │                 │
+│   │ Control DC+     │ J26 Pin 19/21    │ Screw term │ 5V DC   │                 │
+│   │ Control DC-     │ J26 Pin 20/22    │ Screw term │ GND     │                 │
 │   │ Mains Live In   │ Machine wiring   │ Existing   │ 220V AC │ ← NOT from PCB │
 │   │ Load Output     │ SSR AC terminal  │ Existing   │ 220V AC │                 │
 │   │ Neutral         │ Machine wiring   │ Existing   │ 220V AC │                 │
@@ -2783,6 +2875,7 @@ Relay-switched loads (pump, valves) are fused and distributed via internal bus. 
 ```
 
 **JST Part Numbers:**
+
 - JST B8B-XH-A (PCB header, 8-pin)
 - JST XHP-6 (housing) with SXH-001T-P0.6 contacts (cable side)
 
@@ -2792,123 +2885,119 @@ Relay-switched loads (pump, valves) are fused and distributed via internal bus. 
 
 ## 14.1 Integrated Circuits
 
-| Qty | Ref | Description | Part Number | Package | Notes |
-|-----|-----|-------------|-------------|---------|-------|
-| 1 | U1 | Raspberry Pi Pico | SC0915 | Module | Or Pico W |
-| 1 | U2 | AC/DC Converter 5V 3A | HLK-5M05 | Module | Isolated, 3A, compact (alt: IRM-20-5) |
-| 1 | U3 | 3.3V LDO Regulator | AP2112K-3.3TRG1 | SOT-23-5 | 600mA |
-| 1 | U4 | Thermocouple Amp | MAX31855KASA+ | SOIC-8 | K-type |
-| 1 | U6 | Rail-to-Rail Op-Amp | OPA342UA | SOIC-8 | Level probe oscillator (alt: OPA207) |
-| 1 | U7 | Precision Comparator | TLV3201AIDBVR | SOT-23-5 | Level probe detector |
+| Qty | Ref | Description           | Part Number     | Package  | Notes                                 |
+| --- | --- | --------------------- | --------------- | -------- | ------------------------------------- |
+| 1   | U1  | Raspberry Pi Pico     | SC0915          | Module   | Or Pico W                             |
+| 1   | U2  | AC/DC Converter 5V 3A | HLK-5M05        | Module   | Isolated, 3A, compact (alt: IRM-20-5) |
+| 1   | U3  | 3.3V LDO Regulator    | AP2112K-3.3TRG1 | SOT-23-5 | 600mA                                 |
+| 1   | U4  | Thermocouple Amp      | MAX31855KASA+   | SOIC-8   | K-type                                |
+| 1   | U6  | Rail-to-Rail Op-Amp   | OPA342UA        | SOIC-8   | Level probe oscillator (alt: OPA207)  |
+| 1   | U7  | Precision Comparator  | TLV3201AIDBVR   | SOT-23-5 | Level probe detector                  |
 
 ## 14.2 Transistors and Diodes
 
-| Qty | Ref | Description | Part Number | Package | Notes |
-|-----|-----|-------------|-------------|---------|-------|
-| 6 | Q1-Q6 | NPN Transistor | MMBT2222A | SOT-23 | Relay/SSR drivers |
-| 2 | Q7-Q8 | N-Channel MOSFET | 2N7002 | SOT-23 | ESP32 control |
-| 4 | D1-D4 | Flyback Diode | 1N4007 | DO-41 | Or MINIMELF |
-| 6 | D10-D15 | ESD Protection | PESD5V0S1BL | SOD-323 | Sensor inputs |
-| 1 | D20 | TVS Diode | SMBJ5.0A | SMB | 5V rail protection |
+| Qty | Ref     | Description      | Part Number | Package | Notes              |
+| --- | ------- | ---------------- | ----------- | ------- | ------------------ |
+| 6   | Q1-Q6   | NPN Transistor   | MMBT2222A   | SOT-23  | Relay/SSR drivers  |
+| 2   | Q7-Q8   | N-Channel MOSFET | 2N7002      | SOT-23  | ESP32 control      |
+| 4   | D1-D4   | Flyback Diode    | 1N4007      | DO-41   | Or MINIMELF        |
+| 6   | D10-D15 | ESD Protection   | PESD5V0S1BL | SOD-323 | Sensor inputs      |
+| 1   | D20     | TVS Diode        | SMBJ5.0A    | SMB     | 5V rail protection |
 
 ## 14.3 Passive Components - Resistors
 
-| Qty | Ref | Value | Tolerance | Package | Notes |
-|-----|-----|-------|-----------|---------|-------|
-| 1 | R1 | 3.3kΩ | 1% | 0805 | Brew NTC pull-up (50kΩ NTC, optimized for 93°C) |
-| 1 | R2 | 1.2kΩ | 1% | 0805 | Steam NTC pull-up (50kΩ NTC, optimized for 135°C) |
-| 2 | R5-R6 | 1kΩ | 1% | 0805 | NTC ADC series protection |
-| 1 | R3 | 10kΩ | 1% | 0805 | Pressure divider |
-| 1 | R4 | 4.7kΩ | 1% | 0805 | Pressure divider (optimized for 90% ADC range) |
-| 10 | R10-R19 | 10kΩ | 5% | 0805 | Pull-ups/pull-downs |
-| 8 | R20-R27 | 1kΩ | 5% | 0805 | Transistor base |
-| 4 | R30-R33 | 470Ω | 5% | 0805 | Relay Indicator LEDs (4× relays) - brighter |
-| 2 | R34-R35 | 330Ω | 5% | 0805 | SSR Indicator LEDs (logic-side) |
-| 4 | R40-R43 | 33Ω | 5% | 0805 | UART series (ESP32/Service) |
-| 2 | R44-R45 | 33Ω | 5% | 0805 | UART series (PZEM) |
-| 2 | R46-R47 | 4.7kΩ | 5% | 0805 | I2C pull-ups (SDA, SCL) |
-| 1 | R48 | 330Ω | 5% | 0805 | Status LED |
-| 1 | R49 | 100Ω | 5% | 0805 | Buzzer |
-| 2 | R71-R72 | 10kΩ | 5% | 0805 | Pico RUN/BOOTSEL pull-ups (J15 Pin 5/6) |
-| 1 | R73 | 10kΩ | 5% | 0805 | WEIGHT_STOP pull-down (J15 Pin 7) |
-| 1 | R91 | 10kΩ | 1% | 0805 | Level probe oscillator feedback |
-| 2 | R92-R93 | 10kΩ | 1% | 0805 | Level probe Wien bridge |
-| 1 | R94 | 100Ω | 5% | 0805 | Level probe current limit |
-| 1 | R95 | 10kΩ | 5% | 0805 | Level probe AC bias |
-| 2 | R96-R97 | 100kΩ | 1% | 0805 | Level probe threshold divider |
-| 1 | R98 | 1MΩ | 5% | 0805 | Level probe hysteresis |
-| 2 | R80-R81 | 100Ω | 2W | 1210 | **MANDATORY** - Snubber for K2 (Pump), K3 (Solenoid) |
-| 2 | R82-R83 | 100Ω | 2W | 1210 | DNP - Snubber for K1, K4 (footprint required, populate if inductive) |
+| Qty | Ref     | Value | Tolerance | Package | Notes                                                            |
+| --- | ------- | ----- | --------- | ------- | ---------------------------------------------------------------- |
+| 1   | R1      | 3.3kΩ | 1%        | 0805    | Brew NTC pull-up (50kΩ NTC, optimized for 93°C)                  |
+| 1   | R2      | 1.2kΩ | 1%        | 0805    | Steam NTC pull-up (50kΩ NTC, optimized for 135°C)                |
+| 2   | R5-R6   | 1kΩ   | 1%        | 0805    | NTC ADC series protection                                        |
+| 1   | R3      | 10kΩ  | 1%        | 0805    | Pressure divider                                                 |
+| 1   | R4      | 4.7kΩ | 1%        | 0805    | Pressure divider (optimized for 90% ADC range)                   |
+| 10  | R10-R19 | 10kΩ  | 5%        | 0805    | Pull-ups/pull-downs                                              |
+| 8   | R20-R27 | 1kΩ   | 5%        | 0805    | Transistor base                                                  |
+| 4   | R30-R33 | 470Ω  | 5%        | 0805    | Relay Indicator LEDs (4× relays) - brighter                      |
+| 2   | R34-R35 | 330Ω  | 5%        | 0805    | SSR Indicator LEDs (logic-side)                                  |
+| 4   | R40-R43 | 33Ω   | 5%        | 0805    | UART series (ESP32/Service)                                      |
+| 2   | R44-R45 | 33Ω   | 5%        | 0805    | UART series (PZEM)                                               |
+| 2   | R46-R47 | 4.7kΩ | 5%        | 0805    | I2C pull-ups (SDA, SCL)                                          |
+| 1   | R48     | 330Ω  | 5%        | 0805    | Status LED                                                       |
+| 1   | R49     | 100Ω  | 5%        | 0805    | Buzzer                                                           |
+| 2   | R71-R72 | 10kΩ  | 5%        | 0805    | Pico RUN/BOOTSEL pull-ups (J15 Pin 5/6)                          |
+| 1   | R73     | 10kΩ  | 5%        | 0805    | WEIGHT_STOP pull-down (J15 Pin 7)                                |
+| 1   | R91     | 10kΩ  | 1%        | 0805    | Level probe oscillator feedback                                  |
+| 2   | R92-R93 | 10kΩ  | 1%        | 0805    | Level probe Wien bridge                                          |
+| 1   | R94     | 100Ω  | 5%        | 0805    | Level probe current limit                                        |
+| 1   | R95     | 10kΩ  | 5%        | 0805    | Level probe AC bias                                              |
+| 2   | R96-R97 | 100kΩ | 1%        | 0805    | Level probe threshold divider                                    |
+| 1   | R98     | 1MΩ   | 5%        | 0805    | Level probe hysteresis                                           |
+| 2   | R80-R81 | 100Ω  | 2W        | 1210    | **MANDATORY** - Snubber for K2 (Pump), K3 (Solenoid)             |
+| 1   | R82     | 100Ω  | 2W        | 1210    | DNP - Snubber for K1 (footprint required, populate if inductive) |
 
 ## 14.4 Passive Components - Capacitors
 
-| Qty | Ref | Value | Voltage | Package | Notes |
-|-----|-----|-------|---------|---------|-------|
-| 1 | C1 | 100nF X2 | 275V AC | Radial | Mains EMI filter |
-| 2 | C2-C3 | 100µF | 16V | Radial 6.3mm | 5V bulk |
-| 1 | C4 | 47µF | 10V | 1206 Ceramic | 3.3V output |
-| 1 | C5 | 22µF | 10V | 1206 Ceramic | 3.3V analog |
-| 12 | C10-C21 | 100nF | 25V | 0805 | Decoupling (general) |
-| 1 | C60 | 100nF | 25V | 0805 | OPA342 VCC decoupling |
-| 2 | C61-C62 | 100nF | 25V | 0805 | Level probe Wien bridge timing |
-| 1 | C63 | 100nF | 25V | 0805 | TLV3201 VCC decoupling |
-| 1 | C64 | 1µF | 25V | 0805 | Level probe AC coupling |
-| 1 | C65 | 100nF | 25V | 0805 | Level probe sense filter |
-| 4 | C30-C33 | 100pF | 50V | 0603 | UART/ADC filter |
-| 1 | C40 | 10nF | 50V | 0805 | Thermocouple filter |
-| 2 | C50-C51 | 100nF X2 | 275V AC | Radial | **MANDATORY** - Snubber for K2 (Pump), K3 (Solenoid) |
-| 2 | C52-C53 | 100nF X2 | 275V AC | Radial | DNP - Snubber for K1, K4 (footprint required, populate if inductive) |
+| Qty | Ref     | Value    | Voltage | Package      | Notes                                                            |
+| --- | ------- | -------- | ------- | ------------ | ---------------------------------------------------------------- |
+| 1   | C1      | 100nF X2 | 275V AC | Radial       | Mains EMI filter                                                 |
+| 2   | C2-C3   | 100µF    | 16V     | Radial 6.3mm | 5V bulk                                                          |
+| 1   | C4      | 47µF     | 10V     | 1206 Ceramic | 3.3V output                                                      |
+| 1   | C5      | 22µF     | 10V     | 1206 Ceramic | 3.3V analog                                                      |
+| 12  | C10-C21 | 100nF    | 25V     | 0805         | Decoupling (general)                                             |
+| 1   | C60     | 100nF    | 25V     | 0805         | OPA342 VCC decoupling                                            |
+| 2   | C61-C62 | 100nF    | 25V     | 0805         | Level probe Wien bridge timing                                   |
+| 1   | C63     | 100nF    | 25V     | 0805         | TLV3201 VCC decoupling                                           |
+| 1   | C64     | 1µF      | 25V     | 0805         | Level probe AC coupling                                          |
+| 1   | C65     | 100nF    | 25V     | 0805         | Level probe sense filter                                         |
+| 4   | C30-C33 | 100pF    | 50V     | 0603         | UART/ADC filter                                                  |
+| 1   | C40     | 10nF     | 50V     | 0805         | Thermocouple filter                                              |
+| 2   | C50-C51 | 100nF X2 | 275V AC | Radial       | **MANDATORY** - Snubber for K2 (Pump), K3 (Solenoid)             |
+| 1   | C52     | 100nF X2 | 275V AC | Radial       | DNP - Snubber for K1 (footprint required, populate if inductive) |
 
 ## 14.5 Electromechanical
 
-| Qty | Ref | Description | Part Number | Notes |
-|-----|-----|-------------|-------------|-------|
-| 2 | K1,K3 | Relay 5V 10A SPST-NO | HF46F-G/005-HS1 | SPST-NO |
-| 1 | K2 | Relay 5V 16A SPST-NO | G5LE-1A4 DC5 | SPST-NO, Pump |
-| 1 | K4 | Relay 5V 10A SPDT | G5LE-1 DC5 | SPDT (NO+NC+COM), Spare |
-| 1 | F1 | Fuse 10A + Holder | 0218010.MXP + 01000056Z | 5×20mm slow, PCB mount with cover |
-| 1 | RV1 | Varistor 275V | S14K275 | 14mm disc |
-| 2 | SW1-SW2 | Tactile Switch | EVQP7A01P | SMD 6×6mm |
-| 1 | BZ1 | Passive Buzzer | CEM-1203(42) | 12mm |
+| Qty | Ref     | Description          | Part Number             | Notes                             |
+| --- | ------- | -------------------- | ----------------------- | --------------------------------- |
+| 2   | K1,K3   | Relay 5V 10A SPST-NO | HF46F-G/005-HS1         | SPST-NO                           |
+| 1   | K2      | Relay 5V 16A SPST-NO | G5LE-1A4 DC5            | SPST-NO, Pump                     |
+| 1   | F1      | Fuse 10A + Holder    | 0218010.MXP + 01000056Z | 5×20mm slow, PCB mount with cover |
+| 1   | RV1     | Varistor 275V        | S14K275                 | 14mm disc                         |
+| 2   | SW1-SW2 | Tactile Switch       | EVQP7A01P               | SMD 6×6mm                         |
+| 1   | BZ1     | Passive Buzzer       | CEM-1203(42)            | 12mm                              |
 
 ## 14.6 LEDs
 
-| Qty | Ref | Description | Color | Package |
-|-----|-----|-------------|-------|---------|
-| 4 | LED1-LED4 | Relay Indicator (K1-K4) | Green | 0805 |
-| 2 | LED5-LED6 | SSR Indicator | Orange | 0805 |
-| 1 | LED7 | Status | Green | 0805 |
+| Qty | Ref       | Description             | Color  | Package |
+| --- | --------- | ----------------------- | ------ | ------- |
+| 3   | LED1-LED3 | Relay Indicator (K1-K3) | Green  | 0805    |
+| 2   | LED5-LED6 | SSR Indicator           | Orange | 0805    |
+| 1   | LED7      | Status                  | Green  | 0805    |
 
 ## 14.7 Connectors
 
-| Qty | Ref | Description | Part Number | Notes |
-|-----|-----|-------------|-------------|-------|
-| 13 | J1-J8 | 6.3mm Spade Terminal | Keystone 1285 | Machine wiring (mains input + relay outputs) |
-| 1 | J9 | **Screw Terminal 3-pos** | **Phoenix MKDS 1/3-5.08** | ⚠️ K4 spare relay (NOT spade! Screw terminal for user wiring) |
-| 3 | J10-J12 | Screw Terminal 2-pos | MKDS 1/2-5.08 | NTC (×2), Thermocouple |
-| 1 | J13 | Screw Terminal 3-pos | MKDS 1/3-5.08 | Pressure transducer (0.5-4.5V) |
-| 1 | J15 | JST-XH 8-pin Header | B8B-XH-A | ESP32 display + brew-by-weight |
-| 1 | J16 | Pin Header 1×4 2.54mm | - | Service/debug (shared with J15) |
-| 1 | J23 | Pin Header 1×4 2.54mm | - | I2C accessory port |
-| 1 | J17 | Female Header 1×5 2.54mm | - | PZEM UART (LV): 5V, RX, TX, CF, GND |
-| 1 | J24 | Female Header 1×4 2.54mm | - | PZEM HV+CT (⚠️ 220V!): CT+, CT-, N, L |
-| 1 | J25 | Screw Terminal 2-pos | MKDS 1/2-5.08 | CT clamp wires (routed from J24) |
-| 2 | J18-J19 | Screw Terminal 2-pos | MKDS 1/2-5.08 | SSR outputs (×2) |
-| 1 | J20 | Female Header 2×20 | - | Pico socket |
+| Qty | Ref     | Description               | Part Number                | Notes                                          |
+| --- | ------- | ------------------------- | -------------------------- | ---------------------------------------------- |
+| 6   | J1-J4   | 6.3mm Spade Terminal      | Keystone 1285              | Mains (L,N,PE) + 220V relay outputs (K1,K2,K3) |
+| 1   | **J26** | **Screw Terminal 24-pos** | **Phoenix MKDS 1/24-5.08** | **ALL LV connections - see 13.1a**             |
+| 1   | J15     | JST-XH 8-pin Header       | B8B-XH-A                   | ESP32 display + brew-by-weight                 |
+| 1   | J16     | Pin Header 1×4 2.54mm     | -                          | Service/debug (shared with J15)                |
+| 1   | J23     | Pin Header 1×4 2.54mm     | -                          | I2C accessory port                             |
+| 1   | J17     | Female Header 1×5 2.54mm  | -                          | PZEM UART (LV): 5V, RX, TX, CF, GND            |
+| 1   | J24     | Female Header 1×4 2.54mm  | -                          | PZEM HV+CT (⚠️ 220V!): CT+, CT-, N, L          |
+| 1   | J20     | Female Header 2×20        | -                          | Pico socket                                    |
 
 ## 14.8 User-Supplied Components (NOT included with PCB)
 
 The following components are **NOT** included with the PCB and must be sourced by the user:
 
-| Component | Notes |
-|-----------|-------|
-| Raspberry Pi Pico | SC0915 or Pico W (SC0918) for onboard WiFi |
-| JST-XH 8-pin Cable 50cm | For ESP32 display connection (J15) |
-| ESP32 Display Module | User purchases separately |
-| SSR Relays | Already exist on machine |
-| PZEM-004T-100A-D-P Power Meter | Source from Peacefair (with CT clamp) |
+| Component                      | Notes                                      |
+| ------------------------------ | ------------------------------------------ |
+| Raspberry Pi Pico              | SC0915 or Pico W (SC0918) for onboard WiFi |
+| JST-XH 8-pin Cable 50cm        | For ESP32 display connection (J15)         |
+| ESP32 Display Module           | User purchases separately                  |
+| SSR Relays                     | Already exist on machine                   |
+| PZEM-004T-100A-D-P Power Meter | Source from Peacefair (with CT clamp)      |
 
 **PZEM-004T-100A-D-P Direct Mount (No cables, no standoffs!):**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                   PZEM PLUGS DIRECTLY INTO PCB                               │
@@ -2934,11 +3023,13 @@ The following components are **NOT** included with the PCB and must be sourced b
 ```
 
 **Reference Documentation:**
+
 - **3D CAD Model:** https://grabcad.com/library/pzem-004t-100a-d-p-v1-0-1
 - **Datasheet & Pinout:** https://drive.google.com/drive/folders/1cTDtjN7FfHVaoyw52r3qHqFwwIpdZBZA
 - **Additional Resources:** https://drive.google.com/drive/folders/1E1ezuaS2DtFCfYXmPIvocdi2Gv6OF-tW
 
 **Cable Notes:**
+
 - JST-XH 8-pin (J15): 5V, GND, TX, RX, RUN, BOOT, WEIGHT_STOP, SPARE - 50cm for ESP32
 
 ---
@@ -2947,20 +3038,20 @@ The following components are **NOT** included with the PCB and must be sourced b
 
 ## 15.1 Pre-Power Tests
 
-| Test | Procedure | Pass Criteria |
-|------|-----------|---------------|
-| Visual Inspection | Check for solder bridges, missing parts | No defects |
-| Continuity - Power | Check 5V to GND, 3.3V to GND | Open circuit (>10MΩ) |
-| Continuity - Mains | Check L to N | Open circuit |
-| Mains to LV Isolation | 500V megger L/N to 5V/GND | >10MΩ |
+| Test                  | Procedure                               | Pass Criteria        |
+| --------------------- | --------------------------------------- | -------------------- |
+| Visual Inspection     | Check for solder bridges, missing parts | No defects           |
+| Continuity - Power    | Check 5V to GND, 3.3V to GND            | Open circuit (>10MΩ) |
+| Continuity - Mains    | Check L to N                            | Open circuit         |
+| Mains to LV Isolation | 500V megger L/N to 5V/GND               | >10MΩ                |
 
 ## 15.2 Initial Power-Up Sequence
 
 1. **Apply 5V DC externally** (bypass AC/DC module initially)
    - Verify 3.3V LDO output: 3.3V ±3%
    - Verify Pico powers up (check USB enumeration)
-   
 2. **Apply mains voltage** (with current limit if possible)
+
    - Verify 5V rail from HLK-PM05: 5.0V ±5%
    - Verify no excessive current draw (<200mA idle)
 
@@ -2973,48 +3064,47 @@ The following components are **NOT** included with the PCB and must be sourced b
 
 ## 15.3 Relay and SSR Testing
 
-| Test | Procedure | Pass Criteria |
-|------|-----------|---------------|
-| Relay Coil | Toggle GPIO, measure coil current | ~75-80mA |
-| Relay Indicator | Toggle GPIO, visual check | LED illuminates |
-| Relay Contact | Apply safe voltage, measure through | <0.1Ω closed |
-| SSR Trigger | Toggle GPIO, check SSR LED | SSR activates |
+| Test            | Procedure                           | Pass Criteria   |
+| --------------- | ----------------------------------- | --------------- |
+| Relay Coil      | Toggle GPIO, measure coil current   | ~75-80mA        |
+| Relay Indicator | Toggle GPIO, visual check           | LED illuminates |
+| Relay Contact   | Apply safe voltage, measure through | <0.1Ω closed    |
+| SSR Trigger     | Toggle GPIO, check SSR LED          | SSR activates   |
 
 ## 15.4 Sensor Interface Testing
 
-| Sensor | Test Method | Expected Result |
-|--------|-------------|-----------------|
-| NTC 3.3k | Connect 3.3kΩ 1% resistor | ADC reads ~2048 |
-| NTC Range | Use precision resistors | Match lookup table |
-| Thermocouple | Room temp, ice water | ~25°C, ~0°C |
-| Pressure (J13) | 0V, 2.5V, 5V test | ~0, ~1860, ~3350 counts |
-| Switches | Short to GND | GPIO reads LOW |
-
+| Sensor                   | Test Method               | Expected Result         |
+| ------------------------ | ------------------------- | ----------------------- |
+| NTC 3.3k                 | Connect 3.3kΩ 1% resistor | ADC reads ~2048         |
+| NTC Range                | Use precision resistors   | Match lookup table      |
+| Thermocouple             | Room temp, ice water      | ~25°C, ~0°C             |
+| Pressure (J26 Pin 14-16) | 0V, 2.5V, 5V test         | ~0, ~1860, ~3350 counts |
+| Switches                 | Short to GND              | GPIO reads LOW          |
 
 ## 15.5 Safety Tests
 
-| Test | Procedure | Pass Criteria |
-|------|-----------|---------------|
+| Test               | Procedure                   | Pass Criteria      |
+| ------------------ | --------------------------- | ------------------ |
 | Hi-Pot (Isolation) | 2500V AC, 1 min, L/N to GND | No breakdown, <1mA |
-| Leakage Current | Per IEC 60950 | <0.5mA |
-| Ground Continuity | PE to chassis | <0.1Ω |
-| Functional Safety | Simulate low water | Heater disabled |
+| Leakage Current    | Per IEC 60950               | <0.5mA             |
+| Ground Continuity  | PE to chassis               | <0.1Ω              |
+| Functional Safety  | Simulate low water          | Heater disabled    |
 
 ## 15.6 Test Points
 
 Provide test pads for the following signals:
 
-| TP# | Signal | Location | Purpose |
-|-----|--------|----------|---------|
-| TP1 | GND | Near Pico | Ground reference |
-| TP2 | 5V | Near LDO input | Power rail check |
-| TP3 | 3.3V | Near Pico | Power rail check |
-| TP4 | 3.3V_A | Near ADC | Analog reference |
-| TP5 | ADC0 | Near Pico | Brew NTC signal |
-| TP6 | ADC1 | Near Pico | Steam NTC signal |
-| TP7 | ADC2 | Near Pico | Pressure signal |
-| TP8 | UART0_TX | Near ESP32 conn | Debug probe |
-| TP9 | UART0_RX | Near ESP32 conn | Debug probe |
+| TP# | Signal   | Location        | Purpose          |
+| --- | -------- | --------------- | ---------------- |
+| TP1 | GND      | Near Pico       | Ground reference |
+| TP2 | 5V       | Near LDO input  | Power rail check |
+| TP3 | 3.3V     | Near Pico       | Power rail check |
+| TP4 | 3.3V_A   | Near ADC        | Analog reference |
+| TP5 | ADC0     | Near Pico       | Brew NTC signal  |
+| TP6 | ADC1     | Near Pico       | Steam NTC signal |
+| TP7 | ADC2     | Near Pico       | Pressure signal  |
+| TP8 | UART0_TX | Near ESP32 conn | Debug probe      |
+| TP9 | UART0_RX | Near ESP32 conn | Debug probe      |
 
 ---
 
@@ -3022,30 +3112,30 @@ Provide test pads for the following signals:
 
 ## 16.1 Design Documentation
 
-| Document | Format | Description |
-|----------|--------|-------------|
-| Schematic | PDF + Native | Complete circuit schematic with all connections |
-| BOM | Excel/CSV | All components with Manufacturer Part Numbers |
-| PCB Layout | Gerber X2 | Manufacturing files for board fabrication |
-| Drill File | Excellon | NC drill data |
-| Pick & Place | CSV | Component positions for SMT assembly |
-| Assembly Drawing | PDF | Component placement, polarity, notes |
-| 3D Model | STEP | Board with components for enclosure design |
+| Document         | Format       | Description                                     |
+| ---------------- | ------------ | ----------------------------------------------- |
+| Schematic        | PDF + Native | Complete circuit schematic with all connections |
+| BOM              | Excel/CSV    | All components with Manufacturer Part Numbers   |
+| PCB Layout       | Gerber X2    | Manufacturing files for board fabrication       |
+| Drill File       | Excellon     | NC drill data                                   |
+| Pick & Place     | CSV          | Component positions for SMT assembly            |
+| Assembly Drawing | PDF          | Component placement, polarity, notes            |
+| 3D Model         | STEP         | Board with components for enclosure design      |
 
 ## 16.2 Gerber File List
 
-| Layer | Filename | Description |
-|-------|----------|-------------|
-| Top Copper | *-F_Cu.gtl | Front copper layer |
-| Bottom Copper | *-B_Cu.gbl | Back copper layer |
-| Top Solder Mask | *-F_Mask.gts | Front solder mask |
-| Bottom Solder Mask | *-B_Mask.gbs | Back solder mask |
-| Top Silkscreen | *-F_SilkS.gto | Front legend |
-| Bottom Silkscreen | *-B_SilkS.gbo | Back legend |
-| Top Paste | *-F_Paste.gtp | SMD stencil (optional) |
-| Board Outline | *-Edge_Cuts.gm1 | PCB boundary |
-| Drill File | *.drl | Plated through-holes |
-| Drill Map | *-drl_map.pdf | Drill visualization |
+| Layer              | Filename         | Description            |
+| ------------------ | ---------------- | ---------------------- |
+| Top Copper         | \*-F_Cu.gtl      | Front copper layer     |
+| Bottom Copper      | \*-B_Cu.gbl      | Back copper layer      |
+| Top Solder Mask    | \*-F_Mask.gts    | Front solder mask      |
+| Bottom Solder Mask | \*-B_Mask.gbs    | Back solder mask       |
+| Top Silkscreen     | \*-F_SilkS.gto   | Front legend           |
+| Bottom Silkscreen  | \*-B_SilkS.gbo   | Back legend            |
+| Top Paste          | \*-F_Paste.gtp   | SMD stencil (optional) |
+| Board Outline      | \*-Edge_Cuts.gm1 | PCB boundary           |
+| Drill File         | \*.drl           | Plated through-holes   |
+| Drill Map          | \*-drl_map.pdf   | Drill visualization    |
 
 ## 16.3 PCB Fabrication Specifications
 
@@ -3086,15 +3176,15 @@ Provide test pads for the following signals:
 
 The following firmware capabilities are expected:
 
-| Feature | Priority | Notes |
-|---------|----------|-------|
-| Temperature PID (×2) | Critical | Brew and steam boilers |
-| Safety Interlocks | Critical | Water level, over-temp |
-| Watchdog Timer | Critical | Auto-reset on hang |
-| UART Protocol (ESP32) | High | Command/response |
-| Power Metering | Medium | PZEM-004T Modbus driver |
-| OTA Update Support | Medium | Via ESP32 |
-| Diagnostic Mode | Low | Debug output on service UART |
+| Feature               | Priority | Notes                        |
+| --------------------- | -------- | ---------------------------- |
+| Temperature PID (×2)  | Critical | Brew and steam boilers       |
+| Safety Interlocks     | Critical | Water level, over-temp       |
+| Watchdog Timer        | Critical | Auto-reset on hang           |
+| UART Protocol (ESP32) | High     | Command/response             |
+| Power Metering        | Medium   | PZEM-004T Modbus driver      |
+| OTA Update Support    | Medium   | Via ESP32                    |
+| Diagnostic Mode       | Low      | Debug output on service UART |
 
 ---
 
@@ -3111,30 +3201,33 @@ The engineer shall deliver a complete, production-ready PCB design including:
 
 ## 17.2 Design Decisions (FINAL)
 
-| Item | Decision |
-|------|----------|
-| Power Metering | PZEM-004T external (CT clamp, NO high current through PCB) |
-| Pressure Transducers | J13 (0.5-4.5V amplified output) |
-| Pico Mounting | Socket (2×20 female header) for easy replacement |
-| Prototype Quantity | 5 boards |
+| Item                 | Decision                                                   |
+| -------------------- | ---------------------------------------------------------- |
+| Power Metering       | PZEM-004T external (CT clamp, NO high current through PCB) |
+| Pressure Transducers | J26 Pin 14-16 (0.5-4.5V amplified output)                  |
+| Pico Mounting        | Socket (2×20 female header) for easy replacement           |
+| Prototype Quantity   | 5 boards                                                   |
 
 ### Design Implications:
 
 **Power Metering = PZEM-004T (External):**
+
 - Only relay-switched loads flow through PCB (pump, valves)
 - PZEM-004T mounts directly on PCB via pin header
 - J24 provides 220V feed to PZEM for voltage sensing
-- J18/J19 (SSR control) = **Populate** (5V trigger outputs only)
+- J26 Pin 19-22 (SSR control) = **Populate** (5V trigger outputs only)
 - ⚠️ NO J21/J22 - SSR mains power uses existing machine wiring
 - All relay COMs internally connected to fused live bus
 - Total machine power consumption measured via external CT clamp
 
 **Level Probe = OPA342 + TLV3201 (On-Board):**
+
 - U6 (OPA342) = **Populate** (AC oscillator op-amp)
 - U7 (TLV3201) = **Populate** (comparator with hysteresis)
 - AC excitation prevents probe electrolysis and corrosion
 
 **Mains Power Distribution (Relay-switched loads only, NO heater current through PCB):**
+
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                     POWER FLOW THROUGH CONTROL BOARD                         │
@@ -3149,11 +3242,11 @@ The engineer shall deliver a complete, production-ready PCB design including:
 │                                                      ├──► K2 COM (Pump)      │
 │                                                      └──► K3 COM (Valve)     │
 │                                                                              │
-│  K4 (Spare): Contacts FLOATING via J9 screw terminals (user wires as needed)│
+│                                                                              │
 │                                                                              │
 │  ⚠️ SSR HEATER POWER (NOT through PCB):                                     │
 │  Machine mains ──► External SSRs ──► Heaters (via existing wiring)          │
-│  PCB provides 5V control only via J18 (Brew SSR) and J19 (Steam SSR)        │
+│  PCB provides 5V control only via J26 Pin 19-20 (Brew) and 21-22 (Steam)    │
 │                                                                              │
 │  N (Neutral) ──► J1-N ──────────────────────────────────────► To all loads  │
 │                                                                              │
@@ -3163,10 +3256,12 @@ The engineer shall deliver a complete, production-ready PCB design including:
 ```
 
 **Pressure Transducer = Both Options:**
-- J13 (3-pin, 0.5-4.5V amplified) = **Populate**
+
+- J26 Pin 14-16 (Pressure, 0.5-4.5V amplified) = Part of unified terminal
 - Rg, R70-R71, C50-C52 = **Populate**
 
 **Pico Mounting = Socket:**
+
 - J20 = 2×20 female header (2.54mm pitch)
 - Allows easy Pico replacement for debugging
 - Pico is the ONLY socketed/modular component
@@ -3196,14 +3291,14 @@ The following are explicitly NOT part of this project:
 
 ## 17.5 Timeline (Suggested)
 
-| Milestone | Duration |
-|-----------|----------|
-| Schematic capture | 1-2 weeks |
-| Schematic review | 2-3 days |
-| PCB layout | 1-2 weeks |
-| Layout review | 2-3 days |
-| Final files delivery | 1 week |
-| **Total** | **4-6 weeks** |
+| Milestone            | Duration      |
+| -------------------- | ------------- |
+| Schematic capture    | 1-2 weeks     |
+| Schematic review     | 2-3 days      |
+| PCB layout           | 1-2 weeks     |
+| Layout review        | 2-3 days      |
+| Final files delivery | 1 week        |
+| **Total**            | **4-6 weeks** |
 
 ## 17.6 EDA Tool Requirements
 
@@ -3212,6 +3307,7 @@ The following are explicitly NOT part of this project:
 **Acceptable:** Altium Designer (native files + Gerber export)
 
 Deliver:
+
 - Native project files (.kicad_pro, .kicad_sch, .kicad_pcb)
 - PDF schematic
 - Gerber files (as specified in 16.2)
@@ -3222,11 +3318,13 @@ Deliver:
 # Appendix A: Reference Documents
 
 **Standards:**
+
 - IEC 60950-1: Information Technology Equipment Safety
 - IEC 62368-1: Audio/Video, IT Equipment Safety
 - UL 60950-1: UL Standard for Safety
 
 **Datasheets:**
+
 - Raspberry Pi Pico Datasheet (raspberrypi.com)
 - RP2040 Datasheet (raspberrypi.com)
 - MAX31855 Datasheet (Analog Devices)
@@ -3236,10 +3334,12 @@ Deliver:
 - PZEM-004T v3.0 Power Meter Documentation
 
 **Machine Reference:**
+
 - ECM Synchronika Service Manual
 - ECM Synchronika Parts Diagram: https://wiki.wholelattelove.com/images/6/6e/SYNCHRONIKA_Parts_Diagram.pdf
 
 **Component Suppliers:**
+
 - DigiKey, Mouser, LCSC (for BOM sourcing)
 - JLCPCB, PCBWay (for PCB fabrication)
 
@@ -3247,11 +3347,24 @@ Deliver:
 
 # Appendix B: Revision History
 
-| Rev | Date | Author | Description |
-|-----|------|--------|-------------|
-| 2.16 | Nov 2025 | - | **CURRENT VERSION** - Production-ready specification |
+| Rev  | Date     | Author | Description                                               |
+| ---- | -------- | ------ | --------------------------------------------------------- |
+| 2.20 | Dec 2025 | -      | **CURRENT VERSION** - Unified 24-pos screw terminal (J26) |
+| 2.19 | Dec 2025 | -      | Removed spare relay K4 and J9 terminals                   |
+| 2.18 | Dec 2025 | -      | Consolidated LV switch inputs to J26 screw terminal       |
+| 2.17 | Nov 2025 | -      | Brew-by-weight support (J15 expanded to 8-pin)            |
+| 2.16 | Nov 2025 | -      | Production-ready specification                            |
 
-**Key Design Decisions in v2.16:**
+**Key Design Decisions in v2.20:**
+
+- **J26 unified screw terminal (24-pos):** ALL low-voltage connections consolidated into single Phoenix MKDS 1/24-5.08 terminal block
+- **Includes:** Switches (S1-S4), NTCs (T1-T2), Thermocouple, Pressure transducer, CT clamp, SSR control outputs
+- **Eliminates:** J10, J11, J12, J13, J18, J19, J25 (all merged into J26)
+- **6.3mm spades retained ONLY for 220V AC:** Mains input (J1: L, N, PE), K1 LED (J2), K2 Pump (J3), K3 Solenoid (J4)
+- Single terminal block for professional appearance and simplified assembly
+
+**Key Design Decisions in v2.16-2.17:**
+
 - Power supply: HLK-5M05 (5V 3A, compact)
 - Power metering: PZEM-004T-100A-D-P mounted on PCB via pin header
 - Level probe: OPA342 + TLV3201 AC sensing circuit
@@ -3260,6 +3373,7 @@ Deliver:
 - Mounting: MH1=PE star point (PTH), MH2-4=NPTH (isolated)
 - SSR control: 5V trigger signals only, mains via existing machine wiring
 - ESP32 interface: Full OTA support via RUN/BOOTSEL control
+- Brew-by-weight: GPIO21 WEIGHT_STOP signal from ESP32
 
 ---
 
@@ -3271,7 +3385,7 @@ Before starting design, confirm:
 - [ ] Received schematic reference (ECM_Schematic_Reference.md)
 - [ ] Received test procedures document (ECM_Control_Board_Test_Procedures.md)
 - [x] Power metering option: **PZEM-004T (external) - NO high current through PCB**
-- [x] Pressure transducer: **J13 (0.5-4.5V amplified)**
+- [x] Pressure transducer: **J26 Pin 14-16 (0.5-4.5V amplified)**
 - [x] Pico mounting: **Socket (2×20 female header)**
 - [x] Prototype quantity: **5 boards**
 - [ ] Agreed on EDA tool (KiCad preferred)
@@ -3282,21 +3396,20 @@ Before starting design, confirm:
 
 **All components are POPULATED except the Pico module (socketed).**
 
-| Ref | Component | Status | Notes |
-|-----|-----------|--------|-------|
-| U1 | Raspberry Pi Pico | **Socket** | 2×20 female header (J20) |
-| U2 | AC/DC Converter | Populate | HLK-5M05 (3A, compact) |
-| U3 | LDO 3.3V | Populate | AP2112K-3.3 |
-| U4 | MAX31855 | Populate | Thermocouple amplifier |
-| U6 | OPA342 | **Populate** | Level probe oscillator (or OPA207) |
-| U7 | TLV3201 | **Populate** | Level probe comparator |
-| J17 | Female header 5-pin | **Populate** | PZEM UART (LV side) |
-| J24 | Female header 4-pin | **Populate** | PZEM HV+CT (⚠️ 220V on L pin!) |
-| J25 | Screw terminal 2-pin | **Populate** | CT clamp wire connection |
-| J18-J19 | Screw terminals | **Populate** | SSR 5V control signals only |
-| - | No J21/J22 | NOT on PCB | SSR mains via existing machine wiring |
-| J13 | 3-pin screw terminal | Populate | 0.5-4.5V transducer |
-| All others | Per BOM | Populate | No DNP components |
+| Ref        | Component            | Status       | Notes                                   |
+| ---------- | -------------------- | ------------ | --------------------------------------- |
+| U1         | Raspberry Pi Pico    | **Socket**   | 2×20 female header (J20)                |
+| U2         | AC/DC Converter      | Populate     | HLK-5M05 (3A, compact)                  |
+| U3         | LDO 3.3V             | Populate     | AP2112K-3.3                             |
+| U4         | MAX31855             | Populate     | Thermocouple amplifier                  |
+| U6         | OPA342               | **Populate** | Level probe oscillator (or OPA207)      |
+| U7         | TLV3201              | **Populate** | Level probe comparator                  |
+| J1-J4      | 6.3mm Spade (×6)     | **Populate** | Mains (L,N,PE) + 220V relays (K1,K2,K3) |
+| **J26**    | **Screw term 8-pos** | **Populate** | **LV switch inputs (S1-S4) only**       |
+| J17        | Female header 5-pin  | **Populate** | PZEM UART (LV side)                     |
+| J24        | Female header 4-pin  | **Populate** | PZEM HV+CT (⚠️ 220V on L pin!)          |
+| -          | No J21/J22           | NOT on PCB   | SSR mains via existing machine wiring   |
+| All others | Per BOM              | Populate     | No DNP components                       |
 
 ### Key Design Points:
 
@@ -3306,9 +3419,9 @@ Before starting design, confirm:
 4. **6mm creepage/clearance** required between HV and LV sections
 5. **PZEM-004T** external power metering with CT clamp (no shunt on PCB)
 6. **OPA342 + TLV3201** AC level sensing circuit prevents electrolysis
+7. **J26 consolidated screw terminal (8-pos)** for LOW VOLTAGE switch inputs only
+8. **220V relay outputs (K1, K2, K3)** remain as 6.3mm spade terminals
 
 ---
 
-*End of Document*
-
-
+_End of Document_
