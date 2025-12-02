@@ -5,9 +5,8 @@ import { Card } from '@/components/Card';
 import { Logo } from '@/components/Logo';
 import { useAuth } from '@/lib/auth';
 import { isGoogleAuthConfigured } from '@/lib/auth';
-import { enableDemoMode } from '@/lib/demo-mode';
 import { useThemeStore } from '@/lib/themeStore';
-import { AlertCircle, Play } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 
 export function Login() {
   const navigate = useNavigate();
@@ -32,33 +31,12 @@ export function Login() {
           <div className="flex justify-center mb-4">
             <Logo size="lg" forceDark />
           </div>
-          <p className="text-coffee-500 mb-6">
+          <p className="text-coffee-500">
             Cloud features are not configured. Connect directly to your device at{' '}
             <a href="http://brewos.local" className="text-accent hover:underline">
               brewos.local
             </a>
           </p>
-          <div className={`border-t pt-6 mt-6 ${isDark ? 'border-coffee-700' : 'border-cream-300'}`}>
-            <button
-              onClick={() => {
-                enableDemoMode();
-                navigate('/');
-                window.location.reload(); // Reload to initialize demo mode
-              }}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-3 
-                         font-medium rounded-lg transition-all group
-                         ${isDark 
-                           ? 'bg-gradient-to-r from-violet-500/20 to-purple-500/20 hover:from-violet-500/30 hover:to-purple-500/30 border border-violet-400/30 hover:border-violet-400/50 text-violet-300' 
-                           : 'bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 border border-violet-500/30 hover:border-violet-500/50 text-violet-700'
-                         }`}
-            >
-              <Play className="w-4 h-4 group-hover:scale-110 transition-transform" />
-              Try Demo
-            </button>
-            <p className="text-center text-xs text-theme-muted mt-2">
-              Explore the app with simulated machine data
-            </p>
-          </div>
         </Card>
       </div>
     );
@@ -120,35 +98,6 @@ export function Login() {
             <a href="http://brewos.local" className="text-accent hover:underline">
               brewos.local
             </a>
-          </p>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className={`w-full border-t ${isDark ? 'border-coffee-700' : 'border-cream-300'}`}></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className={`px-4 ${isDark ? 'bg-[var(--card-bg)] text-coffee-500' : 'bg-white text-coffee-400'}`}>or</span>
-            </div>
-          </div>
-
-          <button
-            onClick={() => {
-              enableDemoMode();
-              navigate('/');
-              window.location.reload(); // Reload to initialize demo mode
-            }}
-            className={`w-full flex items-center justify-center gap-2 px-4 py-3 
-                       font-medium rounded-lg transition-all group
-                       ${isDark 
-                         ? 'bg-gradient-to-r from-violet-500/20 to-purple-500/20 hover:from-violet-500/30 hover:to-purple-500/30 border border-violet-400/30 hover:border-violet-400/50 text-violet-300' 
-                         : 'bg-gradient-to-r from-violet-500/10 to-purple-500/10 hover:from-violet-500/20 hover:to-purple-500/20 border border-violet-500/30 hover:border-violet-500/50 text-violet-700'
-                       }`}
-          >
-            <Play className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            Try Demo
-          </button>
-          <p className="text-center text-xs text-theme-muted">
-            Explore the app with simulated machine data
           </p>
         </div>
       </Card>

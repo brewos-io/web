@@ -192,9 +192,9 @@ export function CloudSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 items-stretch">
         {/* Pairing QR Code */}
-        <Card>
+        <Card className="h-full">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-accent/10 rounded-lg">
               <QrCode className="w-5 h-5 text-accent" />
@@ -277,8 +277,8 @@ export function CloudSettings() {
         </Card>
 
         {/* Cloud Status & Settings */}
-        <div className="space-y-6">
-          <Card>
+        <div className="flex flex-col gap-6 h-full">
+          <Card className="flex-1">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-accent/10 rounded-lg">
                 <Cloud className="w-5 h-5 text-accent" />
@@ -320,7 +320,7 @@ export function CloudSettings() {
             </div>
           </Card>
 
-          <Card>
+          <Card className="flex-1 flex flex-col">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-2 bg-theme-secondary rounded-lg">
                 <Cloud className="w-5 h-5 text-theme-secondary" />
@@ -331,7 +331,7 @@ export function CloudSettings() {
               </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1 flex flex-col">
               <div>
                 <Toggle label="Enable Cloud Connection" checked={cloudEnabled} onChange={setCloudEnabled} />
                 <p className="text-xs text-theme-muted mt-1 ml-14">Allow remote access via BrewOS Cloud</p>
@@ -343,6 +343,7 @@ export function CloudSettings() {
                 placeholder="wss://cloud.brewos.io"
                 disabled={!cloudEnabled}
               />
+              <div className="flex-1" />
               <div className="flex justify-end">
                 <Button onClick={saveSettings} loading={saving} disabled={saving || (!cloudEnabled && !cloudConfig?.enabled)}>
                   Save Settings
