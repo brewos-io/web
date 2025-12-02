@@ -19,6 +19,20 @@ cmake_minimum_required(VERSION 3.13)
 # Export compile commands for language servers
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# =============================================================================
+# Board Selection: Raspberry Pi Pico 2 (RP2350)
+# =============================================================================
+# The Pico 2 uses the RP2350 chip with ARM Cortex-M33 cores.
+# Key differences from RP2040:
+#   - Better atomic instructions (LDREX/STREX)
+#   - Stricter memory alignment requirements
+#   - Improved ADC (12-bit effective vs ~9-bit on RP2040)
+#   - TrustZone security support (optional)
+#
+# Ensure you have Pico SDK 2.0.0 or later for RP2350 support.
+set(PICO_BOARD pico2)
+set(PICO_PLATFORM rp2350-arm-s)  # Use ARM cores (not RISC-V)
+
 # Pull in SDK (must be before project)
 set(PICO_SDK_PATH $ENV{PICO_SDK_PATH})
 include(pico_sdk_import.cmake)
@@ -93,6 +107,7 @@ set(COMMON_SOURCES
     src/sensor_utils.c
     src/water_management.c
     src/config_persistence.c
+    src/flash_safe.c          # Flash safety utilities (XIP crash prevention)
     src/pzem.c
     src/cleaning.c
     src/statistics.c
@@ -114,6 +129,7 @@ set(CONTROL_HEAT_EXCHANGER src/control_heat_exchanger.c)
 set(COMMON_LIBS
     pico_stdlib
     pico_multicore
+    pico_flash          # For flash_safe_execute() on SDK 2.0+
     hardware_uart
     hardware_gpio
     hardware_adc
@@ -122,6 +138,7 @@ set(COMMON_LIBS
     hardware_flash
     hardware_pwm
     hardware_watchdog
+    hardware_sync       # For atomic operations and critical sections
 )
 
 # -----------------------------------------------------------------------------

@@ -10,12 +10,21 @@
 #include "environmental_config.h"
 #include "control.h"
 #include "state.h"
+#include "flash_safe.h"       // Flash safety utilities
 #include "pico/stdlib.h"
 #include "pico/bootrom.h"
 #include "hardware/flash.h"
-#include "hardware/sync.h"
 #include <string.h>
 #include <stddef.h>  // for offsetof
+
+// =============================================================================
+// Compile-Time Safety Checks
+// =============================================================================
+
+// Ensure config struct fits in a single flash page (256 bytes)
+// If this fails, flash_write_config must be updated to write multiple pages
+_Static_assert(sizeof(persisted_config_t) <= FLASH_PAGE_SIZE,
+    "persisted_config_t exceeds FLASH_PAGE_SIZE - update flash_write_config for multi-page writes");
 
 // XIP_BASE is the base address for execute-in-place flash
 #ifndef XIP_BASE
@@ -146,6 +155,16 @@ static bool flash_read_config(persisted_config_t* config) {
     return true;
 }
 
+/**
+ * Write configuration to flash.
+ * 
+ * Uses the flash_safe API which handles:
+ * - Multicore lockout (pausing Core 0)
+ * - Interrupt disabling
+ * - Running flash operations from RAM
+ * 
+ * Compatible with both RP2040 and RP2350 (Pico 2).
+ */
 static bool flash_write_config(const persisted_config_t* config) {
     if (!config) return false;
     
@@ -154,20 +173,21 @@ static bool flash_write_config(const persisted_config_t* config) {
     size_t crc_size = offsetof(persisted_config_t, crc32);
     config_with_crc.crc32 = crc32_calculate((const uint8_t*)&config_with_crc, crc_size);
     
-    // Disable interrupts during flash write
-    uint32_t ints = save_and_disable_interrupts();
-    
-    // Erase sector (must erase before writing)
-    flash_range_erase(CONFIG_FLASH_OFFSET, FLASH_SECTOR_SIZE);
-    
-    // Write configuration (must be 256-byte aligned, pad if needed)
+    // Prepare write buffer (must be page-aligned)
     uint8_t write_buffer[FLASH_PAGE_SIZE];
     memset(write_buffer, 0xFF, FLASH_PAGE_SIZE);
     memcpy(write_buffer, &config_with_crc, sizeof(persisted_config_t));
     
-    flash_range_program(CONFIG_FLASH_OFFSET, write_buffer, FLASH_PAGE_SIZE);
+    // Use flash_safe API which handles multicore lockout and interrupt safety
+    if (!flash_safe_erase(CONFIG_FLASH_OFFSET, FLASH_SECTOR_SIZE)) {
+        DEBUG_PRINT("Config: Flash erase failed\n");
+        return false;
+    }
     
-    restore_interrupts(ints);
+    if (!flash_safe_program(CONFIG_FLASH_OFFSET, write_buffer, FLASH_PAGE_SIZE)) {
+        DEBUG_PRINT("Config: Flash program failed\n");
+        return false;
+    }
     
     return true;
 }
@@ -199,14 +219,16 @@ static bool validate_environmental_config(const environmental_electrical_t* env)
 bool config_persistence_init(void) {
     // Try to load from flash
     if (config_persistence_load()) {
-        // Validate environmental config
-        g_env_valid = validate_environmental_config(&g_persisted_config.environmental);
+        // Copy environmental config to properly-aligned local variable for validation
+        // (avoids packed struct member alignment warning)
+        environmental_electrical_t env_copy = g_persisted_config.environmental;
+        g_env_valid = validate_environmental_config(&env_copy);
         
         if (g_env_valid) {
             // Apply loaded configuration
-            environmental_config_set(&g_persisted_config.environmental);
+            environmental_config_set(&env_copy);
             
-            // Apply PID settings
+            // Apply PID settings (copy to local vars to avoid packed member issues)
             control_set_pid(0, g_persisted_config.pid_brew.kp, 
                            g_persisted_config.pid_brew.ki, 
                            g_persisted_config.pid_brew.kd);
@@ -261,15 +283,23 @@ bool config_persistence_is_env_valid(void) {
 
 bool config_persistence_save(void) {
     // Update environmental config from current state
-    environmental_config_get(&g_persisted_config.environmental);
+    // Use local copy to avoid packed member alignment issues
+    environmental_electrical_t env_copy;
+    environmental_config_get(&env_copy);
+    g_persisted_config.environmental = env_copy;
     
     // Update PID settings from control module
-    control_get_pid(0, &g_persisted_config.pid_brew.kp, 
-                    &g_persisted_config.pid_brew.ki, 
-                    &g_persisted_config.pid_brew.kd);
-    control_get_pid(1, &g_persisted_config.pid_steam.kp, 
-                    &g_persisted_config.pid_steam.ki, 
-                    &g_persisted_config.pid_steam.kd);
+    // Use local vars to avoid passing packed member addresses
+    float kp, ki, kd;
+    control_get_pid(0, &kp, &ki, &kd);
+    g_persisted_config.pid_brew.kp = kp;
+    g_persisted_config.pid_brew.ki = ki;
+    g_persisted_config.pid_brew.kd = kd;
+    
+    control_get_pid(1, &kp, &ki, &kd);
+    g_persisted_config.pid_steam.kp = kp;
+    g_persisted_config.pid_steam.ki = ki;
+    g_persisted_config.pid_steam.kd = kd;
     
     // Update setpoints
     g_persisted_config.brew_setpoint = control_get_setpoint(0);
@@ -279,9 +309,13 @@ bool config_persistence_save(void) {
     g_persisted_config.heating_strategy = control_get_heating_strategy();
     
     // Get pre-infusion settings from state module
-    state_get_preinfusion(&g_persisted_config.preinfusion_enabled,
-                          &g_persisted_config.preinfusion_on_ms,
-                          &g_persisted_config.preinfusion_pause_ms);
+    // Use local vars to avoid packed member alignment issues
+    bool preinfusion_enabled;
+    uint16_t preinfusion_on_ms, preinfusion_pause_ms;
+    state_get_preinfusion(&preinfusion_enabled, &preinfusion_on_ms, &preinfusion_pause_ms);
+    g_persisted_config.preinfusion_enabled = preinfusion_enabled;
+    g_persisted_config.preinfusion_on_ms = preinfusion_on_ms;
+    g_persisted_config.preinfusion_pause_ms = preinfusion_pause_ms;
     
     // Cleaning mode settings are updated via config_persistence_save_cleaning()
     // They are already in g_persisted_config when this function is called
@@ -324,8 +358,9 @@ void config_persistence_set(const persisted_config_t* config) {
         g_persisted_config = *config;
         g_config_loaded = true;
         
-        // Validate environmental config
-        g_env_valid = validate_environmental_config(&g_persisted_config.environmental);
+        // Validate environmental config (use local copy to avoid packed alignment issues)
+        environmental_electrical_t env_copy = g_persisted_config.environmental;
+        g_env_valid = validate_environmental_config(&env_copy);
     }
 }
 
@@ -339,8 +374,9 @@ void config_persistence_reset_to_defaults(void) {
     // Restore environmental config
     g_persisted_config.environmental = saved_env;
     
-    // Revalidate
-    g_env_valid = validate_environmental_config(&g_persisted_config.environmental);
+    // Revalidate (use local copy to avoid packed alignment issues)
+    environmental_electrical_t env_copy = g_persisted_config.environmental;
+    g_env_valid = validate_environmental_config(&env_copy);
 }
 
 bool config_persistence_is_setup_mode(void) {
@@ -348,6 +384,14 @@ bool config_persistence_is_setup_mode(void) {
 }
 
 bool config_persistence_save_cleaning(uint16_t brew_count, uint16_t threshold) {
+    // Compare-before-write: Skip flash write if nothing changed
+    // Flash has limited endurance (~100k cycles), avoid unnecessary wear
+    if (g_persisted_config.cleaning_brew_count == brew_count &&
+        g_persisted_config.cleaning_threshold == threshold) {
+        DEBUG_PRINT("Config: Cleaning settings unchanged, skipping flash write\n");
+        return true;  // Success - nothing to save
+    }
+    
     // Update cleaning values in persisted config
     g_persisted_config.cleaning_brew_count = brew_count;
     g_persisted_config.cleaning_threshold = threshold;
@@ -378,6 +422,15 @@ void config_persistence_get_cleaning(uint16_t* brew_count, uint16_t* threshold) 
 }
 
 bool config_persistence_save_eco(bool enabled, int16_t brew_temp, uint16_t timeout_minutes) {
+    // Compare-before-write: Skip flash write if nothing changed
+    // Flash has limited endurance (~100k cycles), avoid unnecessary wear
+    if (g_persisted_config.eco_enabled == enabled &&
+        g_persisted_config.eco_brew_temp == brew_temp &&
+        g_persisted_config.eco_timeout_minutes == timeout_minutes) {
+        DEBUG_PRINT("Config: Eco settings unchanged, skipping flash write\n");
+        return true;  // Success - nothing to save
+    }
+    
     // Update eco values in persisted config
     g_persisted_config.eco_enabled = enabled;
     g_persisted_config.eco_brew_temp = brew_temp;

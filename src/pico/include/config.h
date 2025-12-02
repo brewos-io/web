@@ -60,6 +60,21 @@
 #define DEFAULT_STEAM_TEMP      1400            // 140.0C
 #define DEFAULT_OFFSET_TEMP     -50             // -5.0C offset
 
+// Temperature conversion macros (decicelsius <-> Celsius)
+#define TEMP_DECI_TO_C(x)       ((float)(x) / 10.0f)      // e.g., 930 -> 93.0
+#define TEMP_C_TO_DECI(x)       ((int16_t)((x) * 10.0f))  // e.g., 93.0 -> 930
+
+// -----------------------------------------------------------------------------
+// SSR/PWM Configuration
+// -----------------------------------------------------------------------------
+// Minimum duty cycle for Zero-Crossing SSRs (2ms min pulse at 50Hz = 10ms half-cycle)
+// At 25Hz PWM (40ms period), 5% duty = 2ms - below this, ZC SSRs may skip cycles
+#define SSR_MIN_DUTY_PERCENT    5.0f
+
+// PID Derivative filter time constant (seconds)
+// Lower = more responsive but noisier, higher = smoother but slower
+#define PID_DERIVATIVE_FILTER_TAU   0.5f
+
 // -----------------------------------------------------------------------------
 // Hardware Simulation Mode
 // -----------------------------------------------------------------------------

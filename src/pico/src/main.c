@@ -31,12 +31,20 @@
 #include "statistics.h"
 #include "bootloader.h"
 #include "pzem.h"
+#include "flash_safe.h"
 
 // -----------------------------------------------------------------------------
 // Globals
 // -----------------------------------------------------------------------------
 static volatile bool g_core1_ready = false;
 static uint32_t g_boot_time = 0;
+
+// Core 1 alive flag for watchdog monitoring
+// Core 1 sets this to true each iteration; Core 0 checks and resets it.
+// If Core 1 stops responding, Core 0 will stop kicking the watchdog.
+static volatile bool g_core1_alive = false;
+static volatile uint32_t g_core1_last_seen = 0;
+#define CORE1_TIMEOUT_MS 1000  // Core 1 must respond within 1 second
 
 // Status payload (updated by control loop on Core 0, read by comms on Core 1)
 // Protected by mutex for thread-safe access between cores
@@ -101,6 +109,9 @@ void core1_main(void) {
             }
         }
         
+        // Signal that Core 1 is alive (for watchdog monitoring by Core 0)
+        g_core1_alive = true;
+        
         // Small sleep to not hog CPU
         sleep_us(100);
     }
@@ -124,24 +135,26 @@ void handle_packet(const packet_t* packet) {
         
         case MSG_CMD_SET_TEMP: {
             if (packet->length >= sizeof(cmd_set_temp_t)) {
-                cmd_set_temp_t* cmd = (cmd_set_temp_t*)packet->payload;
+                // Use memcpy for safe unaligned access (Cortex-M33 is stricter)
+                cmd_set_temp_t cmd;
+                memcpy(&cmd, packet->payload, sizeof(cmd_set_temp_t));
                 
                 // Validate target: 0=brew, 1=steam
-                if (cmd->target > 1) {
-                    DEBUG_PRINT("CMD_SET_TEMP: Invalid target %d\n", cmd->target);
+                if (cmd.target > 1) {
+                    DEBUG_PRINT("CMD_SET_TEMP: Invalid target %d\n", cmd.target);
                     protocol_send_ack(MSG_CMD_SET_TEMP, packet->seq, ACK_ERROR_INVALID);
                     break;
                 }
                 
                 // Validate temperature range: 0-200°C (stored as 0-2000 in 0.1°C units)
                 // Negative temperatures don't make sense for espresso machines
-                if (cmd->temperature < 0 || cmd->temperature > 2000) {
-                    DEBUG_PRINT("CMD_SET_TEMP: Invalid temperature %d (valid: 0-2000)\n", cmd->temperature);
+                if (cmd.temperature < 0 || cmd.temperature > 2000) {
+                    DEBUG_PRINT("CMD_SET_TEMP: Invalid temperature %d (valid: 0-2000)\n", cmd.temperature);
                     protocol_send_ack(MSG_CMD_SET_TEMP, packet->seq, ACK_ERROR_INVALID);
                     break;
                 }
                 
-                control_set_setpoint(cmd->target, cmd->temperature);
+                control_set_setpoint(cmd.target, cmd.temperature);
                 protocol_send_ack(MSG_CMD_SET_TEMP, packet->seq, ACK_SUCCESS);
             } else {
                 protocol_send_ack(MSG_CMD_SET_TEMP, packet->seq, ACK_ERROR_INVALID);
@@ -151,25 +164,27 @@ void handle_packet(const packet_t* packet) {
         
         case MSG_CMD_SET_PID: {
             if (packet->length >= sizeof(cmd_set_pid_t)) {
-                cmd_set_pid_t* cmd = (cmd_set_pid_t*)packet->payload;
+                // Use memcpy for safe unaligned access (Cortex-M33 is stricter)
+                cmd_set_pid_t cmd;
+                memcpy(&cmd, packet->payload, sizeof(cmd_set_pid_t));
                 
                 // Validate target: 0=brew, 1=steam
-                if (cmd->target > 1) {
-                    DEBUG_PRINT("CMD_SET_PID: Invalid target %d\n", cmd->target);
+                if (cmd.target > 1) {
+                    DEBUG_PRINT("CMD_SET_PID: Invalid target %d\n", cmd.target);
                     protocol_send_ack(MSG_CMD_SET_PID, packet->seq, ACK_ERROR_INVALID);
                     break;
                 }
                 
                 // Validate PID gains: reasonable range 0-10000 (stored as value*100)
                 // Max 100.0 for any gain is already very aggressive
-                if (cmd->kp > 10000 || cmd->ki > 10000 || cmd->kd > 10000) {
+                if (cmd.kp > 10000 || cmd.ki > 10000 || cmd.kd > 10000) {
                     DEBUG_PRINT("CMD_SET_PID: Invalid gains Kp=%d Ki=%d Kd=%d (max 10000)\n", 
-                               cmd->kp, cmd->ki, cmd->kd);
+                               cmd.kp, cmd.ki, cmd.kd);
                     protocol_send_ack(MSG_CMD_SET_PID, packet->seq, ACK_ERROR_INVALID);
                     break;
                 }
                 
-                control_set_pid(cmd->target, cmd->kp / 100.0f, cmd->ki / 100.0f, cmd->kd / 100.0f);
+                control_set_pid(cmd.target, cmd.kp / 100.0f, cmd.ki / 100.0f, cmd.kd / 100.0f);
                 protocol_send_ack(MSG_CMD_SET_PID, packet->seq, ACK_SUCCESS);
             } else {
                 protocol_send_ack(MSG_CMD_SET_PID, packet->seq, ACK_ERROR_INVALID);
@@ -179,8 +194,10 @@ void handle_packet(const packet_t* packet) {
         
         case MSG_CMD_BREW: {
             if (packet->length >= sizeof(cmd_brew_t)) {
-                cmd_brew_t* cmd = (cmd_brew_t*)packet->payload;
-                if (cmd->action) {
+                // Use memcpy for safe unaligned access (Cortex-M33 is stricter)
+                cmd_brew_t cmd;
+                memcpy(&cmd, packet->payload, sizeof(cmd_brew_t));
+                if (cmd.action) {
                     state_start_brew();
                 } else {
                     state_stop_brew();
@@ -194,8 +211,10 @@ void handle_packet(const packet_t* packet) {
         
         case MSG_CMD_MODE: {
             if (packet->length >= sizeof(cmd_mode_t)) {
-                cmd_mode_t* cmd = (cmd_mode_t*)packet->payload;
-                machine_mode_t mode = (machine_mode_t)cmd->mode;
+                // Use memcpy for safe unaligned access (Cortex-M33 is stricter)
+                cmd_mode_t cmd;
+                memcpy(&cmd, packet->payload, sizeof(cmd_mode_t));
+                machine_mode_t mode = (machine_mode_t)cmd.mode;
                 if (mode <= MODE_STEAM) {  // Valid modes: MODE_IDLE, MODE_BREW, MODE_STEAM
                     if (state_set_mode(mode)) {
                         protocol_send_ack(MSG_CMD_MODE, packet->seq, ACK_SUCCESS);
@@ -227,27 +246,29 @@ void handle_packet(const packet_t* packet) {
                 if (config_type == CONFIG_ENVIRONMENTAL) {
                     // Set environmental configuration
                     if (packet->length >= sizeof(config_environmental_t) + 1) {
-                        config_environmental_t* env_cmd = (config_environmental_t*)(&packet->payload[1]);
+                        // Use memcpy for safe unaligned access (Cortex-M33 is stricter)
+                        config_environmental_t env_cmd;
+                        memcpy(&env_cmd, &packet->payload[1], sizeof(config_environmental_t));
                         
                         // Validate voltage: 100-250V (covers 110V and 220-240V systems)
-                        if (env_cmd->nominal_voltage < 100 || env_cmd->nominal_voltage > 250) {
+                        if (env_cmd.nominal_voltage < 100 || env_cmd.nominal_voltage > 250) {
                             DEBUG_PRINT("CMD_CONFIG: Invalid voltage %d (valid: 100-250V)\n", 
-                                       env_cmd->nominal_voltage);
+                                       env_cmd.nominal_voltage);
                             protocol_send_ack(MSG_CMD_CONFIG, packet->seq, ACK_ERROR_INVALID);
                             break;
                         }
                         
                         // Validate max current: 1-50A (reasonable range for espresso machines)
-                        if (env_cmd->max_current_draw < 1.0f || env_cmd->max_current_draw > 50.0f) {
+                        if (env_cmd.max_current_draw < 1.0f || env_cmd.max_current_draw > 50.0f) {
                             DEBUG_PRINT("CMD_CONFIG: Invalid max current %.1f (valid: 1-50A)\n", 
-                                       env_cmd->max_current_draw);
+                                       env_cmd.max_current_draw);
                             protocol_send_ack(MSG_CMD_CONFIG, packet->seq, ACK_ERROR_INVALID);
                             break;
                         }
                         
                         environmental_electrical_t env_config = {
-                            .nominal_voltage = env_cmd->nominal_voltage,
-                            .max_current_draw = env_cmd->max_current_draw
+                            .nominal_voltage = env_cmd.nominal_voltage,
+                            .max_current_draw = env_cmd.max_current_draw
                         };
                         environmental_config_set(&env_config);
                         
@@ -559,6 +580,12 @@ int main(void) {
     statistics_init();
     DEBUG_PRINT("Statistics initialized\n");
     
+    // Initialize flash safety system on Core 0 BEFORE launching Core 1
+    // This allows Core 1 to pause Core 0 during flash operations (XIP safety)
+    // CRITICAL: Must be done before Core 1 launches, otherwise if Core 1
+    // tries to write flash immediately, the lockout handshake will fail/hang.
+    flash_safe_init();
+    
     // Launch Core 1 for communication
     multicore_launch_core1(core1_main);
     DEBUG_PRINT("Core 1 launched\n");
@@ -621,8 +648,22 @@ int main(void) {
             }
             
             // SAF-003: Feed watchdog only from main control loop after safety checks pass
-            // (safety checks have been executed - feed watchdog to indicate loop is running)
-            safety_kick_watchdog();
+            // Also verify Core 1 (communication) is still responsive before kicking.
+            // If Core 1 hangs, we want the watchdog to reset the system.
+            if (g_core1_alive) {
+                // Core 1 is alive - reset flag and kick watchdog
+                g_core1_alive = false;
+                g_core1_last_seen = now;
+                safety_kick_watchdog();
+            } else if ((now - g_core1_last_seen) < CORE1_TIMEOUT_MS) {
+                // Core 1 flag not set this cycle, but within timeout - still kick
+                // This handles cases where Core 0 runs faster than Core 1
+                safety_kick_watchdog();
+            } else {
+                // Core 1 hasn't responded within timeout - don't kick watchdog
+                // System will reset after watchdog timeout
+                DEBUG_PRINT("WARNING: Core 1 not responding, watchdog will reset!\n");
+            }
             
             // Update state machine
             state_update();

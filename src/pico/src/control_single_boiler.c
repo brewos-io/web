@@ -36,7 +36,7 @@ void control_init_machine(void) {
     const single_boiler_config_t* sb_config = machine_get_single_boiler_config();
     
     // Single boiler: start in brew mode
-    g_brew_pid.setpoint = sb_config ? sb_config->brew_setpoint : (DEFAULT_BREW_TEMP / 10.0f);
+    g_brew_pid.setpoint = sb_config ? sb_config->brew_setpoint : TEMP_DECI_TO_C(DEFAULT_BREW_TEMP);
     g_brew_pid.setpoint_target = g_brew_pid.setpoint;
     g_steam_pid.setpoint = 0;  // Not used directly
     

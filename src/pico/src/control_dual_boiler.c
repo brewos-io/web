@@ -19,9 +19,9 @@
 
 void control_init_machine(void) {
     // Dual boiler: independent PIDs with standard setpoints
-    g_brew_pid.setpoint = DEFAULT_BREW_TEMP / 10.0f;
+    g_brew_pid.setpoint = TEMP_DECI_TO_C(DEFAULT_BREW_TEMP);
     g_brew_pid.setpoint_target = g_brew_pid.setpoint;
-    g_steam_pid.setpoint = DEFAULT_STEAM_TEMP / 10.0f;
+    g_steam_pid.setpoint = TEMP_DECI_TO_C(DEFAULT_STEAM_TEMP);
     g_steam_pid.setpoint_target = g_steam_pid.setpoint;
     
     // Default heating strategy for dual boiler

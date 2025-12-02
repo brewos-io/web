@@ -12,7 +12,7 @@
 #include "hardware.h"
 #include "config.h"
 #include "pcb_config.h"
-#include <math.h>
+#include <math.h>  // For isnan(), isinf()
 
 // Pico SDK includes
 #include "hardware/adc.h"
@@ -367,8 +367,22 @@ bool hw_pwm_init_ssr_ex(uint8_t gpio_pin, pwm_ssr_config_t* config) {
 }
 
 void hw_set_pwm_duty(uint8_t slice_num, float duty_percent) {
+    // Clamp to valid range
     if (duty_percent < 0.0f) duty_percent = 0.0f;
     if (duty_percent > 100.0f) duty_percent = 100.0f;
+    
+    // Guard against NaN (undefined behavior if passed to calculations)
+    if (isnan(duty_percent)) {
+        duty_percent = 0.0f;
+    }
+    
+    // Minimum duty cycle for Zero-Crossing SSRs
+    // ZC-SSRs need at least one half-cycle (8.3ms at 60Hz, 10ms at 50Hz) to fire.
+    // At 25Hz PWM (40ms period), SSR_MIN_DUTY_PERCENT% = min reliable pulse.
+    // Below this threshold, force to 0% to prevent erratic firing.
+    if (duty_percent > 0.0f && duty_percent < SSR_MIN_DUTY_PERCENT) {
+        duty_percent = 0.0f;
+    }
     
     if (g_simulation_mode) {
         // In simulation, just store the value (could be used for testing)
@@ -393,8 +407,19 @@ void hw_set_pwm_duty_ex(const pwm_ssr_config_t* config, float duty_percent) {
         return;
     }
     
+    // Clamp to valid range
     if (duty_percent < 0.0f) duty_percent = 0.0f;
     if (duty_percent > 100.0f) duty_percent = 100.0f;
+    
+    // Guard against NaN
+    if (isnan(duty_percent)) {
+        duty_percent = 0.0f;
+    }
+    
+    // Minimum duty cycle for Zero-Crossing SSRs
+    if (duty_percent > 0.0f && duty_percent < SSR_MIN_DUTY_PERCENT) {
+        duty_percent = 0.0f;
+    }
     
     if (g_simulation_mode) {
         // In simulation, just store the value (could be used for testing)

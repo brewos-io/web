@@ -27,6 +27,17 @@ static hx_control_mode_t g_hx_control_mode = HX_CONTROL_TEMPERATURE;
 static float g_pressure_setpoint_bar = 1.0f;
 static float g_pressure_hysteresis_bar = 0.1f;
 
+// Separate PID gains for pressure control (tuned for pressure process variable)
+// Pressure PV is typically 0.8-1.5 bar, much smaller than temperature (80-150°C)
+// These gains are scaled appropriately for the smaller error range
+static pid_state_t g_pressure_pid;
+static bool g_pressure_pid_initialized = false;
+
+// PID scaling factors for pressure mode
+// Multiply pressure error by this to get equivalent "temperature-like" error
+// This allows using similar PID response characteristics
+#define PRESSURE_TO_TEMP_SCALE  100.0f  // 0.1 bar error -> 10°C equivalent
+
 // =============================================================================
 // Heat Exchanger Initialization
 // =============================================================================
@@ -54,11 +65,21 @@ void control_init_machine(void) {
                 break;
                 
             case HX_CONTROL_PRESSURE:
-                // For pressure PID, we use the steam PID but with pressure as input
-                g_steam_pid.setpoint = g_pressure_setpoint_bar;
-                g_steam_pid.setpoint_target = g_steam_pid.setpoint;
+                // Initialize pressure-specific PID with scaled gains
+                // Pressure control uses error scaling to work with temperature-tuned PID
+                if (!g_pressure_pid_initialized) {
+                    pid_init(&g_pressure_pid, g_pressure_setpoint_bar * PRESSURE_TO_TEMP_SCALE);
+                    // Adjust gains for pressure - typically needs higher Kp due to faster dynamics
+                    g_pressure_pid.kp = PID_DEFAULT_KP * 1.5f;
+                    g_pressure_pid.ki = PID_DEFAULT_KI * 0.5f;  // Less integral (faster response)
+                    g_pressure_pid.kd = PID_DEFAULT_KD * 2.0f;  // More derivative (damping)
+                    g_pressure_pid_initialized = true;
+                }
+                g_pressure_pid.setpoint = g_pressure_setpoint_bar * PRESSURE_TO_TEMP_SCALE;
+                g_pressure_pid.setpoint_target = g_pressure_pid.setpoint;
                 DEBUG_PRINT("Control: HX mode - PRESSURE PID\n");
-                DEBUG_PRINT("  Pressure setpoint: %.2f bar\n", g_pressure_setpoint_bar);
+                DEBUG_PRINT("  Pressure setpoint: %.2f bar (scaled SP: %.1f)\n", 
+                           g_pressure_setpoint_bar, g_pressure_pid.setpoint);
                 break;
                 
             case HX_CONTROL_PRESSURESTAT:
@@ -75,7 +96,7 @@ void control_init_machine(void) {
     } else {
         // Default to temperature control
         g_hx_control_mode = HX_CONTROL_TEMPERATURE;
-        g_steam_pid.setpoint = DEFAULT_STEAM_TEMP / 10.0f;
+        g_steam_pid.setpoint = TEMP_DECI_TO_C(DEFAULT_STEAM_TEMP);
         g_steam_pid.setpoint_target = g_steam_pid.setpoint;
         DEBUG_PRINT("Control: HX mode - TEMPERATURE PID (default)\n");
     }
@@ -108,14 +129,17 @@ void control_update_machine(
             break;
             
         case HX_CONTROL_PRESSURE: {
-            // PID based on pressure transducer
+            // PID based on pressure transducer with error scaling
+            // We scale the pressure to a "temperature-like" range so PID gains
+            // tuned for temperature work reasonably for pressure control.
             sensor_data_t sensors;
             sensors_get_data(&sensors);
             float pressure_bar = sensors.pressure / 100.0f;  // Convert from 0.01 bar units
             
             if (pressure_bar >= 0.0f && pressure_bar <= 16.0f) {
-                // Use PID with pressure as process variable
-                demand = pid_compute(&g_steam_pid, pressure_bar, dt);
+                // Scale pressure to temperature-equivalent range for PID
+                float scaled_pressure = pressure_bar * PRESSURE_TO_TEMP_SCALE;
+                demand = pid_compute(&g_pressure_pid, scaled_pressure, dt);
             }
             break;
         }

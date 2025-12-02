@@ -6,8 +6,11 @@
 
 #include "bootloader.h"
 #include "config.h"
+#include "flash_safe.h"       // Flash safety utilities
 #include <string.h>
 #include "pico/stdlib.h"
+#include "pico/multicore.h"   // For multicore_lockout
+#include "pico/platform.h"    // For __not_in_flash_func
 #include "hardware/uart.h"
 #include "hardware/flash.h"
 #include "hardware/sync.h"
@@ -25,10 +28,12 @@
 // Flash layout
 // RP2040 has 2MB flash typically, firmware starts at 0x10000000
 // We'll use a reserved region for new firmware (last 512KB)
-// For now, we'll write to a backup region and swap later
-#define FLASH_TARGET_OFFSET         (1536 * 1024)  // Start of last 512KB
-#define FLASH_SECTOR_SIZE           4096           // RP2040 flash sector size
-#define FLASH_PAGE_SIZE             256            // RP2040 flash page size
+// After receiving, we copy from staging to main area and reboot.
+#define FLASH_TARGET_OFFSET         (1536 * 1024)  // Staging area: start of last 512KB
+#define FLASH_MAIN_OFFSET           0              // Main firmware area: start of flash
+#define FLASH_MAX_FIRMWARE_SIZE     (512 * 1024)   // Max firmware size: 512KB
+// Note: Using SDK definitions for sector/page size to avoid redefinition warnings
+// FLASH_SECTOR_SIZE and FLASH_PAGE_SIZE are already defined in hardware/flash.h
 
 // Bootloader state
 static uint32_t g_total_size = 0;
@@ -78,48 +83,94 @@ static void uart_write_bytes(const uint8_t* data, size_t len) {
 }
 
 // -----------------------------------------------------------------------------
-// Flash Helpers
+// Flash Helpers (using flash_safe API)
 // -----------------------------------------------------------------------------
+// Now using centralized flash_safe API which handles:
+// - Multicore lockout
+// - Interrupt safety  
+// - RAM execution requirements
+// Compatible with both RP2040 and RP2350 (Pico 2)
 
+/**
+ * Erase a flash sector safely.
+ */
 static bool flash_erase_sector(uint32_t offset) {
-    // Validate offset is sector-aligned
-    if (offset % FLASH_SECTOR_SIZE != 0) {
-        return false;
-    }
-    
-    // Validate offset is within flash bounds
-    // RP2040 flash typically starts at 0x10000000, size varies
-    // For safety, check offset is reasonable (less than 2MB)
-    if (offset > (2 * 1024 * 1024)) {
-        return false;
-    }
-    
-    uint32_t ints = save_and_disable_interrupts();
-    flash_range_erase(offset, FLASH_SECTOR_SIZE);
-    restore_interrupts(ints);
-    return true;
+    return flash_safe_erase(offset, FLASH_SECTOR_SIZE);
 }
 
+/**
+ * Write a flash page safely.
+ */
 static bool flash_write_page(uint32_t offset, const uint8_t* data) {
-    // Validate offset is page-aligned
-    if (offset % FLASH_PAGE_SIZE != 0) {
-        return false;
-    }
+    if (!data) return false;
+    return flash_safe_program(offset, data, FLASH_PAGE_SIZE);
+}
+
+/**
+ * Copy firmware from staging area to main area.
+ * 
+ * CRITICAL: This function runs from RAM and copies the staged firmware
+ * to the main execution area (0x10000000). After this, the device must
+ * reboot to run the new firmware.
+ * 
+ * This function does not return on success - it reboots the device.
+ */
+static void __not_in_flash_func(copy_firmware_to_main)(uint32_t firmware_size) {
+    // XIP_BASE is where flash is memory-mapped for execution
+    #ifndef XIP_BASE
+    #define XIP_BASE 0x10000000
+    #endif
     
-    // Validate offset is within flash bounds
-    if (offset > (2 * 1024 * 1024)) {
-        return false;
-    }
+    // Round up to page size
+    uint32_t size_pages = (firmware_size + FLASH_PAGE_SIZE - 1) / FLASH_PAGE_SIZE;
+    uint32_t size_sectors = (firmware_size + FLASH_SECTOR_SIZE - 1) / FLASH_SECTOR_SIZE;
     
-    // Validate data pointer
-    if (data == NULL) {
-        return false;
-    }
+    // CRITICAL: Kick watchdog to give us full timeout budget (2000ms)
+    // The flash copy takes time:
+    //   - Erasing 512KB: ~200-400ms
+    //   - Programming 512KB: ~200-300ms
+    // If watchdog fires during copy, device will be bricked!
+    watchdog_update();
     
+    // Pause Core 0 (we're on Core 1) for the entire copy operation
+    multicore_lockout_start_blocking();
+    
+    // Disable interrupts for the entire copy (this is a long operation!)
     uint32_t ints = save_and_disable_interrupts();
-    flash_range_program(offset, data, FLASH_PAGE_SIZE);
+    
+    // Erase main firmware area
+    for (uint32_t sector = 0; sector < size_sectors; sector++) {
+        uint32_t offset = FLASH_MAIN_OFFSET + (sector * FLASH_SECTOR_SIZE);
+        flash_range_erase(offset, FLASH_SECTOR_SIZE);
+    }
+    
+    // Copy from staging to main, page by page
+    const uint8_t* staging_addr = (const uint8_t*)(XIP_BASE + FLASH_TARGET_OFFSET);
+    
+    for (uint32_t page = 0; page < size_pages; page++) {
+        uint32_t offset = FLASH_MAIN_OFFSET + (page * FLASH_PAGE_SIZE);
+        
+        // Read page from staging area (memory-mapped read is safe)
+        // But we need to copy to a RAM buffer first because flash_range_program
+        // reads from the source while programming, which won't work during erase
+        static uint8_t page_buffer[FLASH_PAGE_SIZE];
+        memcpy(page_buffer, staging_addr + (page * FLASH_PAGE_SIZE), FLASH_PAGE_SIZE);
+        
+        // Write to main area
+        flash_range_program(offset, page_buffer, FLASH_PAGE_SIZE);
+    }
+    
     restore_interrupts(ints);
-    return true;
+    multicore_lockout_end_blocking();
+    
+    // Reboot to run new firmware
+    // Use AIRCR (Application Interrupt and Reset Control Register) for clean reset
+    watchdog_reboot(0, 0, 0);
+    
+    // Should never reach here
+    while (1) {
+        tight_loop_contents();
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -377,11 +428,18 @@ bootloader_result_t bootloader_receive_firmware(void) {
     
     g_receiving = false;
     
-    // TODO: Verify firmware integrity (CRC32 of entire image)
-    // TODO: Swap firmware regions (copy new firmware to main location)
-    // For now, we'll just reset and let the bootloader handle it
+    // Validate we received something
+    if (g_received_size == 0) {
+        uart_write_byte(0xFF);  // Error marker
+        uart_write_byte(BOOTLOADER_ERROR_INVALID_SIZE);
+        return BOOTLOADER_ERROR_INVALID_SIZE;
+    }
     
-    // Send success acknowledgment
+    // TODO: Verify firmware integrity (CRC32 of entire image)
+    // For now, we trust the chunk checksums
+    
+    // Send success acknowledgment before copy
+    // (after copy, we reboot immediately)
     uart_write_byte(0xAA);
     uart_write_byte(0x55);
     uart_write_byte(0x00);  // Success code
@@ -389,8 +447,9 @@ bootloader_result_t bootloader_receive_firmware(void) {
     // Small delay to ensure message is sent
     sleep_ms(100);
     
-    // Reset the device
-    watchdog_reboot(0, 0, 0);
+    // Copy firmware from staging area to main area
+    // This function does not return - it reboots the device
+    copy_firmware_to_main(g_received_size);
     
     // Should never reach here
     return BOOTLOADER_SUCCESS;

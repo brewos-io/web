@@ -6,9 +6,9 @@
 
 #include "statistics.h"
 #include "config.h"
+#include "flash_safe.h"       // Flash safety utilities
 #include "pico/stdlib.h"
 #include "hardware/flash.h"
-#include "hardware/sync.h"
 #include <string.h>
 #include <stddef.h>
 
@@ -207,6 +207,11 @@ static bool flash_read_statistics(persisted_statistics_t* stats) {
 
 /**
  * Write statistics to flash
+ * 
+ * NOTE: persisted_statistics_t is larger than FLASH_PAGE_SIZE (256 bytes),
+ * so we must write multiple pages.
+ * 
+ * Uses flash_safe API for XIP safety (compatible with RP2040 and RP2350).
  */
 static bool flash_write_statistics(const persisted_statistics_t* stats) {
     if (!stats) return false;
@@ -216,20 +221,38 @@ static bool flash_write_statistics(const persisted_statistics_t* stats) {
     size_t crc_size = offsetof(persisted_statistics_t, crc32);
     stats_with_crc.crc32 = stats_crc32_calculate((const uint8_t*)&stats_with_crc, crc_size);
     
-    // Disable interrupts during flash write
-    uint32_t ints = save_and_disable_interrupts();
+    // Calculate how many pages we need
+    size_t total_size = sizeof(persisted_statistics_t);
+    size_t num_pages = (total_size + FLASH_PAGE_SIZE - 1) / FLASH_PAGE_SIZE;
+    size_t total_write_size = num_pages * FLASH_PAGE_SIZE;
     
-    // Erase sector (must erase before writing)
-    flash_range_erase(STATS_FLASH_OFFSET, FLASH_SECTOR_SIZE);
+    // Erase sector first (using flash_safe API)
+    if (!flash_safe_erase(STATS_FLASH_OFFSET, FLASH_SECTOR_SIZE)) {
+        DEBUG_PRINT("Statistics: Flash erase failed\n");
+        return false;
+    }
     
-    // Write statistics (must be 256-byte aligned, pad if needed)
-    uint8_t write_buffer[FLASH_PAGE_SIZE];
-    memset(write_buffer, 0xFF, FLASH_PAGE_SIZE);
-    memcpy(write_buffer, &stats_with_crc, sizeof(persisted_statistics_t));
+    // Write statistics page by page
+    const uint8_t* src = (const uint8_t*)&stats_with_crc;
+    size_t remaining = total_size;
     
-    flash_range_program(STATS_FLASH_OFFSET, write_buffer, FLASH_PAGE_SIZE);
-    
-    restore_interrupts(ints);
+    for (size_t page = 0; page < num_pages; page++) {
+        uint8_t write_buffer[FLASH_PAGE_SIZE];
+        size_t bytes_this_page = (remaining > FLASH_PAGE_SIZE) ? FLASH_PAGE_SIZE : remaining;
+        
+        // Copy data to page buffer, pad with 0xFF
+        memset(write_buffer, 0xFF, FLASH_PAGE_SIZE);
+        memcpy(write_buffer, src + (page * FLASH_PAGE_SIZE), bytes_this_page);
+        
+        // Write page (using flash_safe API)
+        if (!flash_safe_program(STATS_FLASH_OFFSET + (page * FLASH_PAGE_SIZE), 
+                                write_buffer, FLASH_PAGE_SIZE)) {
+            DEBUG_PRINT("Statistics: Flash program failed at page %zu\n", page);
+            return false;
+        }
+        
+        remaining -= bytes_this_page;
+    }
     
     return true;
 }

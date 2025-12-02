@@ -10,8 +10,10 @@
 
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "pico/mutex.h"     // For mutex_t
 #include "hardware/gpio.h"
 #include "hardware/pwm.h"
+#include "hardware/sync.h"  // For save_and_disable_interrupts/restore_interrupts
 #include "control.h"
 #include "control_impl.h"
 #include "config.h"
@@ -34,6 +36,28 @@
 pid_state_t g_brew_pid;
 pid_state_t g_steam_pid;
 heating_strategy_t g_heating_strategy = HEAT_SEQUENTIAL;
+
+// =============================================================================
+// Concurrency Protection
+// =============================================================================
+// Mutex to protect PID and control state from torn reads/writes.
+// Core 1 (protocol) updates settings, Core 0 (control loop) reads them.
+// Without protection, Core 0 could read partially-updated state (e.g., new Kp
+// but old Ki/Kd), causing output glitches.
+static mutex_t g_control_mutex;
+static bool g_control_mutex_initialized = false;
+
+static inline void control_lock(void) {
+    if (g_control_mutex_initialized) {
+        mutex_enter_blocking(&g_control_mutex);
+    }
+}
+
+static inline void control_unlock(void) {
+    if (g_control_mutex_initialized) {
+        mutex_exit(&g_control_mutex);
+    }
+}
 
 // =============================================================================
 // Private State
@@ -59,8 +83,11 @@ typedef struct {
     bool active;            // True if schedule is active
 } ssr_schedule_t;
 
-static ssr_schedule_t g_brew_schedule = {0};
-static ssr_schedule_t g_steam_schedule = {0};
+// Note: These are accessed from both main loop and timer interrupt.
+// Write access is protected by critical sections in set_ssr_schedule().
+// volatile ensures compiler doesn't cache values in the timer callback.
+static volatile ssr_schedule_t g_brew_schedule = {0};
+static volatile ssr_schedule_t g_steam_schedule = {0};
 static struct repeating_timer g_phase_timer;
 static bool g_phase_sync_active = false;
 static uint32_t g_phase_period_start = 0;  // Timestamp of current period start
@@ -91,47 +118,68 @@ void pid_init(pid_state_t* pid, float setpoint) {
 // =============================================================================
 
 float pid_compute(pid_state_t* pid, float process_value, float dt) {
+    // Lock to ensure consistent read of PID parameters
+    control_lock();
+    
+    // Copy parameters to local variables to minimize lock time
+    float kp = pid->kp;
+    float ki = pid->ki;
+    float kd = pid->kd;
+    float setpoint_target = pid->setpoint_target;
+    bool ramping = pid->setpoint_ramping;
+    float ramp_rate = pid->ramp_rate;
+    float setpoint = pid->setpoint;
+    
+    control_unlock();
+    
     // Update setpoint with ramping if enabled
-    if (pid->setpoint_ramping) {
-        float setpoint_diff = pid->setpoint_target - pid->setpoint;
-        float max_change = pid->ramp_rate * dt;
+    if (ramping) {
+        float setpoint_diff = setpoint_target - setpoint;
+        float max_change = ramp_rate * dt;
         
         if (fabsf(setpoint_diff) <= max_change) {
-            pid->setpoint = pid->setpoint_target;
-            pid->setpoint_ramping = false;
+            setpoint = setpoint_target;
+            ramping = false;
         } else {
             if (setpoint_diff > 0) {
-                pid->setpoint += max_change;
+                setpoint += max_change;
             } else {
-                pid->setpoint -= max_change;
+                setpoint -= max_change;
             }
         }
+        
+        // Update state (these are written by control loop, safe without lock)
+        pid->setpoint = setpoint;
+        pid->setpoint_ramping = ramping;
     }
     
-    float error = pid->setpoint - process_value;
+    float error = setpoint - process_value;
     
-    // Proportional
-    float p_term = pid->kp * error;
+    // Proportional (using local copy of kp)
+    float p_term = kp * error;
     
     // Integral with anti-windup
     // Guard against division by zero when ki is 0 or very small (P-only control)
     float i_term = 0.0f;
-    if (pid->ki > 0.001f) {
+    if (ki > 0.001f) {
         pid->integral += error * dt;
-        float max_integral = PID_OUTPUT_MAX / pid->ki;
+        float max_integral = PID_OUTPUT_MAX / ki;
         if (pid->integral > max_integral) pid->integral = max_integral;
         if (pid->integral < -max_integral) pid->integral = -max_integral;
-        i_term = pid->ki * pid->integral;
+        i_term = ki * pid->integral;
     } else {
         // Ki disabled or negligible - reset integral to prevent windup when re-enabled
         pid->integral = 0.0f;
     }
     
-    // Derivative with filtering
+    // Derivative with filtering (first-order low-pass filter)
+    // alpha = dt / (tau + dt), where tau is filter time constant
+    // This makes the filter behavior independent of loop frequency
     float derivative = (error - pid->last_error) / dt;
-    float alpha = 0.1f;
+    float tau = PID_DERIVATIVE_FILTER_TAU;  // Filter time constant (seconds)
+    float alpha = dt / (tau + dt);           // Calculate alpha based on dt
     pid->last_derivative = alpha * derivative + (1.0f - alpha) * pid->last_derivative;
-    float d_term = pid->kd * pid->last_derivative;
+    float d_term = kd * pid->last_derivative;  // Using local copy of kd
     
     pid->last_error = error;
     
@@ -350,16 +398,24 @@ static void stop_phase_sync(void) {
         }
     }
     
+    // Use critical section when updating volatile schedules
+    uint32_t irq_state = save_and_disable_interrupts();
     g_brew_schedule.active = false;
     g_steam_schedule.active = false;
+    restore_interrupts(irq_state);
     
     DEBUG_PRINT("Control: Phase sync timer stopped\n");
 }
 
 /**
  * Set SSR schedule for phase-synchronized control
+ * 
+ * CRITICAL: This function is called from the main loop, but the schedule
+ * is read from a timer interrupt (phase_sync_timer_callback). We use
+ * critical sections to ensure atomic updates of the schedule struct.
  */
 static void set_ssr_schedule(uint8_t ssr_id, uint32_t start_ms, uint32_t duration_ms) {
+    // Validate and clamp inputs
     if (start_ms >= PHASE_SYNC_PERIOD_MS) {
         start_ms = start_ms % PHASE_SYNC_PERIOD_MS;
     }
@@ -367,13 +423,23 @@ static void set_ssr_schedule(uint8_t ssr_id, uint32_t start_ms, uint32_t duratio
         duration_ms = PHASE_SYNC_PERIOD_MS;
     }
     
-    ssr_schedule_t* schedule = (ssr_id == 0) ? &g_brew_schedule : &g_steam_schedule;
+    // Calculate active flag
+    bool active = (duration_ms > 0);
+    
+    // Critical section: Disable interrupts while updating shared state
+    // This prevents the timer interrupt from reading a partially-updated schedule
+    uint32_t irq_state = save_and_disable_interrupts();
+    
+    // Update the volatile schedule struct field by field
+    volatile ssr_schedule_t* schedule = (ssr_id == 0) ? &g_brew_schedule : &g_steam_schedule;
     schedule->start_ms = start_ms;
     schedule->duration_ms = duration_ms;
-    schedule->active = (duration_ms > 0);
+    schedule->active = active;
     
     // Reset period start when schedules change to ensure clean phase alignment
     g_phase_period_start = to_ms_since_boot(get_absolute_time());
+    
+    restore_interrupts(irq_state);
 }
 
 // =============================================================================
@@ -455,9 +521,13 @@ uint16_t estimate_power_watts(uint8_t brew_duty, uint8_t steam_duty) {
 // =============================================================================
 
 void control_init(void) {
+    // Initialize mutex for thread-safe control state access
+    mutex_init(&g_control_mutex);
+    g_control_mutex_initialized = true;
+    
     // Initialize PIDs with default values
-    pid_init(&g_brew_pid, DEFAULT_BREW_TEMP / 10.0f);
-    pid_init(&g_steam_pid, DEFAULT_STEAM_TEMP / 10.0f);
+    pid_init(&g_brew_pid, TEMP_DECI_TO_C(DEFAULT_BREW_TEMP));
+    pid_init(&g_steam_pid, TEMP_DECI_TO_C(DEFAULT_STEAM_TEMP));
     
     // Initialize hardware
     init_hardware_outputs();
@@ -538,10 +608,15 @@ void control_update(void) {
 
 void control_set_setpoint(uint8_t target, int16_t temp) {
     float temp_c = temp / 10.0f;
-    pid_state_t* pid = (target == 0) ? &g_brew_pid : &g_steam_pid;
     
+    // Lock to prevent torn reads by control loop
+    control_lock();
+    
+    pid_state_t* pid = (target == 0) ? &g_brew_pid : &g_steam_pid;
     pid->setpoint_target = temp_c;
     pid->setpoint_ramping = true;
+    
+    control_unlock();
     
     DEBUG_PRINT("%s setpoint: %.1fC\n", target == 0 ? "Brew" : "Steam", temp_c);
 }
@@ -560,6 +635,9 @@ void control_set_pid(uint8_t target, float kp, float ki, float kd) {
     if (kp < 0.0f || ki < 0.0f || kd < 0.0f) return;
     if (kp > 100.0f || ki > 100.0f || kd > 100.0f) return;
     
+    // Lock to prevent torn reads by control loop
+    control_lock();
+    
     pid_state_t* pid = (target == 0) ? &g_brew_pid : &g_steam_pid;
     pid->kp = kp;
     pid->ki = ki;
@@ -567,6 +645,8 @@ void control_set_pid(uint8_t target, float kp, float ki, float kd) {
     pid->integral = 0;
     pid->last_error = 0;
     pid->last_derivative = 0;
+    
+    control_unlock();
     
     DEBUG_PRINT("PID[%d] set: Kp=%.2f Ki=%.2f Kd=%.2f\n", target, kp, ki, kd);
 }
