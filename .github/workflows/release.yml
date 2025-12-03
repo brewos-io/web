@@ -123,14 +123,14 @@ jobs:
             VERSION="${GITHUB_REF#refs/tags/}"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          
+
           # Check if this is a prerelease (beta, alpha, rc)
           if [[ "$VERSION" == *"beta"* ]] || [[ "$VERSION" == *"alpha"* ]] || [[ "$VERSION" == *"rc"* ]]; then
             echo "is_prerelease=true" >> $GITHUB_OUTPUT
           else
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
           fi
-          
+
           # Extract version number without 'v' prefix for RELEASE_VERSION env var
           VERSION_NUM="${VERSION#v}"
           echo "version_num=$VERSION_NUM" >> $GITHUB_OUTPUT
@@ -242,52 +242,52 @@ jobs:
           script: |
             set -e
             cd /root/brewos
-            
+
             # Clean up any local changes (e.g., tsconfig.tsbuildinfo from npm builds)
             git reset --hard
             git clean -fd
-            
+
             # Fetch the release tag (--force to overwrite any conflicting local tags)
             git fetch origin --tags --force
             git checkout ${RELEASE_VERSION}
-            
+
             # Create .env for web build with release version
             cat > src/web/.env << EOF
             VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
             VITE_CLOUD_WS_URL=wss://cloud.brewos.io/ws
             VITE_ENVIRONMENT=production
             EOF
-            
+
             # Create .env for cloud service
             cat > src/cloud/.env << EOF
             GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
             PORT=3001
             DATA_DIR=/data
             EOF
-            
+
             # Get version number without 'v' prefix
             VERSION_NUM="${RELEASE_VERSION#v}"
-            
+
             # Rebuild web UI with release version embedded
             cd src/web
             npm ci
             RELEASE_VERSION="$VERSION_NUM" npm run build
-            
+
             # Copy built web UI to cloud service
             cp -r dist ../cloud/web
-            
+
             # Build new container without stopping old one
             cd ../cloud
             docker compose build
-            
+
             # Only restart after successful build
             docker compose down
             docker compose up -d
-            
+
             # Wait for service to be healthy
             echo "Waiting for service to start..."
             sleep 5
-            
+
             # Health check
             for i in 1 2 3 4 5; do
               if curl -sf http://localhost:3001/api/health > /dev/null; then
@@ -303,7 +303,7 @@ jobs:
               echo "Waiting... ($i/5)"
               sleep 3
             done
-            
+
             echo "✗ Health check failed!"
             docker compose logs --tail=50
             exit 1
