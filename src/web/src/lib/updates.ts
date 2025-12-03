@@ -156,9 +156,9 @@ async function fetchGitHubReleases(): Promise<VersionInfo[]> {
       return {
         version: isDev ? "dev-latest" : tagName.replace(/^v/, ""),
         channel: isDev ? "dev" : (release.prerelease ? "beta" : "stable"),
-        releaseDate: release.published_at,
-        releaseNotes: release.body,
-        downloadUrl: release.html_url,
+      releaseDate: release.published_at,
+      releaseNotes: release.body,
+      downloadUrl: release.html_url,
         isPrerelease: release.prerelease || isDev,
       };
     });

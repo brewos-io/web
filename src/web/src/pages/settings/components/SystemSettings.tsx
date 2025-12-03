@@ -100,8 +100,8 @@ export function SystemSettings() {
     const warningText = isDev
       ? `Install DEV build? This is an automated build from main branch for developers. May be unstable. The device will restart after update.`
       : isBeta
-        ? `Install BETA version ${version}? This is a pre-release version for testing. The device will restart after update.`
-        : `Install version ${version}? The device will restart after update.`;
+      ? `Install BETA version ${version}? This is a pre-release version for testing. The device will restart after update.`
+      : `Install version ${version}? The device will restart after update.`;
 
     sendCommandWithConfirm("ota_start", warningText, { version }, 
       { successMessage: `Installing version ${version}...` });

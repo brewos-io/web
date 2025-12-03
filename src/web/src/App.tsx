@@ -84,21 +84,21 @@ function App() {
 
     const initDemo = async () => {
       try {
-        initTheme();
+      initTheme();
 
-        const demoConnection = getDemoConnection();
+      const demoConnection = getDemoConnection();
 
-        // Set as active connection so useCommand works
-        setActiveConnection(demoConnection);
+      // Set as active connection so useCommand works
+      setActiveConnection(demoConnection);
 
-        initializeStore(demoConnection);
+      initializeStore(demoConnection);
 
-        await demoConnection.connect();
+      await demoConnection.connect();
       } catch (error) {
         console.error('[App] Demo initialization error:', error);
         setInitError('Failed to initialize demo mode. Please refresh the page.');
       } finally {
-        setLoading(false);
+      setLoading(false);
       }
     };
 
@@ -116,11 +116,11 @@ function App() {
 
     const init = async () => {
       try {
-        // Initialize theme first for immediate visual consistency
-        initTheme();
+      // Initialize theme first for immediate visual consistency
+      initTheme();
 
-        // Initialize app - this fetches mode from server
-        await initialize();
+      // Initialize app - this fetches mode from server
+      await initialize();
       } catch (error) {
         console.error('[App] Initialization error:', error);
         // Don't set error here - we'll rely on timeout for edge cases
@@ -145,38 +145,38 @@ function App() {
         // Local mode is only allowed when NOT running as PWA
         if (mode === "local" && !apMode && !isPWA) {
           // Check if setup is complete (with timeout via AbortController)
-          try {
+        try {
             const setupResponse = await fetch("/api/setup/status", {
               signal: abortController.signal,
             });
-            if (setupResponse.ok) {
-              const setupData = await setupResponse.json();
-              setSetupComplete(setupData.complete);
-            }
+          if (setupResponse.ok) {
+            const setupData = await setupResponse.json();
+            setSetupComplete(setupData.complete);
+          }
           } catch (error) {
             // If endpoint doesn't exist, times out, or aborts, assume setup is complete
             if ((error as Error).name !== 'AbortError') {
               console.warn('[App] Setup status check failed:', error);
             }
-            setSetupComplete(true);
-          }
-
-          // Initialize WebSocket connection
-          const connection = initConnection({
-            mode: "local",
-            endpoint: "/ws",
-          });
-
-          initializeStore(connection);
-
-          connection.connect().catch((error) => {
-            console.error("Initial connection failed:", error);
-          });
+          setSetupComplete(true);
         }
+
+        // Initialize WebSocket connection
+        const connection = initConnection({
+          mode: "local",
+          endpoint: "/ws",
+        });
+
+        initializeStore(connection);
+
+        connection.connect().catch((error) => {
+          console.error("Initial connection failed:", error);
+        });
+      }
       } finally {
         // ALWAYS clear timeout and set loading to false
         clearTimeout(timeoutId);
-        setLoading(false);
+      setLoading(false);
       }
     };
 
