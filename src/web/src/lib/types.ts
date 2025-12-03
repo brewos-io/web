@@ -432,13 +432,21 @@ export interface DiagnosticTestMeta {
 
 /**
  * All diagnostic tests with metadata
+ * 
+ * Based on ECM_Control_Board_Specification_v2.20:
+ * - Section 3.1: Inputs (S1-S4 switches, T1-T3 temp sensors, P1 pressure)
+ * - Section 3.2: Outputs (K1-K3 relays, SSR1-SSR2 heaters)
+ * - Section 3.3: Communication (ESP32, PZEM)
+ * - Section 3.4: User Interface (Status LED, Buzzer)
  */
 export const DIAGNOSTIC_TESTS: DiagnosticTestMeta[] = [
-  // Sensors
+  // ==========================================================================
+  // TEMPERATURE SENSORS
+  // ==========================================================================
   {
     id: 0x01,
     name: 'Brew Boiler Temperature Sensor (NTC)',
-    description: 'Thermistor for brew boiler temperature control',
+    description: 'T1: 50kΩ NTC thermistor on ADC0 (GPIO26) with 3.3kΩ pull-up',
     machineTypes: ['dual_boiler', 'single_boiler'],
     optional: false,
     category: 'sensors',
@@ -446,7 +454,7 @@ export const DIAGNOSTIC_TESTS: DiagnosticTestMeta[] = [
   {
     id: 0x02,
     name: 'Steam Boiler Temperature Sensor (NTC)',
-    description: 'Thermistor for steam boiler temperature control',
+    description: 'T2: 50kΩ NTC thermistor on ADC1 (GPIO27) with 1.2kΩ pull-up',
     machineTypes: ['dual_boiler', 'heat_exchanger'],
     optional: false,
     category: 'sensors',
@@ -454,32 +462,63 @@ export const DIAGNOSTIC_TESTS: DiagnosticTestMeta[] = [
   {
     id: 0x03,
     name: 'Group Head Thermocouple (MAX31855)',
-    description: 'K-type thermocouple for group head temperature',
-    machineTypes: [], // All machine types
-    optional: true,   // Not everyone installs this
+    description: 'T3: K-type thermocouple via SPI (GPIO16-18)',
+    machineTypes: [], // All machine types can optionally install
+    optional: true,   // Not everyone installs group head temp sensor
     category: 'sensors',
   },
+  
+  // ==========================================================================
+  // PRESSURE SENSOR
+  // ==========================================================================
   {
     id: 0x04,
-    name: 'Pump Pressure Sensor',
-    description: 'Transducer for pump pressure monitoring',
-    machineTypes: [], // All machine types
+    name: 'Pump Pressure Transducer',
+    description: 'P1: YD4060 0-16bar, 0.5-4.5V on ADC2 (GPIO28)',
+    machineTypes: [], // All machine types can optionally install
     optional: true,   // Some users don't install pressure sensor
     category: 'sensors',
   },
+  
+  // ==========================================================================
+  // WATER LEVEL SENSORS (S1, S2, S3)
+  // ==========================================================================
   {
     id: 0x05,
-    name: 'Water Reservoir Level Sensors',
-    description: 'Float switches for water tank level',
+    name: 'Water Reservoir & Tank Level Sensors',
+    description: 'S1: Reservoir switch (GPIO2), S2: Tank float sensor (GPIO3)',
     machineTypes: [], // All machine types
     optional: false,
     category: 'sensors',
   },
-  // Outputs
+  {
+    id: 0x0E,
+    name: 'Steam Boiler Level Probe',
+    description: 'S3: Conductivity probe via OPA342/TLV3201 AC sensing (GPIO4)',
+    machineTypes: ['dual_boiler', 'heat_exchanger'], // Only machines with steam boilers
+    optional: false,
+    category: 'sensors',
+  },
+  
+  // ==========================================================================
+  // BREW CONTROL INPUT
+  // ==========================================================================
+  {
+    id: 0x0F,
+    name: 'Brew Lever/Handle Switch',
+    description: 'S4: Brew handle microswitch (GPIO5), active low',
+    machineTypes: [], // All machine types
+    optional: false,
+    category: 'sensors',
+  },
+  
+  // ==========================================================================
+  // HEATER OUTPUTS (SSRs)
+  // ==========================================================================
   {
     id: 0x06,
     name: 'Brew Heater (SSR)',
-    description: 'Solid-state relay for brew boiler heating element',
+    description: 'SSR1: Solid-state relay trigger on GPIO13',
     machineTypes: ['dual_boiler', 'single_boiler'],
     optional: false,
     category: 'outputs',
@@ -487,15 +526,27 @@ export const DIAGNOSTIC_TESTS: DiagnosticTestMeta[] = [
   {
     id: 0x07,
     name: 'Steam Heater (SSR)',
-    description: 'Solid-state relay for steam boiler heating element',
+    description: 'SSR2: Solid-state relay trigger on GPIO14',
     machineTypes: ['dual_boiler', 'heat_exchanger'],
     optional: false,
+    category: 'outputs',
+  },
+  
+  // ==========================================================================
+  // RELAY OUTPUTS (K1, K2, K3)
+  // ==========================================================================
+  {
+    id: 0x10,
+    name: 'Water Status LED Relay',
+    description: 'K1: Water indicator LED relay on GPIO10',
+    machineTypes: [], // Machine-specific
+    optional: true,   // Not all machines have this indicator
     category: 'outputs',
   },
   {
     id: 0x08,
     name: 'Water Pump Relay',
-    description: 'Relay controlling the water pump',
+    description: 'K2: Ulka pump relay (16A) on GPIO11',
     machineTypes: [], // All machine types
     optional: false,
     category: 'outputs',
@@ -503,24 +554,39 @@ export const DIAGNOSTIC_TESTS: DiagnosticTestMeta[] = [
   {
     id: 0x09,
     name: 'Brew Solenoid Valve Relay',
-    description: 'Relay controlling the 3-way solenoid valve',
+    description: 'K3: 3-way solenoid valve relay on GPIO12',
     machineTypes: [], // All machine types
     optional: false,
     category: 'outputs',
   },
-  // Peripheral
+  
+  // ==========================================================================
+  // COMMUNICATION
+  // ==========================================================================
+  {
+    id: 0x0B,
+    name: 'ESP32 Communication',
+    description: 'UART0 link on GPIO0/1 (921600 baud)',
+    machineTypes: [], // All machine types
+    optional: false,
+    category: 'communication',
+  },
   {
     id: 0x0A,
-    name: 'Power Meter (PZEM)',
-    description: 'PZEM power monitoring module',
+    name: 'Power Meter (PZEM-004T)',
+    description: 'Modbus RTU via UART1 on GPIO6/7 (9600 baud)',
     machineTypes: [], // All machine types
-    optional: true,   // Optional add-on
-    category: 'peripheral',
+    optional: true,   // Optional power monitoring add-on
+    category: 'communication',
   },
+  
+  // ==========================================================================
+  // USER INTERFACE
+  // ==========================================================================
   {
     id: 0x0C,
     name: 'Buzzer / Piezo Speaker',
-    description: 'Audio feedback device',
+    description: 'Passive piezo buzzer on GPIO19 (PWM)',
     machineTypes: [], // All machine types
     optional: false,
     category: 'peripheral',
@@ -528,19 +594,10 @@ export const DIAGNOSTIC_TESTS: DiagnosticTestMeta[] = [
   {
     id: 0x0D,
     name: 'Status LED',
-    description: 'Visual status indicator',
+    description: 'Green indicator LED on GPIO15',
     machineTypes: [], // All machine types
     optional: false,
     category: 'peripheral',
-  },
-  // Communication
-  {
-    id: 0x0B,
-    name: 'ESP32 Communication',
-    description: 'UART link between Pico and ESP32',
-    machineTypes: [], // All machine types
-    optional: false,
-    category: 'communication',
   },
 ];
 
@@ -558,7 +615,13 @@ export function getTestsForMachineType(machineType: MachineType): DiagnosticTest
  */
 export function getDiagnosticTestName(testId: number): string {
   const test = DIAGNOSTIC_TESTS.find(t => t.id === testId);
-  return test?.name || `Unknown Test (${testId})`;
+  if (test) return test.name;
+  
+  // Fallback for test IDs not in DIAGNOSTIC_TESTS
+  const fallbackNames: Record<number, string> = {
+    0x00: 'All Tests',
+  };
+  return fallbackNames[testId] || `Unknown Test (0x${testId.toString(16).padStart(2, '0').toUpperCase()})`;
 }
 
 // Alerts & Logs

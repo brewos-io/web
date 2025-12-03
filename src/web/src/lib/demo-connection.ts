@@ -231,18 +231,37 @@ export class DemoConnection implements IConnection {
     const machineType = this.machineType;
 
     // Define all possible test results with realistic values
+    // Based on ECM_Control_Board_Specification_v2.20 hardware components
     const allTests: Record<number, { status: number; rawValue: number; min: number; max: number; message: string }> = {
-      0x01: { status: 0, rawValue: 2450, min: 2000, max: 3000, message: "25.2°C - Sensor OK" },
-      0x02: { status: 0, rawValue: 2380, min: 2000, max: 3000, message: "26.1°C - Sensor OK" },
-      0x03: { status: 3, rawValue: 0, min: 0, max: 10000, message: "Not installed" }, // Skipped - optional
-      0x04: { status: 0, rawValue: 102, min: 50, max: 500, message: "0.0 bar - Sensor OK" },
-      0x05: { status: 2, rawValue: 1, min: 0, max: 1, message: "Low level - Fill reservoir" },
-      0x06: { status: 0, rawValue: 1, min: 0, max: 1, message: "SSR activated successfully" },
-      0x07: { status: 0, rawValue: 1, min: 0, max: 1, message: "SSR activated successfully" },
+      // Temperature Sensors (T1, T2, T3)
+      0x01: { status: 0, rawValue: 2450, min: 2000, max: 3000, message: "25.2°C - NTC sensor OK" },
+      0x02: { status: 0, rawValue: 2380, min: 2000, max: 3000, message: "26.1°C - NTC sensor OK" },
+      0x03: { status: 3, rawValue: 0, min: 0, max: 10000, message: "Not installed" }, // Optional
+      
+      // Pressure Sensor (P1)
+      0x04: { status: 0, rawValue: 102, min: 50, max: 500, message: "0.0 bar - Transducer OK" },
+      
+      // Water Level Sensors (S1, S2, S3)
+      0x05: { status: 2, rawValue: 1, min: 0, max: 1, message: "Low level - Fill reservoir" }, // Warning
+      0x0e: { status: 0, rawValue: 1, min: 0, max: 1, message: "Probe circuit OK - Level normal" },
+      
+      // Brew Control (S4)
+      0x0f: { status: 0, rawValue: 0, min: 0, max: 1, message: "Switch released - OK" },
+      
+      // Heater SSRs (SSR1, SSR2)
+      0x06: { status: 0, rawValue: 1, min: 0, max: 1, message: "SSR trigger activated" },
+      0x07: { status: 0, rawValue: 1, min: 0, max: 1, message: "SSR trigger activated" },
+      
+      // Relays (K1, K2, K3)
+      0x10: { status: 3, rawValue: 0, min: 0, max: 0, message: "Not installed" }, // Optional - not all machines have indicator
       0x08: { status: 0, rawValue: 1, min: 0, max: 1, message: "Relay click detected" },
       0x09: { status: 0, rawValue: 1, min: 0, max: 1, message: "Relay click detected" },
-      0x0a: { status: 3, rawValue: 0, min: 0, max: 0, message: "Not installed" }, // Skipped - optional
-      0x0b: { status: 0, rawValue: 1, min: 0, max: 1, message: "UART link OK" },
+      
+      // Communication
+      0x0b: { status: 0, rawValue: 1, min: 0, max: 1, message: "UART link 921600 baud OK" },
+      0x0a: { status: 3, rawValue: 0, min: 0, max: 0, message: "Not installed" }, // Optional PZEM
+      
+      // User Interface
       0x0c: { status: 0, rawValue: 1, min: 0, max: 1, message: "Beep confirmed" },
       0x0d: { status: 0, rawValue: 1, min: 0, max: 1, message: "LED blink confirmed" },
     };
@@ -250,35 +269,56 @@ export class DemoConnection implements IConnection {
     // Determine which tests to run based on machine type
     const testsToRun: number[] = [];
 
-    // Always run these core tests
-    testsToRun.push(0x05); // Water level
-    testsToRun.push(0x08); // Pump relay
-    testsToRun.push(0x09); // Solenoid relay
-    testsToRun.push(0x0b); // ESP32 comm
-    testsToRun.push(0x0c); // Buzzer
-    testsToRun.push(0x0d); // LED
-
-    // Machine-type specific tests
+    // Temperature sensors - machine type specific
     if (machineType === "dual_boiler") {
       testsToRun.push(0x01); // Brew NTC
       testsToRun.push(0x02); // Steam NTC
+    } else if (machineType === "single_boiler") {
+      testsToRun.push(0x01); // Brew NTC only
+    } else if (machineType === "heat_exchanger") {
+      testsToRun.push(0x02); // Steam NTC only (HX uses steam boiler temp)
+    }
+    
+    // Optional group head thermocouple
+    testsToRun.push(0x03);
+    
+    // Pressure sensor (optional - let's say this user has it installed)
+    testsToRun.push(0x04);
+    allTests[0x04] = { status: 0, rawValue: 102, min: 50, max: 500, message: "0.0 bar - Transducer OK" };
+    
+    // Water level sensors (required for all)
+    testsToRun.push(0x05); // Reservoir + tank
+    
+    // Steam boiler level probe - only for machines with steam boilers
+    if (machineType === "dual_boiler" || machineType === "heat_exchanger") {
+      testsToRun.push(0x0e); // Steam boiler level probe
+    }
+    
+    // Brew switch (required for all)
+    testsToRun.push(0x0f);
+    
+    // Heater SSRs - machine type specific
+    if (machineType === "dual_boiler") {
       testsToRun.push(0x06); // Brew SSR
       testsToRun.push(0x07); // Steam SSR
     } else if (machineType === "single_boiler") {
-      testsToRun.push(0x01); // Brew NTC (single boiler uses brew NTC)
-      testsToRun.push(0x06); // Brew SSR
+      testsToRun.push(0x06); // Brew SSR only
     } else if (machineType === "heat_exchanger") {
-      testsToRun.push(0x02); // Steam NTC (HX has steam boiler)
-      testsToRun.push(0x07); // Steam SSR
+      testsToRun.push(0x07); // Steam SSR only
     }
-
-    // Optional tests (show as skipped if not "installed")
-    testsToRun.push(0x03); // Thermocouple - optional
-    testsToRun.push(0x04); // Pressure sensor - let's say this user has it
-    testsToRun.push(0x0a); // PZEM - optional
-
-    // Make pressure sensor pass (user has it installed)
-    allTests[0x04] = { status: 0, rawValue: 102, min: 50, max: 500, message: "0.0 bar - Sensor OK" };
+    
+    // Relays (required)
+    testsToRun.push(0x10); // Water LED relay (optional)
+    testsToRun.push(0x08); // Pump relay
+    testsToRun.push(0x09); // Solenoid relay
+    
+    // Communication
+    testsToRun.push(0x0b); // ESP32
+    testsToRun.push(0x0a); // PZEM (optional)
+    
+    // User interface
+    testsToRun.push(0x0c); // Buzzer
+    testsToRun.push(0x0d); // LED
 
     // Sort tests by ID for consistent order
     testsToRun.sort((a, b) => a - b);
@@ -354,7 +394,7 @@ export class DemoConnection implements IConnection {
             });
           }, 100);
         }
-      }, (index + 1) * 250); // 250ms between each test
+      }, (index + 1) * 200); // 200ms between each test
     });
   }
 

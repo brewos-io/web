@@ -35,21 +35,39 @@ import { DIAGNOSTIC_TESTS, getTestsForMachineType } from "@/lib/types";
 // Map test IDs to icons
 function getTestIcon(testId: number) {
   const icons: Record<number, React.ReactNode> = {
+    // Temperature Sensors (T1, T2, T3)
     0x01: <Thermometer className="w-5 h-5" />, // Brew Boiler NTC
     0x02: <Thermometer className="w-5 h-5" />, // Steam Boiler NTC
     0x03: <Thermometer className="w-5 h-5" />, // Group Head Thermocouple
-    0x04: <Gauge className="w-5 h-5" />, // Pressure Sensor
-    0x05: <Droplets className="w-5 h-5" />, // Water Level
+    
+    // Pressure Sensor (P1)
+    0x04: <Gauge className="w-5 h-5" />, // Pressure Transducer
+    
+    // Water Level Sensors (S1, S2, S3)
+    0x05: <Droplets className="w-5 h-5" />, // Water Reservoir & Tank Level
+    0x0e: <Droplets className="w-5 h-5" />, // Steam Boiler Level Probe
+    
+    // Brew Control (S4)
+    0x0f: <Activity className="w-5 h-5" />, // Brew Handle/Lever Switch
+    
+    // Heater SSRs (SSR1, SSR2)
     0x06: <Zap className="w-5 h-5" />, // Brew Heater SSR
     0x07: <Zap className="w-5 h-5" />, // Steam Heater SSR
-    0x08: <Droplets className="w-5 h-5" />, // Water Pump Relay
-    0x09: <Activity className="w-5 h-5" />, // Brew Solenoid Relay
-    0x0a: <Cable className="w-5 h-5" />, // Power Meter (PZEM)
+    
+    // Relays (K1, K2, K3)
+    0x10: <Lightbulb className="w-5 h-5" />, // Water Status LED Relay (K1)
+    0x08: <Droplets className="w-5 h-5" />, // Water Pump Relay (K2)
+    0x09: <Activity className="w-5 h-5" />, // Brew Solenoid Relay (K3)
+    
+    // Communication
     0x0b: <Wifi className="w-5 h-5" />, // ESP32 Communication
+    0x0a: <Cable className="w-5 h-5" />, // Power Meter (PZEM)
+    
+    // User Interface
     0x0c: <Speaker className="w-5 h-5" />, // Buzzer
     0x0d: <Lightbulb className="w-5 h-5" />, // Status LED
   };
-  return icons[testId] || <Activity className="w-5 h-5" />;
+  return icons[testId] || <HelpCircle className="w-5 h-5" />;
 }
 
 function getStatusInfo(status: DiagnosticStatus) {
@@ -379,28 +397,36 @@ export function Diagnostics() {
 
         <div className="space-y-4 text-sm">
           <TroubleshootItem
-            title="Temperature Sensors (NTC)"
-            description="Check wiring to ADC pins. Ensure correct polarity and 10kΩ pull-up resistor. Reading 0 or max = disconnected wire. Dual boiler machines test both brew and steam NTCs."
+            title="Temperature Sensors (T1, T2 - NTC)"
+            description="50kΩ NTC thermistors with optimized pull-ups (3.3kΩ brew, 1.2kΩ steam). Reading 0 or max = disconnected. Dual boiler tests both, single boiler only T1."
           />
           <TroubleshootItem
-            title="Group Head Thermocouple (Optional)"
-            description="K-type thermocouple with MAX31855. Verify SPI connections (MISO, SCK, CS). 'Open circuit' = disconnected. Skip if not installed."
+            title="Group Head Thermocouple (T3 - Optional)"
+            description="K-type thermocouple via MAX31855 SPI. Verify GPIO16-18 connections. 'Open circuit' = wire disconnected. Skip if not installed."
           />
           <TroubleshootItem
-            title="Heaters (SSR)"
-            description="Test briefly activates SSR control signal. Dual boiler = 2 SSRs, Single/HX = 1 SSR. If test passes but heaters don't work, check AC wiring."
+            title="Water Level Sensors (S1, S2, S3)"
+            description="S1/S2: Reservoir and tank float switches on GPIO2/3. S3: Steam boiler probe via OPA342/TLV3201 AC sensing on GPIO4. Low level warning is normal if tank not full."
           />
           <TroubleshootItem
-            title="Pump & Solenoid"
-            description="Relays click but nothing happens? Check load wiring. No click? Relay or control signal issue. These tests run on all machine types."
+            title="Brew Handle Switch (S4)"
+            description="Microswitch on GPIO5 detects lever pull. Test checks switch responds. If stuck, clean or replace microswitch."
           />
           <TroubleshootItem
-            title="Pressure Sensor (Optional)"
-            description="Transducer monitors pump pressure. Skip if not installed. Fill reservoir before testing to get valid readings."
+            title="Heater SSRs (SSR1, SSR2)"
+            description="5V trigger signals on GPIO13/14. Test activates briefly. If test passes but heater fails, check external SSR wiring and AC connections."
           />
           <TroubleshootItem
-            title="Power Meter & Communication"
-            description="PZEM is optional - skip if not installed. ESP32 communication tests UART link between boards."
+            title="Relays (K1, K2, K3)"
+            description="K2 (pump) and K3 (solenoid) are required. K1 (water LED) is optional. Listen for relay click. No click = relay or driver issue."
+          />
+          <TroubleshootItem
+            title="Pressure Transducer (P1 - Optional)"
+            description="YD4060 0-16 bar on ADC2 (GPIO28). Fill reservoir before testing. Skip if not installed."
+          />
+          <TroubleshootItem
+            title="Communication & Power Meter"
+            description="ESP32 tests UART0 link (921600 baud). PZEM-004T is optional, tests Modbus on UART1 (9600 baud)."
           />
         </div>
       </Card>

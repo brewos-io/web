@@ -60,21 +60,41 @@ extern "C" {
 
 // =============================================================================
 // Diagnostic Test IDs
+// Based on ECM_Control_Board_Specification_v2.20 hardware components
 // =============================================================================
 #define DIAG_TEST_ALL           0x00    // Run all tests
-#define DIAG_TEST_BREW_NTC      0x01    // Brew boiler NTC sensor
-#define DIAG_TEST_STEAM_NTC     0x02    // Steam boiler NTC sensor
-#define DIAG_TEST_GROUP_TC      0x03    // Group thermocouple (MAX31855)
-#define DIAG_TEST_PRESSURE      0x04    // Pressure transducer
-#define DIAG_TEST_WATER_LEVEL   0x05    // Water level sensors
-#define DIAG_TEST_SSR_BREW      0x06    // Brew SSR output
-#define DIAG_TEST_SSR_STEAM     0x07    // Steam SSR output
-#define DIAG_TEST_RELAY_PUMP    0x08    // Pump relay
-#define DIAG_TEST_RELAY_SOLENOID 0x09   // Brew solenoid relay
-#define DIAG_TEST_PZEM          0x0A    // PZEM power meter
-#define DIAG_TEST_ESP32_COMM    0x0B    // ESP32 communication
-#define DIAG_TEST_BUZZER        0x0C    // Buzzer
-#define DIAG_TEST_LED           0x0D    // Status LED
+
+// Temperature Sensors (Section 3.1: T1, T2, T3)
+#define DIAG_TEST_BREW_NTC      0x01    // T1: Brew boiler NTC (GPIO26/ADC0)
+#define DIAG_TEST_STEAM_NTC     0x02    // T2: Steam boiler NTC (GPIO27/ADC1)
+#define DIAG_TEST_GROUP_TC      0x03    // T3: Group head thermocouple MAX31855 (SPI)
+
+// Pressure Sensor (Section 3.1: P1)
+#define DIAG_TEST_PRESSURE      0x04    // P1: Pressure transducer YD4060 (GPIO28/ADC2)
+
+// Water Level Sensors (Section 3.1: S1, S2, S3)
+#define DIAG_TEST_WATER_LEVEL   0x05    // S1+S2: Water reservoir switch + tank float (GPIO2/3)
+#define DIAG_TEST_STEAM_LEVEL   0x0E    // S3: Steam boiler level probe OPA342/TLV3201 (GPIO4)
+
+// Brew Control Input (Section 3.1: S4)
+#define DIAG_TEST_BREW_SWITCH   0x0F    // S4: Brew handle/lever switch (GPIO5)
+
+// Heater Outputs - SSRs (Section 3.2: SSR1, SSR2)
+#define DIAG_TEST_SSR_BREW      0x06    // SSR1: Brew heater solid-state relay (GPIO13)
+#define DIAG_TEST_SSR_STEAM     0x07    // SSR2: Steam heater solid-state relay (GPIO14)
+
+// Relay Outputs (Section 3.2: K1, K2, K3)
+#define DIAG_TEST_RELAY_LED     0x10    // K1: Water status LED relay (GPIO10)
+#define DIAG_TEST_RELAY_PUMP    0x08    // K2: Pump relay 16A (GPIO11)
+#define DIAG_TEST_RELAY_SOLENOID 0x09   // K3: 3-way solenoid valve relay (GPIO12)
+
+// Communication (Section 3.3)
+#define DIAG_TEST_ESP32_COMM    0x0B    // ESP32 UART0 link (GPIO0/1)
+#define DIAG_TEST_PZEM          0x0A    // PZEM-004T power meter UART1 (GPIO6/7)
+
+// User Interface (Section 3.4)
+#define DIAG_TEST_BUZZER        0x0C    // Piezo buzzer PWM (GPIO19)
+#define DIAG_TEST_LED           0x0D    // Status LED green (GPIO15)
 
 // Diagnostic result status
 #define DIAG_STATUS_PASS        0x00    // Test passed
