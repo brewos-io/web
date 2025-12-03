@@ -343,12 +343,12 @@ void Statistics::recordMaintenance(const char* type) {
     if (strcmp(type, "descale") == 0) {
         shotsSinceDescale = 0;
         lastDescaleTimestamp = now;
-    } else if (strcmp(type, "groupclean") == 0) {
-        shotsSinceGroupClean = 0;
-        lastGroupCleanTimestamp = now;
     } else if (strcmp(type, "backflush") == 0) {
+        // Backflush includes group clean - reset both counters
         shotsSinceBackflush = 0;
         lastBackflushTimestamp = now;
+        shotsSinceGroupClean = 0;
+        lastGroupCleanTimestamp = now;
     }
 }
 

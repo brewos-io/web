@@ -1,8 +1,16 @@
 #include "statistics/statistics_manager.h"
+#include "notifications/notification_manager.h"
 #include <LittleFS.h>
 #include <time.h>
 
 namespace BrewOS {
+
+// Maintenance thresholds for notifications
+// Maintenance thresholds (Group Clean is now combined with Backflush)
+constexpr uint32_t BACKFLUSH_WARNING_THRESHOLD = 80;   // Yellow at 80 shots
+constexpr uint32_t BACKFLUSH_ALERT_THRESHOLD = 100;    // Red at 100 shots
+constexpr uint32_t DESCALE_WARNING_THRESHOLD = 400;    // Yellow at 400 shots
+constexpr uint32_t DESCALE_ALERT_THRESHOLD = 500;      // Red at 500 shots
 
 // File paths
 static const char* STATS_FILE = "/stats.json";
@@ -131,9 +139,9 @@ bool MaintenanceStats::fromJson(JsonObjectConst obj) {
 
 void MaintenanceStats::recordMaintenance(const char* type, uint32_t timestamp) {
     if (strcmp(type, "backflush") == 0) {
+        // Backflush includes group clean - reset both counters
         shotsSinceBackflush = 0;
         lastBackflushTimestamp = timestamp;
-    } else if (strcmp(type, "groupClean") == 0) {
         shotsSinceGroupClean = 0;
         lastGroupCleanTimestamp = timestamp;
     } else if (strcmp(type, "descale") == 0) {
@@ -279,6 +287,9 @@ bool StatisticsManager::recordBrew(uint32_t durationMs, float yieldWeight, float
     
     Serial.printf("[Stats] Recorded brew: %lu ms, total shots: %lu\n", durationMs, _lifetime.totalShots);
     
+    // Check maintenance thresholds and trigger notifications
+    checkMaintenanceThresholds();
+    
     notifyChange();
     return true;
 }
@@ -296,6 +307,27 @@ void StatisticsManager::recordMaintenance(const char* type) {
     save();  // Save immediately for maintenance events
     notifyChange();
     Serial.printf("[Stats] Recorded maintenance: %s\n", type);
+}
+
+void StatisticsManager::checkMaintenanceThresholds() {
+    // Check backflush threshold (backflush + group clean every 100 shots)
+    if (_maintenance.shotsSinceBackflush >= BACKFLUSH_ALERT_THRESHOLD) {
+        notificationManager.backflushDue();
+    }
+    
+    // Check descale threshold (every 500 shots)
+    if (_maintenance.shotsSinceDescale >= DESCALE_ALERT_THRESHOLD) {
+        uint32_t daysOverdue = 0;
+        if (_maintenance.lastDescaleTimestamp > 0) {
+            uint32_t now = time(nullptr);
+            uint32_t daysSinceLast = (now - _maintenance.lastDescaleTimestamp) / 86400;
+            // If it's been more than 60 days AND over threshold, calculate overdue
+            if (daysSinceLast > 60) {
+                daysOverdue = daysSinceLast - 60;
+            }
+        }
+        notificationManager.descaleDue(daysOverdue);
+    }
 }
 
 bool StatisticsManager::rateBrew(uint8_t index, uint8_t rating) {

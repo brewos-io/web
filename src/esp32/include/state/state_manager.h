@@ -64,7 +64,7 @@ public:
     void recordShot();
     void recordSteamCycle();
     void addPowerUsage(float kwh);
-    void recordMaintenance(const char* type);  // "descale", "groupclean", "backflush"
+    void recordMaintenance(const char* type);  // "descale", "groupClean", "backflush"
     
     // ==========================================================================
     // SHOT HISTORY - Persisted to flash

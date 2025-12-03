@@ -16,6 +16,7 @@ import {
   PowerChart,
   BrewTrendsChart,
   HourlyDistributionChart,
+  EnergyTrendsChart,
   type WeeklyData,
   type HourlyData,
 } from "@/components/stats";
@@ -101,10 +102,9 @@ export function Stats() {
     setWeeklyData(weekly);
   };
 
-  const markCleaning = (type: "backflush" | "groupClean" | "descale") => {
+  const markCleaning = (type: "backflush" | "descale") => {
     const typeLabels = {
-      backflush: "Backflush",
-      groupClean: "Group clean",
+      backflush: "Backflush & Group Clean",
       descale: "Descale",
     };
     sendCommand("record_maintenance", { type }, {
@@ -326,28 +326,11 @@ export function Stats() {
               </CardTitle>
             </CardHeader>
             <div className="px-4 pb-4">
-              <div className="h-48">
-                {dailyHistory.length > 0 ? (
-                  <div className="flex items-end justify-between h-full gap-1">
-                    {dailyHistory.slice(-30).map((day, i) => {
-                      const maxKwh = Math.max(...dailyHistory.map(d => d.totalKwh), 0.1);
-                      const heightPercent = (day.totalKwh / maxKwh) * 100;
-                      return (
-                        <div
-                          key={i}
-                          className="flex-1 bg-gradient-to-t from-amber-500 to-amber-400 rounded-t transition-all hover:opacity-80"
-                          style={{ height: `${Math.max(heightPercent, 2)}%` }}
-                          title={`${day.totalKwh.toFixed(2)} kWh`}
-                        />
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-theme-muted">
-                    Energy trends will appear over time
-                  </div>
-                )}
-              </div>
+              <EnergyTrendsChart
+                data={dailyHistory}
+                height={220}
+                emptyMessage="Energy trends will appear over time"
+              />
             </div>
           </Card>
         </div>
@@ -404,26 +387,25 @@ export function Stats() {
             <CardHeader>
               <CardTitle icon={<Sparkles className="w-5 h-5" />}>Maintenance Schedule</CardTitle>
             </CardHeader>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <MaintenanceCard
-                label="Backflush"
+                label="Backflush & Group Clean"
+                description="Chemical clean with group brush"
                 shotsSince={stats.shotsSinceBackflush}
                 lastTimestamp={stats.lastBackflushTimestamp}
                 threshold={100}
+                warningThreshold={80}
+                icon={<Sparkles className="w-5 h-5" />}
                 onMark={() => markCleaning("backflush")}
               />
               <MaintenanceCard
-                label="Group Clean"
-                shotsSince={stats.shotsSinceGroupClean}
-                lastTimestamp={stats.lastGroupCleanTimestamp}
-                threshold={50}
-                onMark={() => markCleaning("groupClean")}
-              />
-              <MaintenanceCard
                 label="Descale"
+                description="Remove mineral buildup from boiler"
                 shotsSince={stats.shotsSinceDescale}
                 lastTimestamp={stats.lastDescaleTimestamp}
                 threshold={500}
+                warningThreshold={400}
+                icon={<Droplets className="w-5 h-5" />}
                 onMark={() => markCleaning("descale")}
               />
             </div>
@@ -436,14 +418,14 @@ export function Stats() {
             </CardHeader>
             <div className="space-y-4 text-sm">
               <TipRow
-                title="Daily Backflush"
-                description="Run a backflush cycle with water after your last shot of the day to keep the group head clean."
-                frequency="Every 50-100 shots"
+                title="Water Backflush"
+                description="Run a quick backflush with plain water (blank basket) after your last shot of the day."
+                frequency="Daily"
               />
               <TipRow
-                title="Group Head Cleaning"
-                description="Deep clean your group head with a cleaning tablet/powder to remove coffee oils."
-                frequency="Every 50 shots"
+                title="Chemical Backflush"
+                description="Use a cleaning tablet/powder with your blind basket to remove coffee oils from the group."
+                frequency="Every 50-100 shots"
               />
               <TipRow
                 title="Descaling"

@@ -6,4 +6,5 @@ export { MilestoneCard, type MilestoneCardProps } from "./MilestoneCard";
 export { PowerChart, type PowerChartProps } from "./PowerChart";
 export { BrewTrendsChart, type BrewTrendsChartProps } from "./BrewTrendsChart";
 export { HourlyDistributionChart, type HourlyDistributionChartProps, type HourlyData } from "./HourlyDistributionChart";
+export { EnergyTrendsChart, type EnergyTrendsChartProps } from "./EnergyTrendsChart";
 

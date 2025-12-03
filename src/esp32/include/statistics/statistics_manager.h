@@ -341,6 +341,7 @@ private:
     void calculatePeriodStats(PeriodStats& stats, uint32_t startTimestamp) const;
     uint32_t getTodayMidnight() const;
     void notifyChange();
+    void checkMaintenanceThresholds();
 };
 
 } // namespace BrewOS

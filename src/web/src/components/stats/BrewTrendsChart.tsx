@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { DailySummary } from "@/lib/types";
 
 export interface BrewTrendsChartProps {
@@ -8,25 +8,35 @@ export interface BrewTrendsChartProps {
   emptyMessage?: string;
 }
 
+interface TooltipData {
+  x: number;
+  date: string;
+  shots: number;
+  avgBrewTime: number;
+  totalKwh: number;
+  onTimeMinutes: number;
+}
+
 export function BrewTrendsChart({
   data,
   height = 200,
   showLabels = true,
   emptyMessage = "No trend data available",
 }: BrewTrendsChartProps) {
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [containerRef, setContainerRef] = useState<HTMLDivElement | null>(null);
+
   const chartData = useMemo(() => {
-    if (data.length === 0) return { points: [], maxShots: 10, avgShots: 0 };
-    
-    const maxShots = Math.max(...data.map((d) => d.shotCount), 1);
-    const avgShots = data.reduce((sum, d) => sum + d.shotCount, 0) / data.length;
-    
-    const points = data.map((day, index) => {
-      const x = (index / Math.max(data.length - 1, 1)) * 100;
-      const y = 100 - (day.shotCount / maxShots) * 100;
-      return { x, y, day };
-    });
-    
-    return { points, maxShots, avgShots };
+    if (data.length === 0)
+      return { days: [], maxShots: 10, avgShots: 0, totalShots: 0 };
+
+    const days = data.slice(-30); // Last 30 days
+    const maxShots = Math.max(...days.map((d) => d.shotCount), 1);
+    const totalShots = days.reduce((sum, d) => sum + d.shotCount, 0);
+    const avgShots = totalShots / days.length;
+
+    return { days, maxShots, avgShots, totalShots };
   }, [data]);
 
   if (data.length === 0) {
@@ -40,154 +50,223 @@ export function BrewTrendsChart({
     );
   }
 
-  // Create smooth curve path using bezier curves
-  const linePath = useMemo(() => {
-    if (chartData.points.length < 2) return "";
-    
-    let path = `M ${chartData.points[0].x} ${chartData.points[0].y}`;
-    
-    for (let i = 1; i < chartData.points.length; i++) {
-      const prev = chartData.points[i - 1];
-      const curr = chartData.points[i];
-      const cpX = (prev.x + curr.x) / 2;
-      path += ` Q ${cpX} ${prev.y} ${curr.x} ${curr.y}`;
-    }
-    
-    return path;
-  }, [chartData.points]);
-
-  // Area path
-  const areaPath = useMemo(() => {
-    if (!linePath) return "";
-    return `${linePath} L 100 100 L 0 100 Z`;
-  }, [linePath]);
-
-  // Average line Y position
-  const avgY = useMemo(() => {
-    if (chartData.maxShots === 0) return 50;
-    return 100 - (chartData.avgShots / chartData.maxShots) * 100;
-  }, [chartData.avgShots, chartData.maxShots]);
-
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleDateString([], { month: "short", day: "numeric" });
   };
 
+  const formatDateLong = (timestamp: number) => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString([], {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatOnTime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) return `${mins}m`;
+    return `${hours}h ${mins}m`;
+  };
+
+  const handleBarHover = (
+    day: DailySummary,
+    index: number,
+    event: React.MouseEvent
+  ) => {
+    if (!containerRef) return;
+
+    const rect = containerRef.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+
+    setActiveIndex(index);
+    setTooltip({
+      x,
+      date: formatDateLong(day.date),
+      shots: day.shotCount,
+      avgBrewTime: day.avgBrewTimeMs / 1000,
+      totalKwh: day.totalKwh,
+      onTimeMinutes: day.onTimeMinutes,
+    });
+  };
+
+  // Get date range info for x-axis
+  const firstDate = chartData.days[0]?.date;
+  const lastDate = chartData.days[chartData.days.length - 1]?.date;
+  const midDate = chartData.days[Math.floor(chartData.days.length / 2)]?.date;
+
   return (
-    <div className="w-full" style={{ height }}>
+    <div className="w-full" style={{ height }} ref={setContainerRef}>
       {/* Chart header */}
       {showLabels && (
         <div className="flex justify-between items-center mb-2 px-1">
           <span className="text-xs text-theme-muted">
             Avg: {chartData.avgShots.toFixed(1)} shots/day
           </span>
-          <span className="text-xs font-medium text-emerald-500">
-            Total: {data.reduce((sum, d) => sum + d.shotCount, 0)} shots
+          <span
+            className="text-xs font-medium"
+            style={{ color: "var(--accent)" }}
+          >
+            Total: {chartData.totalShots} shots
           </span>
         </div>
       )}
-      
-      {/* SVG Chart */}
-      <div className="relative w-full" style={{ height: height - (showLabels ? 48 : 16) }}>
-        <svg
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          className="w-full h-full"
-        >
-          <defs>
-            <linearGradient id="trendsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
-          
-          {/* Grid lines */}
-          {[25, 50, 75].map((y) => (
-            <line
-              key={y}
-              x1="0"
-              y1={y}
-              x2="100"
-              y2={y}
-              stroke="currentColor"
-              strokeOpacity="0.1"
-              strokeDasharray="2,2"
-            />
-          ))}
-          
-          {/* Average line */}
-          <line
-            x1="0"
-            y1={avgY}
-            x2="100"
-            y2={avgY}
-            stroke="#f59e0b"
-            strokeWidth="1"
-            strokeDasharray="4,4"
-            strokeOpacity="0.6"
-          />
-          
-          {/* Area fill */}
-          <path
-            d={areaPath}
-            fill="url(#trendsGradient)"
-            className="transition-all duration-500"
-          />
-          
-          {/* Line */}
-          <path
-            d={linePath}
-            fill="none"
-            stroke="#10b981"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            vectorEffect="non-scaling-stroke"
-            className="transition-all duration-500"
-          />
-          
-          {/* Data points */}
-          {chartData.points.map((point, i) => (
-            <g key={i} className="group cursor-pointer">
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r="3"
-                fill="#10b981"
-                className="transition-all group-hover:r-5"
-              />
-              <circle
-                cx={point.x}
-                cy={point.y}
-                r="6"
-                fill="transparent"
-                className="group-hover:fill-emerald-500/20"
-              />
-            </g>
-          ))}
-        </svg>
-        
+
+      {/* Chart area */}
+      <div
+        className="relative w-full"
+        style={{ height: height - (showLabels ? 56 : 16) }}
+        onMouseLeave={() => {
+          setTooltip(null);
+          setActiveIndex(null);
+        }}
+      >
         {/* Y-axis labels */}
         {showLabels && (
-          <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-theme-muted -ml-1">
+          <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-[10px] text-theme-muted pr-2 pointer-events-none w-8">
             <span>{chartData.maxShots}</span>
             <span>{Math.round(chartData.maxShots / 2)}</span>
             <span>0</span>
           </div>
         )}
+
+        {/* Bars container */}
+        <div className="absolute left-8 right-0 top-0 bottom-0">
+          {/* Grid lines */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="border-t border-theme-border/20"
+                style={{ borderStyle: i === 2 ? "solid" : "dashed" }}
+              />
+            ))}
+          </div>
+
+          {/* Average line */}
+          <div
+            className="absolute left-0 right-0 border-t-2 border-dashed pointer-events-none z-10"
+            style={{
+              top: `${100 - (chartData.avgShots / chartData.maxShots) * 100}%`,
+              borderColor: "var(--accent)",
+              opacity: 0.4,
+            }}
+          />
+
+          {/* Bars */}
+          <div className="absolute inset-0 flex items-end gap-[1px]">
+            {chartData.days.map((day, index) => {
+              const heightPercent = (day.shotCount / chartData.maxShots) * 100;
+              const isActive = activeIndex === index;
+              const isAboveAvg = day.shotCount > chartData.avgShots;
+
+              return (
+                <div
+                  key={index}
+                  className="flex-1 h-full flex items-end cursor-pointer min-w-0"
+                  onMouseEnter={(e) => handleBarHover(day, index, e)}
+                  onMouseMove={(e) => handleBarHover(day, index, e)}
+                >
+                  <div
+                    className="w-full rounded-t transition-all duration-150"
+                    style={{
+                      height: `${Math.max(
+                        heightPercent,
+                        day.shotCount > 0 ? 5 : 1
+                      )}%`,
+                      transform: isActive ? "scaleX(1.2)" : "scaleX(1)",
+                      background: "var(--accent)",
+                      opacity: isActive ? 1 : isAboveAvg ? 0.9 : 0.7,
+                      boxShadow: isActive
+                        ? "0 0 12px var(--accent-glow)"
+                        : "none",
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tooltip */}
+        {tooltip && (
+          <div
+            className="absolute z-50 pointer-events-none"
+            style={{
+              left: Math.min(
+                Math.max(tooltip.x - 75, 40),
+                (containerRef?.offsetWidth || 300) - 170
+              ),
+              top: 8,
+            }}
+          >
+            <div
+              className="rounded-lg shadow-2xl px-3 py-2.5 text-xs min-w-[150px]"
+              style={{
+                backgroundColor: "rgba(30, 25, 20, 0.98)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+              }}
+            >
+              <div
+                className="font-semibold mb-2 pb-1.5"
+                style={{
+                  color: "#f5f5f4",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                }}
+              >
+                {tooltip.date}
+              </div>
+              <div className="space-y-1.5" style={{ color: "#a8a29e" }}>
+                <div className="flex justify-between gap-4">
+                  <span>Shots:</span>
+                  <span
+                    className="font-bold"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    {tooltip.shots}
+                  </span>
+                </div>
+                {tooltip.avgBrewTime > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span>Avg time:</span>
+                    <span className="font-medium" style={{ color: "#f5f5f4" }}>
+                      {tooltip.avgBrewTime.toFixed(1)}s
+                    </span>
+                  </div>
+                )}
+                {tooltip.totalKwh > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span>Energy:</span>
+                    <span className="font-medium" style={{ color: "#f5f5f4" }}>
+                      {tooltip.totalKwh.toFixed(2)} kWh
+                    </span>
+                  </div>
+                )}
+                {tooltip.onTimeMinutes > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span>On time:</span>
+                    <span className="font-medium" style={{ color: "#f5f5f4" }}>
+                      {formatOnTime(tooltip.onTimeMinutes)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      
+
       {/* X-axis labels */}
-      {showLabels && data.length > 0 && (
-        <div className="flex justify-between mt-1 px-1 text-[10px] text-theme-muted">
-          <span>{formatDate(data[0].date)}</span>
-          {data.length > 2 && (
-            <span>{formatDate(data[Math.floor(data.length / 2)].date)}</span>
-          )}
-          <span>{formatDate(data[data.length - 1].date)}</span>
+      {showLabels && chartData.days.length > 0 && (
+        <div className="flex justify-between mt-2 pl-8 text-[10px] text-theme-muted">
+          <span>{formatDate(firstDate)}</span>
+          {chartData.days.length > 7 && <span>{formatDate(midDate)}</span>}
+          <span>{formatDate(lastDate)}</span>
         </div>
       )}
     </div>
   );
 }
-
