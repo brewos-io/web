@@ -199,6 +199,7 @@ export const useAppStore = create<AppState>()(
         const session = getStoredSession();
 
         if (session && !isTokenExpired(session)) {
+          // Token still valid - use it
           set({
             user: session.user,
             session,
@@ -216,6 +217,7 @@ export const useAppStore = create<AppState>()(
           const newSession = await refreshSession(session);
 
           if (newSession) {
+            // Refresh succeeded
             set({
               user: newSession.user,
               session: newSession,
@@ -225,8 +227,26 @@ export const useAppStore = create<AppState>()(
             get().fetchDevices();
             startTokenRefreshMonitor(get());
           } else {
-            // Refresh failed
-            set({ authLoading: false, initialized: true });
+            // Refresh failed - check if session was cleared or just network issue
+            const currentSession = getStoredSession();
+            
+            if (currentSession) {
+              // Session preserved (network error) - show user as logged in
+              // with expired token. They can retry or features will try refresh.
+              console.log("[Auth] Refresh failed but session preserved, continuing with cached user");
+              set({
+                user: currentSession.user,
+                session: currentSession,
+                authLoading: false,
+                initialized: true,
+              });
+              // Try fetching devices anyway - might work if network recovers
+              get().fetchDevices();
+              startTokenRefreshMonitor(get());
+            } else {
+              // Session was cleared (invalid token) - user needs to re-login
+              set({ authLoading: false, initialized: true });
+            }
           }
         } else {
           set({ authLoading: false, initialized: true });

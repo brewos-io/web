@@ -119,14 +119,21 @@ export async function loginWithGoogle(
 /**
  * Refresh the session using refresh token
  * Implements token rotation (new refresh token each time)
+ * 
+ * IMPORTANT: Only clears session on explicit 401/403 from server.
+ * Network errors preserve the session to allow retry on reconnect.
  */
 export async function refreshSession(
-  currentSession: AuthSession
+  currentSession: AuthSession,
+  retryCount = 0
 ): Promise<AuthSession | null> {
   // Prevent concurrent refresh requests
   if (refreshPromise) {
     return refreshPromise;
   }
+
+  const MAX_RETRIES = 2;
+  const RETRY_DELAY_MS = 1000;
 
   refreshPromise = (async () => {
     try {
@@ -137,8 +144,15 @@ export async function refreshSession(
       });
 
       if (!response.ok) {
-        // Refresh failed - clear session
-        clearSession();
+        // Only clear session on explicit auth rejection (token invalid/revoked)
+        if (response.status === 401 || response.status === 403) {
+          console.log("[Auth] Refresh token rejected by server, clearing session");
+          clearSession();
+          return null;
+        }
+        
+        // Server error - don't clear session, allow retry later
+        console.warn("[Auth] Refresh failed with status:", response.status);
         return null;
       }
 
@@ -153,8 +167,19 @@ export async function refreshSession(
 
       storeSession(newSession);
       return newSession;
-    } catch {
-      clearSession();
+    } catch (error) {
+      // Network error - DON'T clear session!
+      // The refresh token might still be valid, just no network right now.
+      console.warn("[Auth] Refresh failed due to network error:", error);
+      
+      // Retry on network errors (common on iOS PWA cold start)
+      if (retryCount < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS * (retryCount + 1)));
+        refreshPromise = null; // Allow retry
+        return refreshSession(currentSession, retryCount + 1);
+      }
+      
+      // After retries, still don't clear - session preserved for next attempt
       return null;
     } finally {
       refreshPromise = null;

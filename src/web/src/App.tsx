@@ -23,6 +23,7 @@ import { useAppStore } from "@/lib/mode";
 import { useThemeStore } from "@/lib/themeStore";
 import { Loading } from "@/components/Loading";
 import { DemoBanner } from "@/components/DemoBanner";
+import { UpdateNotification } from "@/components/UpdateNotification";
 import { getDemoConnection, clearDemoConnection } from "@/lib/demo-connection";
 import { isDemoMode } from "@/lib/demo-mode";
 
@@ -159,6 +160,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
+        <UpdateNotification />
       </>
     );
   }
@@ -176,17 +178,20 @@ function App() {
     }
 
     return (
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="brewing" element={<Brewing />} />
-          <Route path="stats" element={<Stats />} />
-          <Route path="schedules" element={<Schedules />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="setup" element={<Setup />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="brewing" element={<Brewing />} />
+            <Route path="stats" element={<Stats />} />
+            <Route path="schedules" element={<Schedules />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="setup" element={<Setup />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+        <UpdateNotification />
+      </>
     );
   }
 
@@ -195,24 +200,30 @@ function App() {
   // Not logged in -> Login
   if (!user) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/pair" element={<Pair />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/pair" element={<Pair />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+        <UpdateNotification />
+      </>
     );
   }
 
   // Logged in but no devices -> Onboarding
   if (devices.length === 0) {
     return (
-      <Routes>
-        <Route path="/onboarding" element={<Onboarding />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/pair" element={<Pair />} />
-        <Route path="*" element={<Navigate to="/onboarding" replace />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/pair" element={<Pair />} />
+          <Route path="*" element={<Navigate to="/onboarding" replace />} />
+        </Routes>
+        <UpdateNotification />
+      </>
     );
   }
 
@@ -220,39 +231,42 @@ function App() {
   const selectedDevice = getSelectedDevice();
 
   return (
-    <Routes>
-      {/* Auth routes */}
-      <Route path="/auth/callback" element={<AuthCallback />} />
-      <Route path="/pair" element={<Pair />} />
-      <Route path="/onboarding" element={<Onboarding />} />
+    <>
+      <Routes>
+        {/* Auth routes */}
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/pair" element={<Pair />} />
+        <Route path="/onboarding" element={<Onboarding />} />
 
-      {/* Machine management */}
-      <Route path="/machines" element={<Machines />} />
-      <Route path="/login" element={<Navigate to="/machines" replace />} />
+        {/* Machine management */}
+        <Route path="/machines" element={<Machines />} />
+        <Route path="/login" element={<Navigate to="/machines" replace />} />
 
-      {/* Machine control (when connected via cloud) */}
-      <Route path="/machine/:deviceId" element={<Layout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="brewing" element={<Brewing />} />
-        <Route path="stats" element={<Stats />} />
-        <Route path="schedules" element={<Schedules />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
+        {/* Machine control (when connected via cloud) */}
+        <Route path="/machine/:deviceId" element={<Layout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="brewing" element={<Brewing />} />
+          <Route path="stats" element={<Stats />} />
+          <Route path="schedules" element={<Schedules />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
 
-      {/* Root: redirect to selected machine or machines list */}
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to={selectedDevice ? `/machine/${selectedDevice.id}` : "/machines"}
-            replace
-          />
-        }
-      />
+        {/* Root: redirect to selected machine or machines list */}
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to={selectedDevice ? `/machine/${selectedDevice.id}` : "/machines"}
+              replace
+            />
+          }
+        />
 
-      {/* Default: redirect to machines */}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        {/* Default: redirect to machines */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+      <UpdateNotification />
+    </>
   );
 }
 

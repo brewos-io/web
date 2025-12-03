@@ -11,6 +11,25 @@ export interface PushSubscriptionData {
   };
 }
 
+// Callback for when a new version is available
+let onUpdateAvailable: (() => void) | null = null;
+
+/**
+ * Set callback for when a new version is available
+ */
+export function setUpdateCallback(callback: () => void): void {
+  onUpdateAvailable = callback;
+}
+
+/**
+ * Skip waiting and activate new service worker immediately
+ */
+export function activateNewServiceWorker(): void {
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
+  }
+}
+
 /**
  * Register service worker for PWA
  */
@@ -27,17 +46,40 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
 
     console.log('[PWA] Service worker registered:', registration.scope);
 
-    // Check for updates
+    // Check for updates immediately
+    registration.update().catch(() => {});
+    
+    // Check for updates periodically (every 1 hour)
+    setInterval(() => {
+      registration.update().catch(() => {});
+    }, 60 * 60 * 1000);
+
+    // Handle update found
     registration.addEventListener('updatefound', () => {
       const newWorker = registration.installing;
       if (newWorker) {
         newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('[PWA] New service worker available');
-            // Optionally notify user to refresh
+          if (newWorker.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              // New version available - notify the app
+              console.log('[PWA] New version available!');
+              onUpdateAvailable?.();
+            } else {
+              // First install
+              console.log('[PWA] App is ready for offline use');
+            }
           }
         });
       }
+    });
+
+    // Handle controller change (new SW activated)
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      console.log('[PWA] New service worker activated, reloading...');
+      window.location.reload();
     });
 
     return registration;
