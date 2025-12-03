@@ -1,17 +1,17 @@
 // Service Worker for BrewOS PWA
 // Version: v3 - Fixed response clone issue
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = "v3";
 const STATIC_CACHE_NAME = `brewos-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `brewos-runtime-${CACHE_VERSION}`;
 
 // Core app shell - cached on install
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/favicon.svg',
-  '/logo-icon.svg',
-  '/logo.png',
-  '/manifest.json',
+  "/",
+  "/index.html",
+  "/favicon.svg",
+  "/logo-icon.svg",
+  "/logo.png",
+  "/manifest.json",
 ];
 
 // Patterns for different caching strategies
@@ -20,18 +20,16 @@ const CACHE_FIRST_PATTERNS = [
   /^https:\/\/fonts\.(?:googleapis|gstatic)\.com/,
 ];
 
-const NETWORK_FIRST_PATTERNS = [
-  /\/api\//,
-  /\/ws/,
-];
+const NETWORK_FIRST_PATTERNS = [/\/api\//, /\/ws/];
 
 // Install event - cache app shell
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing v3...');
+self.addEventListener("install", (event) => {
+  console.log("[SW] Installing v3...");
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
+    caches
+      .open(STATIC_CACHE_NAME)
       .then((cache) => {
-        console.log('[SW] Caching app shell');
+        console.log("[SW] Caching app shell");
         return cache.addAll(APP_SHELL);
       })
       .then(() => self.skipWaiting())
@@ -39,16 +37,17 @@ self.addEventListener('install', (event) => {
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating v3...');
+self.addEventListener("activate", (event) => {
+  console.log("[SW] Activating v3...");
   event.waitUntil(
-    caches.keys()
+    caches
+      .keys()
       .then((cacheNames) => {
         return Promise.all(
           cacheNames
             .filter((name) => !name.includes(CACHE_VERSION))
             .map((name) => {
-              console.log('[SW] Deleting old cache:', name);
+              console.log("[SW] Deleting old cache:", name);
               return caches.delete(name);
             })
         );
@@ -58,34 +57,38 @@ self.addEventListener('activate', (event) => {
 });
 
 // Fetch event - smart caching strategy
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   // Skip non-GET requests and WebSocket
-  if (request.method !== 'GET' || url.protocol === 'ws:' || url.protocol === 'wss:') {
+  if (
+    request.method !== "GET" ||
+    url.protocol === "ws:" ||
+    url.protocol === "wss:"
+  ) {
     return;
   }
 
   // Skip chrome-extension and other non-http(s) protocols
-  if (!url.protocol.startsWith('http')) {
+  if (!url.protocol.startsWith("http")) {
     return;
   }
 
   // Network-first for API calls (but with fast timeout)
-  if (NETWORK_FIRST_PATTERNS.some(pattern => pattern.test(url.href))) {
+  if (NETWORK_FIRST_PATTERNS.some((pattern) => pattern.test(url.href))) {
     event.respondWith(networkFirstWithTimeout(request, 3000));
     return;
   }
 
   // Cache-first for static assets (JS, CSS, fonts, images)
-  if (CACHE_FIRST_PATTERNS.some(pattern => pattern.test(url.href))) {
+  if (CACHE_FIRST_PATTERNS.some((pattern) => pattern.test(url.href))) {
     event.respondWith(cacheFirst(request));
     return;
   }
 
   // Navigation requests - serve cached index.html immediately, revalidate in background
-  if (request.mode === 'navigate') {
+  if (request.mode === "navigate") {
     event.respondWith(staleWhileRevalidate(request));
     return;
   }
@@ -110,14 +113,14 @@ async function cacheFirst(request) {
     return response;
   } catch (error) {
     // Return offline fallback if available
-    return caches.match('/index.html');
+    return caches.match("/index.html");
   }
 }
 
 // Stale-while-revalidate - instant response, update in background
 async function staleWhileRevalidate(request) {
   const cached = await caches.match(request);
-  
+
   const fetchPromise = fetch(request)
     .then(async (response) => {
       if (response.ok) {
@@ -144,7 +147,7 @@ async function staleWhileRevalidate(request) {
   }
 
   // Fallback to index.html for navigation
-  return caches.match('/index.html');
+  return caches.match("/index.html");
 }
 
 // Network-first with timeout - for API calls
@@ -163,7 +166,7 @@ async function networkFirstWithTimeout(request, timeout) {
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
-    
+
     // Try cache
     const cached = await caches.match(request);
     if (cached) {
@@ -171,23 +174,23 @@ async function networkFirstWithTimeout(request, timeout) {
     }
 
     // Return error response for API calls
-    return new Response(JSON.stringify({ error: 'offline' }), {
+    return new Response(JSON.stringify({ error: "offline" }), {
       status: 503,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { "Content-Type": "application/json" },
     });
   }
 }
 
 // Push notification handling
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received');
+self.addEventListener("push", (event) => {
+  console.log("[SW] Push notification received");
 
   let notificationData = {
-    title: 'BrewOS',
-    body: 'You have a new notification',
-    icon: '/logo-icon.svg',
-    badge: '/logo-icon.svg',
-    tag: 'brewos-notification',
+    title: "BrewOS",
+    body: "You have a new notification",
+    icon: "/logo-icon.svg",
+    badge: "/logo-icon.svg",
+    tag: "brewos-notification",
     requireInteraction: false,
     data: {},
   };
@@ -224,16 +227,17 @@ self.addEventListener('push', (event) => {
 });
 
 // Notification click
-self.addEventListener('notificationclick', (event) => {
+self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const urlToOpen = event.notification.data?.url || '/';
+  const urlToOpen = event.notification.data?.url || "/";
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
         for (const client of clientList) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
+          if (client.url.includes(self.location.origin) && "focus" in client) {
             return client.focus();
           }
         }
@@ -245,17 +249,17 @@ self.addEventListener('notificationclick', (event) => {
 });
 
 // Message handling
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') {
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
-  
+
   // Clear caches on demand
-  if (event.data?.type === 'CLEAR_CACHE') {
+  if (event.data?.type === "CLEAR_CACHE") {
     event.waitUntil(
-      caches.keys().then(names => 
-        Promise.all(names.map(name => caches.delete(name)))
-      )
+      caches
+        .keys()
+        .then((names) => Promise.all(names.map((name) => caches.delete(name))))
     );
   }
 });
