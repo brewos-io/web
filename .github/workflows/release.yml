@@ -238,6 +238,10 @@ jobs:
             set -e
             cd /root/brewos
             
+            # Clean up any local changes (e.g., tsconfig.tsbuildinfo from npm builds)
+            git reset --hard
+            git clean -fd
+            
             # Fetch the release tag (--force to overwrite any conflicting local tags)
             git fetch origin --tags --force
             git checkout ${RELEASE_VERSION}

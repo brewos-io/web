@@ -1,3 +1,7 @@
+# Fixed project name ensures consistent volume naming across deployments
+# Without this, Docker Compose uses the directory name which can vary
+name: brewos
+
 services:
   brewos-cloud:
     build: .
@@ -12,6 +16,8 @@ services:
       - WEB_DIST_PATH=/app/web
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     restart: unless-stopped
+    # Allow time for database to save on shutdown
+    stop_grace_period: 30s
 
 volumes:
   brewos-data:

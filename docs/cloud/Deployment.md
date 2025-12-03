@@ -83,6 +83,9 @@ CMD ["node", "dist/server.js"]
 ### Docker Compose
 
 ```yaml
+# Fixed project name ensures consistent volume naming across deployments
+name: brewos
+
 services:
   brewos-cloud:
     build:
@@ -97,6 +100,7 @@ services:
       - DATA_DIR=/data
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     restart: unless-stopped
+    stop_grace_period: 30s
 
 volumes:
   brewos-data:
