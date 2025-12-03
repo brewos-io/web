@@ -702,6 +702,26 @@ export class DemoConnection implements IConnection {
         mqtt: true,
         scale: this.scaleConnected,
       },
+      // WiFi section (full status)
+      wifi: {
+        connected: true,
+        ssid: "HomeNetwork",
+        ip: "192.168.1.42",
+        rssi: -58,
+        apMode: false,
+        staticIp: false,
+        gateway: "192.168.1.1",
+        subnet: "255.255.255.0",
+        dns1: "192.168.1.1",
+        dns2: "8.8.8.8",
+      },
+      // MQTT section
+      mqtt: {
+        enabled: true,
+        connected: true,
+        broker: "homeassistant.local",
+        topic: "brewos",
+      },
       // ESP32 info
       esp32: {
         version: "1.0.0-demo",

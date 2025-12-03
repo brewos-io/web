@@ -10,5 +10,6 @@ export { QRScanner } from './QRScanner';
 export { InstallPrompt, usePWAInstall } from './InstallPrompt';
 export { ToastProvider, useToast } from './Toast';
 export { ConnectionOverlay } from './ConnectionOverlay';
+export { ConfirmDialog } from './ConfirmDialog';
 export { DemoBanner } from './DemoBanner';
 export { UserMenu } from './UserMenu';

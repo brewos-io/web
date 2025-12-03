@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useStore } from "@/lib/store";
 import { useCommand } from "@/lib/useCommand";
 import { Card, CardHeader, CardTitle } from "@/components/Card";
 import { Input } from "@/components/Input";
 import { Button } from "@/components/Button";
-import { Zap, Leaf } from "lucide-react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Zap, Leaf, AlertTriangle } from "lucide-react";
 import {
   convertFromCelsius,
   convertToCelsius,
@@ -17,10 +18,15 @@ export function PowerSettings() {
   const temperatureUnit = useStore((s) => s.preferences.temperatureUnit);
   const { sendCommand } = useCommand();
 
+  // Track original values to detect changes
+  const originalVoltageRef = useRef(power.voltage);
+  const originalMaxCurrentRef = useRef(13);
+
   const [voltage, setVoltage] = useState(power.voltage);
   const [maxCurrent, setMaxCurrent] = useState(13);
   const [savingPower, setSavingPower] = useState(false);
   const [savingEco, setSavingEco] = useState(false);
+  const [showPowerWarning, setShowPowerWarning] = useState(false);
 
   // Eco temp stored internally in Celsius (80°C default)
   const [ecoBrewTempCelsius] = useState(80);
@@ -43,6 +49,21 @@ export function PowerSettings() {
   const ecoTempMin = convertFromCelsius(60, temperatureUnit);
   const ecoTempMax = convertFromCelsius(90, temperatureUnit);
 
+  // Check if power settings have changed
+  const hasPowerSettingsChanged =
+    voltage !== originalVoltageRef.current ||
+    maxCurrent !== originalMaxCurrentRef.current;
+
+  // Handle save button click - show warning if settings changed
+  const handleSavePower = () => {
+    if (hasPowerSettingsChanged) {
+      setShowPowerWarning(true);
+    } else {
+      savePower();
+    }
+  };
+
+  // Actually save the power settings
   const savePower = () => {
     if (savingPower) return; // Prevent double-click
     setSavingPower(true);
@@ -51,8 +72,14 @@ export function PowerSettings() {
       { voltage, maxCurrent },
       { successMessage: "Power settings saved" }
     );
+    // Update references to new values after save
+    originalVoltageRef.current = voltage;
+    originalMaxCurrentRef.current = maxCurrent;
     // Brief visual feedback for fire-and-forget WebSocket command
-    setTimeout(() => setSavingPower(false), 600);
+    setTimeout(() => {
+      setSavingPower(false);
+      setShowPowerWarning(false);
+    }, 600);
   };
 
   const saveEco = () => {
@@ -138,22 +165,116 @@ export function PowerSettings() {
           <Input
             label="Max Current"
             type="number"
-            min={5}
+            min={10}
             max={20}
-            step={0.5}
+            step={1}
             value={maxCurrent}
-            onChange={(e) => setMaxCurrent(parseFloat(e.target.value))}
+            onChange={(e) => setMaxCurrent(parseInt(e.target.value) || 10)}
             unit="A"
-            hint="Limit for your circuit"
+            hint="10A (AU), 13A (UK), 15-20A (US), 16A (EU)"
           />
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={savePower} loading={savingPower} disabled={savingPower}>
+          <Button onClick={handleSavePower} loading={savingPower} disabled={savingPower}>
             Save Power Settings
           </Button>
         </div>
       </Card>
+
+      {/* Power Settings Warning Dialog */}
+      <ConfirmDialog
+        isOpen={showPowerWarning}
+        onClose={() => setShowPowerWarning(false)}
+        onConfirm={savePower}
+        title="Changing Power Settings"
+        description="You are about to modify critical electrical parameters."
+        variant="warning"
+        confirmText="I Understand, Save Settings"
+        cancelText="Cancel"
+        confirmLoading={savingPower}
+      >
+        <div className="space-y-4 text-sm">
+          {/* Voltage change warning */}
+          {voltage !== originalVoltageRef.current && (
+            <div className="flex gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-500">Voltage Change Detected</p>
+                <p className="text-theme-muted mt-1">
+                  Changing from <strong>{originalVoltageRef.current}V</strong> to{" "}
+                  <strong>{voltage}V</strong>.
+                </p>
+                <p className="text-theme-muted mt-2">
+                  {voltage < originalVoltageRef.current ? (
+                    <>
+                      Lowering voltage settings when your mains supply is higher can cause{" "}
+                      <span className="text-amber-500 font-medium">
+                        overheating, equipment damage, or fire hazards
+                      </span>
+                      . Only change this if you've physically moved the machine to a location
+                      with different mains voltage.
+                    </>
+                  ) : (
+                    <>
+                      Setting voltage higher than your actual mains supply will result in{" "}
+                      <span className="text-amber-500 font-medium">
+                        insufficient heating power and poor performance
+                      </span>
+                      . Only change this if you've physically moved the machine to a location
+                      with different mains voltage.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Max current change warning */}
+          {maxCurrent !== originalMaxCurrentRef.current && (
+            <div className="flex gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-500">Current Limit Change</p>
+                <p className="text-theme-muted mt-1">
+                  Changing from <strong>{originalMaxCurrentRef.current}A</strong> to{" "}
+                  <strong>{maxCurrent}A</strong>.
+                </p>
+                <p className="text-theme-muted mt-2">
+                  {maxCurrent > originalMaxCurrentRef.current ? (
+                    <>
+                      Increasing the current limit beyond your circuit's capacity can{" "}
+                      <span className="text-amber-500 font-medium">
+                        trip breakers, damage wiring, or create fire hazards
+                      </span>
+                      . Ensure your outlet and circuit can safely handle{" "}
+                      <strong>{maxCurrent}A</strong> continuous load.
+                    </>
+                  ) : (
+                    <>
+                      Lowering the current limit may cause{" "}
+                      <span className="text-amber-500 font-medium">
+                        breakers to trip during high-power operations
+                      </span>
+                      , especially when using <strong>Parallel heating strategy</strong> on
+                      dual boiler machines. The system will try to draw more power than
+                      allowed, triggering circuit protection.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* General advice */}
+          <p className="text-theme-muted text-xs border-t border-theme pt-3">
+            <strong>⚠️ Risk:</strong> Incorrect power settings can{" "}
+            <span className="text-amber-500">trip your circuit breaker</span>,
+            cause equipment damage, or create safety hazards. Ensure these values
+            match your electrical installation. If unsure, consult a qualified electrician.
+          </p>
+        </div>
+      </ConfirmDialog>
     </>
   );
 }
