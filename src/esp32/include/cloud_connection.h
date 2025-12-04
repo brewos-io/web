@@ -89,7 +89,7 @@ private:
     bool _connecting = false;
     unsigned long _lastConnectAttempt = 0;
     unsigned long _reconnectDelay = 1000;  // Start with 1 second
-    static const unsigned long MAX_RECONNECT_DELAY = 30000;  // Max 30 seconds
+    static const unsigned long MAX_RECONNECT_DELAY = 10000;  // Max 10 seconds
     
     CommandCallback _onCommand = nullptr;
     
