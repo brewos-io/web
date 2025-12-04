@@ -25,15 +25,15 @@ export interface TabConfig {
   icon: React.ComponentType<{ className?: string }>;
 }
 
-export const getSettingsTabs = (isCloud: boolean): TabConfig[] => {
+export const getSettingsTabs = (isCloud: boolean, isDemo: boolean = false): TabConfig[] => {
   const tabs: TabConfig[] = [
     { id: "machine", label: "Machine", icon: Coffee },
     { id: "scale", label: "Scale", icon: ScaleIcon },
     { id: "network", label: "Network", icon: Wifi },
   ];
 
-  // Only show Cloud tab in local mode
-  if (!isCloud) {
+  // Show Cloud tab in local mode or demo mode
+  if (!isCloud || isDemo) {
     tabs.push({ id: "cloud", label: "Cloud", icon: Cloud });
   }
 

@@ -27,7 +27,7 @@ export function Settings() {
   
   const isCloud = mode === 'cloud';
   const isDemo = isDemoMode();
-  const SETTINGS_TABS = getSettingsTabs(isCloud);
+  const SETTINGS_TABS = getSettingsTabs(isCloud, isDemo);
 
   // Get active tab from URL hash, default to 'machine'
   const hashTab = location.hash.slice(1) as SettingsTab;
