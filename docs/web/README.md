@@ -211,7 +211,7 @@ npm run storybook
 
 Storybook runs at http://localhost:6006 and provides:
 
-- **🎨 Theme Switcher** - Preview all 10 themes using the toolbar (paintbrush icon)
+- **🎨 Theme Switcher** - Preview all 12 themes using the toolbar (paintbrush icon)
 - **📚 Component Documentation** - Auto-generated docs with usage examples
 - **🔧 Interactive Controls** - Adjust component props in real-time
 - **📱 Viewport Testing** - Test responsive behavior at different sizes
@@ -236,24 +236,25 @@ npm run build-storybook
 
 ## Design System
 
-The UI uses a coffee-themed design system with 10 customizable themes.
+The UI uses a coffee-themed design system with 12 customizable themes, each with a distinct visual identity.
 
 ### Themes
 
 **Light Themes:**
-- ☀️ Caramel - Warm amber and honey tones (default)
-- ☀️ Classic Coffee - Warm and inviting browns
-- ☀️ Mocha - Rich chocolate with purple hints
-- ☀️ Espresso - Deep and bold with golden accent
-- ☀️ Latte - Light, airy, and creamy
-- ☀️ Warm Mocha - Soft mocha with warm accents
+- ☀️ **Caramel** - Golden honey with sunset orange accent
+- ☀️ **Toffee** - Warm caramel-coffee browns with cinnamon
+- ☀️ **Classic** - Timeless sepia with burgundy accent
+- ☀️ **Mulberry** - Berry wine with rose dust tones
+- ☀️ **Espresso** - Cool slate with brass elegance
+- ☀️ **Latte** - Fresh minimal with sage green accent
+- ☀️ **Rosetta** - Soft blush with terracotta warmth
 
 **Dark Themes:**
-- 🌙 Cortado - Soft dark with milky warmth (lightest dark theme)
-- 🌙 Cappuccino - Warm caramel on dark espresso
-- 🌙 Roasted - Rich dark coffee atmosphere
-- 🌙 Dark Roast - Deep and intense dark mode
-- 🌙 Midnight Brew - Elegant dark with teal accents
+- 🌙 **Cortado** - Soft dark with milky warmth (lightest dark)
+- 🌙 **Cappuccino** - Warm caramel on dark espresso
+- 🌙 **Roasted** - Rich dark coffee atmosphere
+- 🌙 **Dark Roast** - Deep and intense dark mode
+- 🌙 **Midnight Brew** - Elegant dark with teal accents
 
 Theme definitions are in `src/lib/themes.ts` and managed via `useThemeStore`.
 
