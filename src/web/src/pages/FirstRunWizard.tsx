@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
+import { Logo } from "@/components/Logo";
 import { useCommand } from "@/lib/useCommand";
 import { useToast } from "@/components/Toast";
 import { Coffee, Settings, Cloud, Check, ArrowRight, ArrowLeft } from "lucide-react";
@@ -214,6 +215,10 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
   return (
     <div className="full-page-scroll bg-gradient-to-br from-coffee-800 via-coffee-900 to-coffee-950 flex items-center justify-center p-4">
       <div className="w-full max-w-xl">
+        <div className="flex justify-center mb-6">
+          <Logo size="lg" forceDark />
+        </div>
+
         <ProgressIndicator steps={STEPS} currentStep={currentStep} />
 
         <Card>

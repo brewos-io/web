@@ -5,8 +5,9 @@ import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Loading } from "@/components/Loading";
+import { Logo } from "@/components/Logo";
 import { useAuth, useDevices } from "@/lib/auth";
-import { Coffee, Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2 } from "lucide-react";
 
 export function Pair() {
   const navigate = useNavigate();
@@ -69,96 +70,103 @@ export function Pair() {
 
   return (
     <div className="full-page-scroll bg-gradient-to-br from-coffee-800 to-coffee-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        {status === "success" ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-success" />
-            </div>
-            <h2 className="text-xl font-bold text-theme mb-2">
-              Device Paired!
-            </h2>
-            <p className="text-theme-secondary">Redirecting to your devices...</p>
-          </div>
-        ) : status === "error" ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-error-soft rounded-full flex items-center justify-center mx-auto mb-4">
-              <X className="w-8 h-8 text-error" />
-            </div>
-            <h2 className="text-xl font-bold text-theme mb-2">
-              Pairing Failed
-            </h2>
-            <p className="text-theme-secondary mb-6">{errorMessage}</p>
-            <div className="flex gap-3 justify-center">
-              <Button variant="secondary" onClick={() => navigate("/machines")}>
-                Go to Machines
-              </Button>
-              <Button onClick={() => setStatus("idle")}>Try Again</Button>
-            </div>
-          </div>
-        ) : status === "claiming" ? (
-          <div className="text-center py-8">
-            <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-theme mb-2">
-              Adding Device...
-            </h2>
-          </div>
-        ) : (
-          <>
-            <div className="text-center mb-6">
-              <Coffee className="w-16 h-16 text-accent mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-theme">
-                Pair Device
-              </h1>
-              <p className="text-theme-secondary mt-2">
-                Add this BrewOS device to your account
+      <div className="w-full max-w-md">
+        <div className="flex justify-center mb-6">
+          <Logo size="lg" forceDark />
+        </div>
+        <Card>
+          {status === "success" ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-success-soft rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-success" />
+              </div>
+              <h2 className="text-xl font-bold text-theme mb-2">
+                Device Paired!
+              </h2>
+              <p className="text-theme-secondary">
+                Redirecting to your devices...
               </p>
             </div>
-
-            <div className="bg-theme-tertiary rounded-xl p-4 mb-6">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-theme-secondary">Machine ID</span>
-                <span className="font-mono text-theme">{deviceId}</span>
+          ) : status === "error" ? (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-error-soft rounded-full flex items-center justify-center mx-auto mb-4">
+                <X className="w-8 h-8 text-error" />
+              </div>
+              <h2 className="text-xl font-bold text-theme mb-2">
+                Pairing Failed
+              </h2>
+              <p className="text-theme-secondary mb-6">{errorMessage}</p>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate("/machines")}
+                >
+                  Go to Machines
+                </Button>
+                <Button onClick={() => setStatus("idle")}>Try Again</Button>
               </div>
             </div>
-
-            <Input
-              label="Device Name"
-              placeholder="Kitchen Espresso"
-              value={deviceName}
-              onChange={(e) => setDeviceName(e.target.value)}
-              className="mb-6"
-            />
-
-            {user ? (
-              <Button className="w-full" onClick={handlePair}>
-                Add to My Machines
-              </Button>
-            ) : (
-              <div className="space-y-4">
-                <p className="text-sm text-theme-secondary text-center">
-                  Sign in to add this device to your account
+          ) : status === "claiming" ? (
+            <div className="text-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-accent mx-auto mb-4" />
+              <h2 className="text-xl font-bold text-theme mb-2">
+                Adding Device...
+              </h2>
+            </div>
+          ) : (
+            <>
+              <div className="text-center mb-6">
+                <h1 className="text-2xl font-bold text-theme">Pair Device</h1>
+                <p className="text-theme-secondary mt-2">
+                  Add this BrewOS device to your account
                 </p>
-                <div className="flex justify-center">
-                  <GoogleLogin
-                    onSuccess={(response: CredentialResponse) => {
-                      if (response.credential) {
-                        handleGoogleLogin(response.credential);
-                      }
-                    }}
-                    onError={() => {
-                      setErrorMessage("Sign in failed");
-                    }}
-                    theme="outline"
-                    size="large"
-                    text="continue_with"
-                  />
+              </div>
+
+              <div className="bg-theme-tertiary rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-theme-secondary">Machine ID</span>
+                  <span className="font-mono text-theme">{deviceId}</span>
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </Card>
+
+              <Input
+                label="Device Name"
+                placeholder="Kitchen Espresso"
+                value={deviceName}
+                onChange={(e) => setDeviceName(e.target.value)}
+                className="mb-6"
+              />
+
+              {user ? (
+                <Button className="w-full" onClick={handlePair}>
+                  Add to My Machines
+                </Button>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-theme-secondary text-center">
+                    Sign in to add this device to your account
+                  </p>
+                  <div className="flex justify-center">
+                    <GoogleLogin
+                      onSuccess={(response: CredentialResponse) => {
+                        if (response.credential) {
+                          handleGoogleLogin(response.credential);
+                        }
+                      }}
+                      onError={() => {
+                        setErrorMessage("Sign in failed");
+                      }}
+                      theme="outline"
+                      size="large"
+                      text="continue_with"
+                    />
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

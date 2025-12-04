@@ -29,95 +29,99 @@ export function Login() {
   if (!isGoogleAuthConfigured) {
     return (
       <div className="full-page bg-gradient-to-br from-coffee-800 to-coffee-900 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <div className="flex justify-center mb-4">
+        <div className="w-full max-w-md">
+          <div className="flex justify-center mb-6">
             <Logo size="lg" forceDark />
           </div>
-          <p className="text-coffee-500">
-            Cloud features are not configured. Connect directly to your device
-            at{" "}
-            <a
-              href="http://brewos.local"
-              className="text-accent hover:underline"
-            >
-              brewos.local
-            </a>
-          </p>
-        </Card>
+          <Card className="text-center">
+            <p className="text-coffee-500">
+              Cloud features are not configured. Connect directly to your device
+              at{" "}
+              <a
+                href="http://brewos.local"
+                className="text-accent hover:underline"
+              >
+                brewos.local
+              </a>
+            </p>
+          </Card>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="full-page bg-gradient-to-br from-coffee-800 to-coffee-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <Logo size="lg" />
-          </div>
-          <h1 className="text-2xl font-bold text-theme">Welcome to BrewOS</h1>
-          <p className="text-theme-muted mt-2">
-            Sign in to manage your espresso machines from anywhere
-          </p>
+      <div className="w-full max-w-md">
+        <div className="flex justify-center mb-6">
+          <Logo size="lg" forceDark />
         </div>
-
-        {error && (
-          <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-error-soft border border-error text-error">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
-
-        <div className="space-y-4">
-          <div className="flex justify-center">
-            <GoogleLogin
-              onSuccess={(response: CredentialResponse) => {
-                if (response.credential) {
-                  handleGoogleLogin(response.credential);
-                }
-              }}
-              onError={() => {
-                console.error("Google login failed");
-              }}
-              theme="outline"
-              size="large"
-              width="300"
-              text="continue_with"
-            />
+        <Card>
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-theme">Welcome to BrewOS</h1>
+            <p className="text-theme-muted mt-2">
+              Sign in to manage your espresso machines from anywhere
+            </p>
           </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div
-                className={`w-full border-t ${
-                  isDark ? "border-coffee-700" : "border-cream-300"
-                }`}
-              ></div>
+          {error && (
+            <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-error-soft border border-error text-error">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span className="text-sm">{error}</span>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span
-                className={`px-4 ${
-                  isDark
-                    ? "bg-[var(--card-bg)] text-coffee-500"
-                    : "bg-white text-coffee-400"
-                }`}
+          )}
+
+          <div className="space-y-4">
+            <div className="flex justify-center">
+              <GoogleLogin
+                onSuccess={(response: CredentialResponse) => {
+                  if (response.credential) {
+                    handleGoogleLogin(response.credential);
+                  }
+                }}
+                onError={() => {
+                  console.error("Google login failed");
+                }}
+                theme="outline"
+                size="large"
+                width="300"
+                text="continue_with"
+              />
+            </div>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div
+                  className={`w-full border-t ${
+                    isDark ? "border-coffee-700" : "border-cream-300"
+                  }`}
+                ></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span
+                  className={`px-4 ${
+                    isDark
+                      ? "bg-[var(--card-bg)] text-coffee-500"
+                      : "bg-white text-coffee-400"
+                  }`}
+                >
+                  or
+                </span>
+              </div>
+            </div>
+
+            <p className="text-center text-sm text-theme-muted">
+              Connect locally at{" "}
+              <a
+                href="http://brewos.local"
+                className="text-accent hover:underline"
               >
-                or
-              </span>
-            </div>
+                brewos.local
+              </a>
+            </p>
           </div>
-
-          <p className="text-center text-sm text-theme-muted">
-            Connect locally at{" "}
-            <a
-              href="http://brewos.local"
-              className="text-accent hover:underline"
-            >
-              brewos.local
-            </a>
-          </p>
-        </div>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
