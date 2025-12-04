@@ -600,3 +600,65 @@ input[type="checkbox"]:hover:not(:checked) {
   animation: fade-in 0.15s ease-out, zoom-in 0.15s ease-out, slide-in-from-top 0.15s ease-out;
   animation-fill-mode: forwards;
 }
+
+/* Html5Qrcode library styling - customize the scanning box */
+/* Hide default controls */
+#qr-reader__dashboard_section_csr,
+#qr-reader__dashboard_section_swwr {
+  display: none !important;
+}
+
+/* Style the scanning box - the library creates a div with absolute positioning */
+/* Target the scanning box border that Html5Qrcode creates */
+#qr-reader__scan_region > div[style*="position"] {
+  border: 2px dashed var(--accent) !important;
+  border-color: var(--accent) !important;
+  opacity: 0.6 !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 0 0 2px rgba(196, 112, 60, 0.1) !important;
+}
+
+/* Style SVG elements if the library uses them for the scanning box */
+#qr-reader__scan_region svg rect,
+#qr-reader__scan_region svg path {
+  stroke: var(--accent) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 8 4 !important;
+  opacity: 0.7 !important;
+  fill: none !important;
+}
+
+/* Html5Qrcode library styling - customize the scanning box */
+#qr-reader__dashboard_section_csr,
+#qr-reader__dashboard_section_swwr {
+  display: none !important; /* Hide default controls */
+}
+
+/* Style the scanning box overlay */
+#qr-reader__scan_region,
+#qr-reader__scan_region video {
+  border-radius: 1rem;
+}
+
+/* Target the scanning box border (the library creates this dynamically) */
+#qr-reader__scan_region > div {
+  border: 2px dashed var(--accent) !important;
+  border-color: var(--accent) !important;
+  opacity: 0.5 !important;
+  border-radius: 1rem !important;
+}
+
+/* Alternative selectors for the scanning box */
+#qr-reader__dashboard,
+#qr-reader__dashboard_section {
+  border: none !important;
+}
+
+/* Style the scanning box corners if the library uses them */
+#qr-reader__scan_region svg,
+#qr-reader__scan_region path {
+  stroke: var(--accent) !important;
+  stroke-width: 2 !important;
+  stroke-dasharray: 8 4 !important;
+  opacity: 0.7 !important;
+}

@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle } from "@/components/Card";
 import { Button } from "@/components/Button";
-import { Input } from "@/components/Input";
 import { Logo } from "@/components/Logo";
 import { Loading } from "@/components/Loading";
+import { DeviceClaimFlow } from "@/components/onboarding";
 import { useAppStore } from "@/lib/mode";
 import { isDemoMode, disableDemoMode } from "@/lib/demo-mode";
 import type { CloudDevice } from "@/lib/types";
@@ -63,11 +63,7 @@ export function Machines() {
   const devices = isDemo ? DEMO_DEVICES : realDevices;
   const selectedDeviceId = isDemo ? DEMO_DEVICES[0]?.id : realSelectedDeviceId;
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [claimCode, setClaimCode] = useState("");
-  const [deviceName, setDeviceName] = useState("");
-  const [claiming, setClaiming] = useState(false);
-  const [claimError, setClaimError] = useState("");
+  const [addMode, setAddMode] = useState<boolean>(false);
 
   const [isEditMode, setIsEditMode] = useState(false);
   const [disconnectingDevice, setDisconnectingDevice] =
@@ -84,79 +80,27 @@ export function Machines() {
     }
   }, [user, authLoading, navigate, fetchDevices, isDemo]);
 
-  const handleClaim = async () => {
-    if (!claimCode) return;
-
-    setClaiming(true);
-    setClaimError("");
-
-    try {
-      // Parse QR code URL or manual entry
-      let deviceId = "";
-      let token = "";
-      let manualCode = "";
-
-      if (claimCode.includes("?")) {
-        // URL format
-        const url = new URL(claimCode);
-        deviceId = url.searchParams.get("id") || "";
-        token = url.searchParams.get("token") || "";
-      } else if (claimCode.includes(":")) {
-        // Legacy format: DEVICE_ID:TOKEN
-        const parts = claimCode.split(":");
-        deviceId = parts[0];
-        token = parts[1] || "";
-      } else if (/^[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(claimCode.trim())) {
-        // Short manual code format: X6ST-AP3G
-        manualCode = claimCode.trim().toUpperCase();
-      } else {
-        setClaimError("Invalid code format");
-        setClaiming(false);
-        return;
-      }
-
-      // If we have a manual code, use it directly (backend will resolve it)
-      if (manualCode) {
-        const success = await claimDevice(
-          manualCode,
-          "",
-          deviceName || undefined
-        );
-        if (success) {
-          setShowAddModal(false);
-          setClaimCode("");
-          setDeviceName("");
-        } else {
-          setClaimError("Invalid or expired code");
-        }
-        setClaiming(false);
-        return;
-      }
-
-      if (!deviceId || !token) {
-        setClaimError("Invalid code format");
-        setClaiming(false);
-        return;
-      }
-
-      const success = await claimDevice(
-        deviceId,
-        token,
-        deviceName || undefined
-      );
-
-      if (success) {
-        setShowAddModal(false);
-        setClaimCode("");
-        setDeviceName("");
-      } else {
-        setClaimError("Failed to add machine. Code may be expired.");
-      }
-    } catch {
-      setClaimError("An error occurred");
+  const handleClaim = async (
+    deviceId: string,
+    token: string,
+    deviceName?: string
+  ): Promise<boolean> => {
+    const success = await claimDevice(deviceId, token, deviceName);
+    if (success) {
+      await fetchDevices();
     }
+    return success;
+  };
 
-    setClaiming(false);
+  const handleClaimManual = async (
+    manualCode: string,
+    deviceName?: string
+  ): Promise<boolean> => {
+    const success = await claimDevice(manualCode, "", deviceName);
+    if (success) {
+      await fetchDevices();
+    }
+    return success;
   };
 
   const handleRemove = async () => {
@@ -218,14 +162,14 @@ export function Machines() {
     <div className="full-page-scroll bg-theme">
       {/* Header */}
       <header className="bg-theme-card border-b border-theme sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => navigate("/")}
-              className="p-2 -ml-2 rounded-xl hover:bg-theme-secondary transition-colors text-theme-secondary"
+              className="p-1.5 sm:p-2 -ml-1 sm:-ml-2 rounded-xl hover:bg-theme-secondary transition-colors text-theme-secondary flex-shrink-0"
               aria-label="Back to dashboard"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
             <Logo size="md" />
           </div>
@@ -234,24 +178,43 @@ export function Machines() {
       </header>
 
       {/* Content */}
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-theme">My Machines</h1>
-          <div className="flex items-center gap-2">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-theme mb-1">
+              My Machines
+            </h1>
+            <p className="text-sm sm:text-base text-theme-muted">
+              {devices.length === 0
+                ? "Add your first machine to get started"
+                : `${devices.length} ${
+                    devices.length === 1 ? "machine" : "machines"
+                  } connected`}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
             {devices.length > 0 && (
               <Button
                 variant={isEditMode ? "primary" : "ghost"}
                 size="sm"
                 onClick={() => setIsEditMode(!isEditMode)}
+                className="text-xs sm:text-sm"
               >
                 <Pencil className="w-4 h-4" />
-                {isEditMode ? "Done" : "Edit"}
+                <span className="hidden sm:inline">
+                  {isEditMode ? "Done" : "Edit"}
+                </span>
               </Button>
             )}
-            {!isDemo && !isEditMode && (
-              <Button onClick={() => setShowAddModal(true)}>
+            {!isEditMode && devices.length > 0 && (
+              <Button
+                onClick={() => setAddMode(true)}
+                size="sm"
+                className="text-xs sm:text-sm"
+              >
                 <Plus className="w-4 h-4" />
-                Add Machine
+                <span className="hidden sm:inline">Add Machine</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             )}
           </div>
@@ -262,18 +225,28 @@ export function Machines() {
             <Loader2 className="w-8 h-8 animate-spin text-accent" />
           </div>
         ) : devices.length === 0 ? (
-          <Card className="text-center py-12">
-            <Coffee className="w-16 h-16 text-theme-muted mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-theme mb-2">
-              No machines yet
-            </h2>
-            <p className="text-theme-secondary mb-6">
-              Scan the QR code on your BrewOS display to add your first machine.
-            </p>
-            <Button onClick={() => setShowAddModal(true)}>
-              <QrCode className="w-4 h-4" />
-              Add Machine
-            </Button>
+          <Card className="text-center py-12 sm:py-16">
+            <div className="max-w-md mx-auto px-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-accent/10 rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6">
+                <Coffee className="w-8 h-8 sm:w-10 sm:h-10 text-accent" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-theme mb-2 sm:mb-3">
+                No machines yet
+              </h2>
+              <p className="text-theme-muted mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
+                Get started by adding your first espresso machine. Scan the QR
+                code on your BrewOS display or enter the pairing code manually.
+              </p>
+              <Button
+                size="lg"
+                className="px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg font-semibold w-full sm:w-auto"
+                onClick={() => setAddMode(true)}
+              >
+                <QrCode className="w-5 h-5" />
+                <span className="hidden sm:inline">Add Your First Machine</span>
+                <span className="sm:hidden">Add Machine</span>
+              </Button>
+            </div>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -285,13 +258,13 @@ export function Machines() {
                   key={device.id}
                   onClick={() => !isEditMode && handleConnect(device.id)}
                   disabled={isEditMode}
-                  className={`w-full text-left card flex items-center gap-3 transition-all ${
+                  className={`w-full text-left card flex items-center gap-2 sm:gap-3 transition-all p-3 sm:p-4 ${
                     isEditMode
                       ? ""
                       : "cursor-pointer hover:border-theme-secondary hover:shadow-md"
                   } ${isSelected ? "border-accent/40 bg-accent/5" : ""}`}
                 >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                     <div
                       className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex-shrink-0 flex items-center justify-center ${
                         device.isOnline
@@ -307,21 +280,26 @@ export function Machines() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-theme truncate">
+                        <h3 className="font-semibold text-sm sm:text-base text-theme truncate">
                           {device.name}
                         </h3>
                         {isSelected && (
                           <Check className="w-4 h-4 text-accent flex-shrink-0" />
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-theme-muted">
+                      <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-theme-muted flex-wrap">
                         <span className={device.isOnline ? "text-success" : ""}>
                           {device.isOnline ? "Online" : "Offline"}
                         </span>
                         {device.firmwareVersion && (
                           <>
-                            <span>·</span>
-                            <span>v{device.firmwareVersion}</span>
+                            <span className="hidden sm:inline">·</span>
+                            <span className="hidden sm:inline">
+                              v{device.firmwareVersion}
+                            </span>
+                            <span className="sm:hidden text-xs">
+                              v{device.firmwareVersion}
+                            </span>
                           </>
                         )}
                       </div>
@@ -334,9 +312,9 @@ export function Machines() {
                         e.stopPropagation();
                         setDisconnectingDevice(device);
                       }}
-                      className="w-10 h-10 rounded-xl bg-error-soft hover:bg-red-200 dark:hover:bg-red-900/50 flex items-center justify-center text-error transition-colors flex-shrink-0"
+                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-error-soft hover:bg-red-200 dark:hover:bg-red-900/50 flex items-center justify-center text-error transition-colors flex-shrink-0"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   )}
                 </button>
@@ -346,67 +324,36 @@ export function Machines() {
         )}
       </main>
 
-      {/* Add Machine Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Add Machine</CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAddModal(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </CardHeader>
-
-            <div className="space-y-4">
-              <div className="bg-theme-secondary rounded-xl p-4 text-center">
-                <QrCode className="w-12 h-12 text-accent mx-auto mb-2" />
-                <p className="text-sm text-theme-secondary">
-                  Scan the QR code on your BrewOS display, or enter the code
-                  manually below.
-                </p>
-              </div>
-
-              <Input
-                label="Pairing Code"
-                placeholder="X6ST-AP3G"
-                value={claimCode}
-                onChange={(e) => setClaimCode(e.target.value.toUpperCase())}
-              />
-
-              <Input
-                label="Machine Name (optional)"
-                placeholder="Kitchen Espresso"
-                value={deviceName}
-                onChange={(e) => setDeviceName(e.target.value)}
-              />
-
-              {claimError && (
-                <p className="text-sm text-red-600">{claimError}</p>
-              )}
-
-              <div className="flex gap-3">
-                <Button
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => setShowAddModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1"
-                  onClick={handleClaim}
-                  loading={claiming}
-                  disabled={!claimCode}
-                >
+      {/* Add Machine Flow */}
+      {addMode && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] overflow-y-auto">
+            <Card className="animate-in zoom-in-95 duration-300 m-0">
+              <div className="flex items-center justify-between mb-4 pb-4 border-b border-theme/10">
+                <h2 className="text-xl sm:text-2xl font-bold text-theme">
                   Add Machine
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAddMode(false)}
+                  className="flex-shrink-0"
+                >
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
-            </div>
-          </Card>
+
+              <DeviceClaimFlow
+                onClose={() => setAddMode(false)}
+                onSuccess={() => {
+                  setAddMode(false);
+                }}
+                onClaim={handleClaim}
+                onClaimManual={handleClaimManual}
+                showTabs={true}
+              />
+            </Card>
+          </div>
         </div>
       )}
 

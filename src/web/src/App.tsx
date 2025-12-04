@@ -156,9 +156,13 @@ function App() {
       try {
         // In cloud mode, setupComplete is not applicable - always treat as complete
         // (FirstRunWizard is only for local ESP32 device setup)
+        // Also, don't initialize WebSocket in cloud mode - it will be initialized
+        // when needed (e.g., when viewing a machine dashboard)
         if (mode === "cloud") {
           setSetupComplete(true);
           setLoading(false);
+          // Disconnect any existing connection (in case mode changed)
+          getConnection()?.disconnect();
           return;
         }
 
@@ -413,6 +417,7 @@ function App() {
   }
 
   // Logged in with devices -> Full app
+  // NOTE: Onboarding is only accessible when devices.length === 0 (handled above)
   const selectedDevice = getSelectedDevice();
 
   return (
@@ -421,7 +426,6 @@ function App() {
         {/* Auth routes */}
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/pair" element={<Pair />} />
-        <Route path="/onboarding" element={<Onboarding />} />
 
         {/* Machine management */}
         <Route path="/machines" element={<Machines />} />
@@ -451,7 +455,7 @@ function App() {
         />
 
         {/* Default: redirect to machines */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/machines" replace />} />
       </Routes>
       <UpdateNotification />
       <FirmwareUpdateNotification />

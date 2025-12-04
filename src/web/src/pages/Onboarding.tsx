@@ -5,65 +5,70 @@ import {
   WelcomeStep,
   ScanStep,
   ManualStep,
+  MachineNameStep,
   SuccessStep,
 } from "@/components/onboarding";
 import { useAppStore } from "@/lib/mode";
+import { parseClaimCode } from "@/lib/claim-parser";
 
 export function Onboarding() {
   const navigate = useNavigate();
   const { claimDevice, fetchDevices } = useAppStore();
 
-  const [step, setStep] = useState<"welcome" | "scan" | "manual" | "success">(
+  const [step, setStep] = useState<"welcome" | "scan" | "manual" | "name" | "success">(
     "welcome"
   );
   const [claimCode, setClaimCode] = useState("");
   const [deviceName, setDeviceName] = useState("");
+  const [validating, setValidating] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [error, setError] = useState("");
+  const [previousStep, setPreviousStep] = useState<"scan" | "manual">("scan");
+  const [parsedCode, setParsedCode] = useState<{
+    deviceId?: string;
+    token?: string;
+    manualCode?: string;
+  } | null>(null);
 
-  const handleClaim = async (code?: string) => {
-    const codeToUse = code || claimCode;
-    if (!codeToUse) return;
+  // Validate the code first (without claiming)
+  const handleValidate = async () => {
+    if (!claimCode) return;
+
+    setValidating(true);
+    setError("");
+
+    try {
+      const parsed = parseClaimCode(claimCode);
+
+      if (parsed.manualCode || (parsed.deviceId && parsed.token)) {
+        // Code format is valid, move to name step
+        setParsedCode(parsed);
+        if (step === "scan" || step === "manual") {
+          setPreviousStep(step);
+        }
+        setStep("name");
+      } else {
+        setError("Invalid code format");
+      }
+    } catch {
+      setError("Invalid code format");
+    }
+
+    setValidating(false);
+  };
+
+  // Complete the claim with machine name
+  const handleClaim = async () => {
+    if (!parsedCode) return;
 
     setClaiming(true);
     setError("");
 
     try {
-      // Parse QR code URL or manual entry
-      let deviceId = "";
-      let token = "";
-      let manualCode = "";
-
-      if (codeToUse.includes("?")) {
-        // URL format
-        try {
-          const url = new URL(codeToUse);
-          deviceId = url.searchParams.get("id") || "";
-          token = url.searchParams.get("token") || "";
-        } catch {
-          // Try parsing as query string
-          const params = new URLSearchParams(codeToUse.split("?")[1]);
-          deviceId = params.get("id") || "";
-          token = params.get("token") || "";
-        }
-      } else if (codeToUse.includes(":")) {
-        // Legacy format: DEVICE_ID:TOKEN
-        const parts = codeToUse.split(":");
-        deviceId = parts[0];
-        token = parts[1] || "";
-      } else if (/^[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(codeToUse.trim())) {
-        // Short manual code format: X6ST-AP3G
-        manualCode = codeToUse.trim().toUpperCase();
-      } else {
-        setError("Invalid code format");
-        setClaiming(false);
-        return;
-      }
-
-      // If we have a manual code, use it directly (backend will resolve it)
-      if (manualCode) {
+      // Handle manual code format
+      if (parsedCode.manualCode) {
         const success = await claimDevice(
-          manualCode,
+          parsedCode.manualCode,
           "",
           deviceName || undefined
         );
@@ -73,32 +78,35 @@ export function Onboarding() {
           setTimeout(() => navigate("/"), 2000);
         } else {
           setError("Invalid or expired code");
+          setStep(previousStep);
         }
         setClaiming(false);
         return;
       }
 
-      if (!deviceId || !token) {
-        setError("Invalid code format");
-        setClaiming(false);
-        return;
-      }
+      // Handle deviceId + token format
+      if (parsedCode.deviceId && parsedCode.token) {
+        const success = await claimDevice(
+          parsedCode.deviceId,
+          parsedCode.token,
+          deviceName || undefined
+        );
 
-      const success = await claimDevice(
-        deviceId,
-        token,
-        deviceName || undefined
-      );
-
-      if (success) {
-        setStep("success");
-        await fetchDevices();
-        setTimeout(() => navigate("/"), 2000);
+        if (success) {
+          setStep("success");
+          await fetchDevices();
+          setTimeout(() => navigate("/"), 2000);
+        } else {
+          setError("Failed to add device. The code may have expired.");
+          setStep(previousStep);
+        }
       } else {
-        setError("Failed to add device. The code may have expired.");
+        setError("Invalid code format");
+        setStep(previousStep);
       }
     } catch {
       setError("An error occurred");
+      setStep(previousStep);
     }
 
     setClaiming(false);
@@ -126,8 +134,6 @@ export function Onboarding() {
           {step === "scan" && (
             <Card className="animate-in fade-in slide-in-from-right-4 duration-300">
               <ScanStep
-                deviceName={deviceName}
-                onDeviceNameChange={setDeviceName}
                 onScan={(result) => {
                   setClaimCode(result);
                   setError(""); // Clear any previous errors
@@ -141,9 +147,9 @@ export function Onboarding() {
                   setError("");
                   setClaimCode("");
                 }}
-                onAdd={() => handleClaim()}
-                disabled={!claimCode || claiming}
-                loading={claiming}
+                onValidate={handleValidate}
+                disabled={!claimCode || validating}
+                loading={validating}
               />
             </Card>
           )}
@@ -152,16 +158,29 @@ export function Onboarding() {
             <Card className="animate-in fade-in slide-in-from-right-4 duration-300">
               <ManualStep
                 claimCode={claimCode}
-                deviceName={deviceName}
                 onClaimCodeChange={setClaimCode}
-                onDeviceNameChange={setDeviceName}
                 error={error}
                 onBack={() => {
                   setStep("welcome");
                   setError("");
                 }}
-                onAdd={() => handleClaim()}
-                disabled={!claimCode}
+                onValidate={handleValidate}
+                disabled={!claimCode || validating}
+                loading={validating}
+              />
+            </Card>
+          )}
+
+          {step === "name" && (
+            <Card className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <MachineNameStep
+                deviceName={deviceName}
+                onDeviceNameChange={setDeviceName}
+                onBack={() => {
+                  setStep(previousStep);
+                  setError("");
+                }}
+                onContinue={handleClaim}
                 loading={claiming}
               />
             </Card>
@@ -177,3 +196,4 @@ export function Onboarding() {
     </div>
   );
 }
+

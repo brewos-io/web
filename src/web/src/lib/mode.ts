@@ -82,14 +82,17 @@ async function fetchModeFromServer(): Promise<{
     const infoResponse = await fetchWithTimeout("/api/info");
     if (infoResponse.ok) {
       const info = (await infoResponse.json()) as BackendInfo;
+      const detectedMode = info.mode === "cloud" ? "cloud" : "local";
+      console.log(`[Mode] Detected mode from /api/info: ${detectedMode}`);
       return {
-        mode: info.mode === "cloud" ? "cloud" : "local",
+        mode: detectedMode,
         apMode: (info as { apMode?: boolean }).apMode,
         backendInfo: info,
       };
     }
-  } catch {
+  } catch (error) {
     // /api/info not available, try fallback
+    console.log(`[Mode] /api/info failed:`, error);
   }
 
   // Fallback to /api/mode (for backward compatibility with older firmware)
@@ -97,14 +100,28 @@ async function fetchModeFromServer(): Promise<{
     const response = await fetchWithTimeout("/api/mode");
     if (response.ok) {
       const data = await response.json();
+      const detectedMode = data.mode === "cloud" ? "cloud" : "local";
+      console.log(`[Mode] Detected mode from /api/mode: ${detectedMode}`);
       return {
-        mode: data.mode === "cloud" ? "cloud" : "local",
+        mode: detectedMode,
         apMode: data.apMode,
       };
     }
-  } catch {
-    // If fetch fails, default to local (ESP32 might be in AP mode with no network)
+  } catch (error) {
+    console.log(`[Mode] /api/mode failed:`, error);
   }
+  
+  // If all API calls fail, check if we're running in dev mode (localhost)
+  // In dev mode without backend, default to cloud mode (for testing UI)
+  if (typeof window !== "undefined" && 
+      (window.location.hostname === "localhost" || 
+       window.location.hostname === "127.0.0.1" ||
+       window.location.hostname.startsWith("127."))) {
+    console.log("[Mode] Running on localhost, defaulting to cloud mode (no backend detected)");
+    return { mode: "cloud", apMode: false };
+  }
+  // Otherwise default to local (ESP32 might be in AP mode with no network)
+  console.log("[Mode] All API calls failed, defaulting to local mode");
   return { mode: "local", apMode: false };
 }
 

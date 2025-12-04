@@ -1,6 +1,12 @@
 import { Button } from "@/components/Button";
 import { Logo } from "@/components/Logo";
-import { QrCode, Sparkles, ArrowRight, Coffee, Wifi } from "lucide-react";
+import {
+  QrCode,
+  Sparkles,
+  ArrowRight,
+  Smartphone,
+  CheckCircle,
+} from "lucide-react";
 
 interface WelcomeStepProps {
   onScanClick?: () => void;
@@ -10,19 +16,19 @@ interface WelcomeStepProps {
 export function WelcomeStep({ onScanClick, onManualClick }: WelcomeStepProps) {
   const steps = [
     {
-      icon: Wifi,
-      title: "Connect to WiFi",
-      description: "Same network",
-    },
-    {
       icon: QrCode,
-      title: "Scan QR Code",
-      description: "On display",
+      title: "Get Code",
+      description: "From machine display",
     },
     {
-      icon: Coffee,
-      title: "Start Brewing",
-      description: "Control anywhere",
+      icon: Smartphone,
+      title: "Scan or Enter",
+      description: "QR code or manual",
+    },
+    {
+      icon: CheckCircle,
+      title: "Add Machine",
+      description: "Control remotely",
     },
   ];
 
@@ -73,7 +79,7 @@ export function WelcomeStep({ onScanClick, onManualClick }: WelcomeStepProps) {
         </div>
 
         <button
-          className="w-full py-3 text-theme-muted hover:text-theme transition-colors duration-200 font-medium"
+          className="w-full py-3 text-theme-muted hover:text-theme transition-colors duration-200 font-medium flex items-center justify-center"
           onClick={onManualClick}
         >
           Enter code manually

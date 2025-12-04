@@ -4,24 +4,20 @@ import { ArrowRight, KeyRound, AlertCircle, Info } from "lucide-react";
 
 interface ManualStepProps {
   claimCode?: string;
-  deviceName?: string;
   onClaimCodeChange?: (code: string) => void;
-  onDeviceNameChange?: (name: string) => void;
   error?: string;
   onBack?: () => void;
-  onAdd?: () => void;
+  onValidate?: () => void;
   disabled?: boolean;
   loading?: boolean;
 }
 
 export function ManualStep({
   claimCode,
-  deviceName,
   onClaimCodeChange,
-  onDeviceNameChange,
   error,
   onBack,
-  onAdd,
+  onValidate,
   disabled = false,
   loading = false,
 }: ManualStepProps) {
@@ -77,39 +73,30 @@ export function ManualStep({
           )}
         </div>
 
-        <Input
-          label="Machine Name (optional)"
-          placeholder="e.g., Kitchen Espresso"
-          value={deviceName}
-          onChange={(e) => onDeviceNameChange?.(e.target.value)}
-          hint="Give your machine a friendly name"
-        />
-
-        {/* Error message */}
+        {/* Error message - compact */}
         {error && (
-          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 animate-in fade-in slide-in-from-top-2">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-red-500 mb-1">Invalid Code</p>
-                <p className="text-xs text-theme-muted">{error}</p>
-              </div>
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <p className="text-xs sm:text-sm text-red-500">{error}</p>
             </div>
           </div>
         )}
 
         {/* Action buttons */}
         <div className="flex gap-3 pt-2">
-          <Button variant="secondary" className="flex-1" onClick={onBack}>
-            Back
-          </Button>
+          {onBack && (
+            <Button variant="secondary" className="flex-1" onClick={onBack}>
+              Back
+            </Button>
+          )}
           <Button
-            className="flex-1 font-semibold"
-            onClick={onAdd}
+            className={onBack ? "flex-1 font-semibold" : "w-full font-semibold"}
+            onClick={onValidate}
             disabled={disabled || !isValidCode}
             loading={loading}
           >
-            {loading ? "Adding..." : "Add Machine"}
+            {loading ? "Validating..." : "Continue"}
             <ArrowRight className="w-4 h-4" />
           </Button>
         </div>

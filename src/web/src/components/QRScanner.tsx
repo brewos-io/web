@@ -111,6 +111,58 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
     };
   }, []);
 
+  // Style the scanning box after it's created by the library
+  useEffect(() => {
+    if (!isScanning) return;
+
+    const styleScanningBox = () => {
+      // The library creates the scanning box dynamically
+      // Try multiple selectors to find it
+      const scanRegion = document.getElementById("qr-reader__scan_region");
+      if (!scanRegion) return;
+
+      // Find the scanning box div (usually the first absolutely positioned div)
+      const scanningBox = scanRegion.querySelector<HTMLElement>(
+        'div[style*="position"][style*="absolute"]'
+      );
+      
+      if (scanningBox) {
+        // Apply our custom styling
+        scanningBox.style.border = "2px dashed var(--accent)";
+        scanningBox.style.borderColor = "var(--accent)";
+        scanningBox.style.opacity = "0.6";
+        scanningBox.style.borderRadius = "1rem";
+        scanningBox.style.boxShadow = "0 0 0 2px rgba(196, 112, 60, 0.1)";
+      }
+
+      // Also style SVG elements if present
+      const svgElements = scanRegion.querySelectorAll<SVGElement>("svg rect, svg path");
+      svgElements.forEach((el) => {
+        el.style.stroke = "var(--accent)";
+        el.style.strokeWidth = "2";
+        el.style.strokeDasharray = "8 4";
+        el.style.opacity = "0.7";
+        el.style.fill = "none";
+      });
+    };
+
+    // Try to style immediately and also after a short delay
+    styleScanningBox();
+    const timeout = setTimeout(styleScanningBox, 500);
+
+    // Also watch for DOM changes
+    const observer = new MutationObserver(styleScanningBox);
+    const scanRegion = document.getElementById("qr-reader__scan_region");
+    if (scanRegion) {
+      observer.observe(scanRegion, { childList: true, subtree: true });
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      observer.disconnect();
+    };
+  }, [isScanning]);
+
   return (
     <div className="w-full" ref={containerRef}>
       {/* Scanner container */}
@@ -120,15 +172,19 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
         style={{ minHeight: "280px" }}
       />
 
-      {/* Error state */}
+      {/* Error state - compact */}
       {error && (
-        <div className="mt-4 p-4 bg-error-soft border border-error rounded-xl text-center">
-          <CameraOff className="w-8 h-8 text-error mx-auto mb-2" />
-          <p className="text-sm text-error mb-3">{error}</p>
-          <Button variant="secondary" size="sm" onClick={startScanner}>
-            <RefreshCw className="w-4 h-4" />
-            Try Again
-          </Button>
+        <div className="mt-3 p-3 bg-error-soft border border-error rounded-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <CameraOff className="w-4 h-4 text-error flex-shrink-0" />
+              <p className="text-xs sm:text-sm text-error truncate">{error}</p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={startScanner} className="flex-shrink-0">
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Retry</span>
+            </Button>
+          </div>
         </div>
       )}
 
