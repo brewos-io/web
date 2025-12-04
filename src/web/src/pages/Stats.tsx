@@ -82,13 +82,13 @@ export function Stats() {
       generateWeeklyEstimate();
     }
     setLoading(false);
-  }, []);
+  }, [generateWeeklyEstimate]);
 
   useEffect(() => {
     fetchExtendedStats();
   }, [fetchExtendedStats]);
 
-  const generateWeeklyEstimate = () => {
+  const generateWeeklyEstimate = useCallback(() => {
     const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
     const avgPerDay = stats.weeklyCount > 0 ? Math.round(stats.weeklyCount / 7) : 0;
     const weekly = days.map((day, index) => {
@@ -100,7 +100,7 @@ export function Stats() {
       };
     });
     setWeeklyData(weekly);
-  };
+  }, [stats.weeklyCount, stats.shotsToday]);
 
   const markCleaning = (type: "backflush" | "descale") => {
     const typeLabels = {

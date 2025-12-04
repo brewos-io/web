@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Html5Qrcode, Html5QrcodeScannerState } from 'html5-qrcode';
 import { Camera, CameraOff, RefreshCw } from 'lucide-react';
 import { Button } from './Button';
@@ -15,7 +15,7 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const startScanner = async () => {
+  const startScanner = useCallback(async () => {
     if (!containerRef.current) return;
 
     setError(null);
@@ -64,7 +64,7 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
       
       onError?.(errorMessage);
     }
-  };
+  }, [onScan, onError]);
 
   const stopScanner = async () => {
     if (scannerRef.current) {
@@ -89,7 +89,7 @@ export function QRScanner({ onScan, onError }: QRScannerProps) {
       clearTimeout(timer);
       stopScanner();
     };
-  }, []);
+  }, [startScanner]);
 
   // Cleanup on unmount
   useEffect(() => {

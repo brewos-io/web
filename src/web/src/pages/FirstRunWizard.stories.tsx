@@ -63,235 +63,253 @@ export const Welcome: Story = {
   ),
 };
 
+function MachineSelectionComponent() {
+  const [name, setName] = useState("");
+  const [machineId, setMachineId] = useState("");
+  const [errors] = useState<Record<string, string>>({});
+  return (
+    <WizardStepWrapper currentStep={1} steps={WIZARD_STEPS}>
+      <MachineStep
+        machineName={name}
+        selectedMachineId={machineId}
+        errors={errors}
+        onMachineNameChange={setName}
+        onMachineIdChange={setMachineId}
+      />
+    </WizardStepWrapper>
+  );
+}
+
 export const MachineSelection: Story = {
-  render: () => {
-    const [name, setName] = useState("");
-    const [machineId, setMachineId] = useState("");
-    const [errors] = useState<Record<string, string>>({});
-    return (
-      <WizardStepWrapper currentStep={1} steps={WIZARD_STEPS}>
-        <MachineStep
-          machineName={name}
-          selectedMachineId={machineId}
-          errors={errors}
-          onMachineNameChange={setName}
-          onMachineIdChange={setMachineId}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <MachineSelectionComponent />,
 };
+
+function MachineSelectedComponent() {
+  const [name, setName] = useState("My Bianca");
+  const [machineId, setMachineId] = useState("lelit_bianca");
+  const [errors] = useState<Record<string, string>>({});
+  return (
+    <WizardStepWrapper currentStep={1} steps={WIZARD_STEPS}>
+      <MachineStep
+        machineName={name}
+        selectedMachineId={machineId}
+        errors={errors}
+        onMachineNameChange={setName}
+        onMachineIdChange={setMachineId}
+      />
+    </WizardStepWrapper>
+  );
+}
 
 export const MachineSelected: Story = {
-  render: () => {
-    const [name, setName] = useState("My Bianca");
-    const [machineId, setMachineId] = useState("lelit_bianca");
-    const [errors] = useState<Record<string, string>>({});
-    return (
-      <WizardStepWrapper currentStep={1} steps={WIZARD_STEPS}>
-        <MachineStep
-          machineName={name}
-          selectedMachineId={machineId}
-          errors={errors}
-          onMachineNameChange={setName}
-          onMachineIdChange={setMachineId}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <MachineSelectedComponent />,
 };
+
+function PowerSettingsComponent() {
+  const [voltage, setVoltage] = useState(220);
+  const [current, setCurrent] = useState(13);
+  const [errors] = useState<Record<string, string>>({});
+  return (
+    <WizardStepWrapper currentStep={2} steps={WIZARD_STEPS}>
+      <EnvironmentStep
+        voltage={voltage}
+        maxCurrent={current}
+        errors={errors}
+        onVoltageChange={setVoltage}
+        onMaxCurrentChange={setCurrent}
+      />
+    </WizardStepWrapper>
+  );
+}
 
 export const PowerSettings: Story = {
-  render: () => {
-    const [voltage, setVoltage] = useState(220);
-    const [current, setCurrent] = useState(13);
-    const [errors] = useState<Record<string, string>>({});
-    return (
-      <WizardStepWrapper currentStep={2} steps={WIZARD_STEPS}>
-        <EnvironmentStep
-          voltage={voltage}
-          maxCurrent={current}
-          errors={errors}
-          onVoltageChange={setVoltage}
-          onMaxCurrentChange={setCurrent}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <PowerSettingsComponent />,
 };
+
+function PowerSettingsUSComponent() {
+  const [voltage, setVoltage] = useState(110);
+  const [current, setCurrent] = useState(15);
+  const [errors] = useState<Record<string, string>>({});
+  return (
+    <WizardStepWrapper currentStep={2} steps={WIZARD_STEPS}>
+      <EnvironmentStep
+        voltage={voltage}
+        maxCurrent={current}
+        errors={errors}
+        onVoltageChange={setVoltage}
+        onMaxCurrentChange={setCurrent}
+      />
+    </WizardStepWrapper>
+  );
+}
 
 export const PowerSettingsUS: Story = {
-  render: () => {
-    const [voltage, setVoltage] = useState(110);
-    const [current, setCurrent] = useState(15);
-    const [errors] = useState<Record<string, string>>({});
-    return (
-      <WizardStepWrapper currentStep={2} steps={WIZARD_STEPS}>
-        <EnvironmentStep
-          voltage={voltage}
-          maxCurrent={current}
-          errors={errors}
-          onVoltageChange={setVoltage}
-          onMaxCurrentChange={setCurrent}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <PowerSettingsUSComponent />,
 };
+
+function CloudSetupComponent() {
+  const [enabled, setEnabled] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <WizardStepWrapper
+      currentStep={3}
+      steps={WIZARD_STEPS}
+      nextLabel="Continue"
+    >
+      <CloudStep
+        pairing={enabled ? mockPairing : null}
+        loading={false}
+        copied={copied}
+        cloudEnabled={enabled}
+        cloudConnected={false}
+        checkingStatus={false}
+        error={undefined}
+        onCopy={handleCopy}
+        onSkip={() => setEnabled(false)}
+        onCloudEnabledChange={setEnabled}
+      />
+    </WizardStepWrapper>
+  );
+}
 
 export const CloudSetup: Story = {
-  render: () => {
-    const [enabled, setEnabled] = useState(true);
-    const [copied, setCopied] = useState(false);
-    const handleCopy = () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-    return (
-      <WizardStepWrapper
-        currentStep={3}
-        steps={WIZARD_STEPS}
-        nextLabel="Continue"
-      >
-        <CloudStep
-          pairing={enabled ? mockPairing : null}
-          loading={false}
-          copied={copied}
-          cloudEnabled={enabled}
-          cloudConnected={false}
-          checkingStatus={false}
-          error={undefined}
-          onCopy={handleCopy}
-          onSkip={() => setEnabled(false)}
-          onCloudEnabledChange={setEnabled}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <CloudSetupComponent />,
 };
+
+function CloudCheckingStatusComponent() {
+  const [enabled, setEnabled] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <WizardStepWrapper
+      currentStep={3}
+      steps={WIZARD_STEPS}
+      nextLabel="Continue"
+    >
+      <CloudStep
+        pairing={enabled ? mockPairing : null}
+        loading={false}
+        copied={copied}
+        cloudEnabled={enabled}
+        cloudConnected={false}
+        checkingStatus={true}
+        error={undefined}
+        onCopy={handleCopy}
+        onSkip={() => setEnabled(false)}
+        onCloudEnabledChange={setEnabled}
+      />
+    </WizardStepWrapper>
+  );
+}
 
 export const CloudCheckingStatus: Story = {
-  render: () => {
-    const [enabled, setEnabled] = useState(true);
-    const [copied, setCopied] = useState(false);
-    const handleCopy = () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-    return (
-      <WizardStepWrapper
-        currentStep={3}
-        steps={WIZARD_STEPS}
-        nextLabel="Continue"
-      >
-        <CloudStep
-          pairing={enabled ? mockPairing : null}
-          loading={false}
-          copied={copied}
-          cloudEnabled={enabled}
-          cloudConnected={false}
-          checkingStatus={true}
-          error={undefined}
-          onCopy={handleCopy}
-          onSkip={() => setEnabled(false)}
-          onCloudEnabledChange={setEnabled}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <CloudCheckingStatusComponent />,
 };
+
+function CloudNotConnectedComponent() {
+  const [enabled, setEnabled] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <WizardStepWrapper
+      currentStep={3}
+      steps={WIZARD_STEPS}
+      nextLabel="Continue"
+    >
+      <CloudStep
+        pairing={enabled ? mockPairing : null}
+        loading={false}
+        copied={copied}
+        cloudEnabled={enabled}
+        cloudConnected={false}
+        checkingStatus={false}
+        error="Failed to connect to cloud server."
+        onCopy={handleCopy}
+        onSkip={() => setEnabled(false)}
+        onCloudEnabledChange={setEnabled}
+      />
+    </WizardStepWrapper>
+  );
+}
 
 export const CloudNotConnected: Story = {
-  render: () => {
-    const [enabled, setEnabled] = useState(true);
-    const [copied, setCopied] = useState(false);
-    const handleCopy = () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-    return (
-      <WizardStepWrapper
-        currentStep={3}
-        steps={WIZARD_STEPS}
-        nextLabel="Continue"
-      >
-        <CloudStep
-          pairing={enabled ? mockPairing : null}
-          loading={false}
-          copied={copied}
-          cloudEnabled={enabled}
-          cloudConnected={false}
-          checkingStatus={false}
-          error="Failed to connect to cloud server."
-          onCopy={handleCopy}
-          onSkip={() => setEnabled(false)}
-          onCloudEnabledChange={setEnabled}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <CloudNotConnectedComponent />,
 };
+
+function CloudConnectedComponent() {
+  const [enabled, setEnabled] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <WizardStepWrapper
+      currentStep={3}
+      steps={WIZARD_STEPS}
+      nextLabel="Continue"
+    >
+      <CloudStep
+        pairing={enabled ? mockPairing : null}
+        loading={false}
+        copied={copied}
+        cloudEnabled={enabled}
+        cloudConnected={true}
+        checkingStatus={false}
+        error={undefined}
+        onCopy={handleCopy}
+        onSkip={() => setEnabled(false)}
+        onCloudEnabledChange={setEnabled}
+      />
+    </WizardStepWrapper>
+  );
+}
 
 export const CloudConnected: Story = {
-  render: () => {
-    const [enabled, setEnabled] = useState(true);
-    const [copied, setCopied] = useState(false);
-    const handleCopy = () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-    return (
-      <WizardStepWrapper
-        currentStep={3}
-        steps={WIZARD_STEPS}
-        nextLabel="Continue"
-      >
-        <CloudStep
-          pairing={enabled ? mockPairing : null}
-          loading={false}
-          copied={copied}
-          cloudEnabled={enabled}
-          cloudConnected={true}
-          checkingStatus={false}
-          error={undefined}
-          onCopy={handleCopy}
-          onSkip={() => setEnabled(false)}
-          onCloudEnabledChange={setEnabled}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <CloudConnectedComponent />,
 };
 
+function CloudDisabledComponent() {
+  const [enabled, setEnabled] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <WizardStepWrapper
+      currentStep={3}
+      steps={WIZARD_STEPS}
+      nextLabel="Continue"
+    >
+      <CloudStep
+        pairing={null}
+        loading={false}
+        copied={copied}
+        cloudEnabled={enabled}
+        cloudConnected={false}
+        checkingStatus={false}
+        error={undefined}
+        onCopy={handleCopy}
+        onSkip={() => setEnabled(false)}
+        onCloudEnabledChange={setEnabled}
+      />
+    </WizardStepWrapper>
+  );
+}
+
 export const CloudDisabled: Story = {
-  render: () => {
-    const [enabled, setEnabled] = useState(false);
-    const [copied, setCopied] = useState(false);
-    const handleCopy = () => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    };
-    return (
-      <WizardStepWrapper
-        currentStep={3}
-        steps={WIZARD_STEPS}
-        nextLabel="Continue"
-      >
-        <CloudStep
-          pairing={null}
-          loading={false}
-          copied={copied}
-          cloudEnabled={enabled}
-          cloudConnected={false}
-          checkingStatus={false}
-          error={undefined}
-          onCopy={handleCopy}
-          onSkip={() => setEnabled(false)}
-          onCloudEnabledChange={setEnabled}
-        />
-      </WizardStepWrapper>
-    );
-  },
+  render: () => <CloudDisabledComponent />,
 };
 
 export const Done: Story = {

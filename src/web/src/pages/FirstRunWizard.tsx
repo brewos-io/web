@@ -26,7 +26,11 @@ import {
 
 const STEPS: WizardStep[] = [
   { id: "welcome", title: "Welcome", icon: <Coffee className="w-5 h-5" /> },
-  { id: "machine", title: "Your Machine", icon: <Settings className="w-5 h-5" /> },
+  {
+    id: "machine",
+    title: "Your Machine",
+    icon: <Settings className="w-5 h-5" />,
+  },
   { id: "environment", title: "Power", icon: <Zap className="w-5 h-5" /> },
   { id: "cloud", title: "Cloud Access", icon: <Cloud className="w-5 h-5" /> },
   { id: "done", title: "All Set!", icon: <Check className="w-5 h-5" /> },
@@ -73,18 +77,17 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
       if (cloudEnabled) {
         fetchPairingQR();
         checkCloudStatus();
-        
+
         // Poll cloud status every 3 seconds to detect when pairing completes
         const interval = setInterval(() => {
           checkCloudStatus();
         }, 3000);
-        
+
         return () => clearInterval(interval);
       } else {
         setCloudConnected(false);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, cloudEnabled]);
 
   const checkCloudStatus = async () => {
@@ -153,14 +156,15 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
 
   const validateCloudStep = (): boolean => {
     const newErrors: Record<string, string> = {};
-    
+
     // If cloud is enabled, check if it's connected/paired
     if (cloudEnabled && !cloudConnected && !checkingCloudStatus) {
       // Allow continuing but show a warning - pairing can be completed later
       // This is just informational, not blocking
-      newErrors.cloudNotPaired = "Cloud is enabled but not yet paired. You can complete pairing later in Settings.";
+      newErrors.cloudNotPaired =
+        "Cloud is enabled but not yet paired. You can complete pairing later in Settings.";
     }
-    
+
     setErrors(newErrors);
     // Don't block progression - just show warning
     return true;
