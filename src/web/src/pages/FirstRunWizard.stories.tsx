@@ -12,7 +12,7 @@ import type { PairingData } from "@/components/wizard/types";
 import { Coffee, Settings, Cloud, Check, Zap } from "lucide-react";
 
 // Wrapper component for stories
-function WizardStoryWrapper({ children }: { children: React.ReactNode }) {
+function WizardStoryWrapper({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
 

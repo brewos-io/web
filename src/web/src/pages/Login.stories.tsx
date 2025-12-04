@@ -7,7 +7,7 @@ import { AlertCircle } from "lucide-react";
 // that show the different visual states of the login page
 
 // Wrapper component for stories
-function LoginStoryWrapper({ children }: { children: React.ReactNode }) {
+function LoginStoryWrapper({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
 

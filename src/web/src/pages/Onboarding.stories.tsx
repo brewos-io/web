@@ -9,7 +9,7 @@ import {
 } from "@/components/onboarding";
 
 // Wrapper component for stories
-function OnboardingStoryWrapper({ children }: { children: React.ReactNode }) {
+function OnboardingStoryWrapper({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
 

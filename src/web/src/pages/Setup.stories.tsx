@@ -9,7 +9,7 @@ import {
 } from "@/components/setup";
 
 // Wrapper component for stories
-function SetupStoryWrapper({ children }: { children: React.ReactNode }) {
+function SetupStoryWrapper({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
 

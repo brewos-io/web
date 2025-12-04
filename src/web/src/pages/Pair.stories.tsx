@@ -6,7 +6,7 @@ import { Logo } from "@/components/Logo";
 import { Check, X, Loader2 } from "lucide-react";
 
 // Wrapper component for stories
-function PairStoryWrapper({ children }: { children: React.ReactNode }) {
+function PairStoryWrapper({ children }: { children?: React.ReactNode }) {
   return <>{children}</>;
 }
 
