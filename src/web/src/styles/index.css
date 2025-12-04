@@ -552,6 +552,109 @@ input[type="checkbox"]:hover:not(:checked) {
   animation: float 2s ease-in-out infinite;
 }
 
+/* Login Page Animations */
+@keyframes login-float {
+  0%, 100% {
+    transform: translateY(0) translateX(0);
+  }
+  33% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  66% {
+    transform: translateY(10px) translateX(-5px);
+  }
+}
+
+@keyframes login-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes login-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes login-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes login-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.login-orb {
+  animation: login-float 8s ease-in-out infinite;
+}
+
+.login-orb-slow {
+  animation: login-float 10s ease-in-out 2s infinite;
+}
+
+.login-orb-slower {
+  animation: login-float 12s ease-in-out 4s infinite;
+}
+
+.login-hero-content {
+  animation: login-slide-left 0.8s ease-out 0.1s both;
+}
+
+.login-card-enter {
+  animation: login-slide-right 0.8s ease-out 0.2s both;
+}
+
+.login-google-btn {
+  animation: login-slide-up 0.6s ease-out 0.5s both;
+}
+
+.login-feature-1 {
+  animation: login-slide-up 0.6s ease-out 0.6s both;
+}
+
+.login-feature-2 {
+  animation: login-slide-up 0.6s ease-out 0.8s both;
+}
+
+.login-feature-3 {
+  animation: login-slide-up 0.6s ease-out 1.0s both;
+}
+
+.login-tagline {
+  animation: login-slide-up 0.6s ease-out 1.2s both;
+}
+
+.login-footer {
+  animation: login-fade-in 0.6s ease-out 0.8s both;
+}
+
+.login-error {
+  animation: login-slide-up 0.3s ease-out both;
+}
+
 /* Slide up animation for modals */
 @keyframes slide-up {
   from {

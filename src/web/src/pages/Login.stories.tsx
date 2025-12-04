@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { Card } from "@/components/Card";
-import { Logo } from "@/components/Logo";
-import { AlertCircle } from "lucide-react";
+import { LogoIcon } from "@/components/Logo";
+import { ChevronRight } from "lucide-react";
+import { LoginHero, LoginForm } from "@/components/login";
 
 // Since Login uses auth context and navigation, we create presentational stories
-// that show the different visual states of the login page
+// that show the different visual states of the login page using the shared components
 
 // Wrapper component for stories
 function LoginStoryWrapper({ children }: { children?: React.ReactNode }) {
@@ -23,103 +23,144 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Cloud login view
-function LoginView({ error }: { error?: string }) {
+// Full desktop login view using shared components
+function LoginDesktopView({ error }: { error?: string }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-coffee-800 to-coffee-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <Logo size="lg" />
-          </div>
-          <h1 className="text-2xl font-bold text-theme">Welcome to BrewOS</h1>
-          <p className="text-theme-muted mt-2">
-            Sign in to manage your espresso machines from anywhere
-          </p>
-        </div>
+    <div className="min-h-screen flex overflow-hidden">
+      {/* Left Panel - Hero Section */}
+      <LoginHero animated={false} />
 
-        {error && (
-          <div className="mb-4 p-3 rounded-lg flex items-center gap-2 bg-error-soft border border-error text-error">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span className="text-sm">{error}</span>
-          </div>
-        )}
+      {/* Right Panel - Login Form */}
+      <div className="w-full lg:w-1/2 xl:w-[45%] flex items-center justify-center bg-theme p-6 sm:p-8 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-accent/5 to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-accent/5 to-transparent rounded-full blur-3xl" />
 
-        <div className="space-y-4">
-          <div className="flex justify-center">
-            {/* Mock Google Login Button */}
-            <button className="flex items-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              <span className="text-gray-700 font-medium">Continue with Google</span>
-            </button>
-          </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-theme"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-[var(--card-bg)] text-theme-muted">or</span>
-            </div>
-          </div>
-
-          <p className="text-center text-sm text-theme-muted">
-            Connect locally at{" "}
-            <a href="#" className="text-accent hover:underline">
-              brewos.local
-            </a>
-          </p>
-        </div>
-      </Card>
+        <LoginForm error={error} animated={false} />
+      </div>
     </div>
   );
 }
 
-// Unconfigured view
+// Mobile login view using shared components
+function LoginMobileView({ error }: { error?: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-theme p-6 relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-accent/5 to-transparent rounded-full blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-accent/5 to-transparent rounded-full blur-3xl" />
+
+      <LoginForm error={error} animated={false} showMobileLogo />
+    </div>
+  );
+}
+
+// Unconfigured view (cloud not configured)
 function LoginUnconfiguredView() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-coffee-800 to-coffee-900 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md text-center">
-        <div className="flex justify-center mb-4">
-          <Logo size="lg" />
+      <div className="w-full max-w-md text-center p-8 rounded-3xl bg-white/5 backdrop-blur-xl border border-white/10">
+        <div className="flex justify-center mb-6">
+          <LogoIcon size="xl" />
         </div>
-        <p className="text-coffee-500">
-          Cloud features are not configured. Connect directly to your device at{" "}
-          <a href="#" className="text-accent hover:underline">
-            brewos.local
-          </a>
+        <h1 className="text-2xl font-bold text-white mb-3">Connect Locally</h1>
+        <p className="text-white/60 mb-6">
+          Cloud features are not configured. Connect directly to your device.
         </p>
-      </Card>
+        <a
+          href="#"
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-accent text-white font-semibold hover:bg-accent-light transition-all duration-300 shadow-lg shadow-accent/30"
+        >
+          Go to brewos.local
+          <ChevronRight className="w-4 h-4" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
+// Hero section only (for component documentation)
+function HeroOnly() {
+  return (
+    <div className="min-h-screen flex">
+      <LoginHero animated={false} />
+      <div className="hidden lg:flex lg:w-1/2 xl:w-[45%] bg-theme items-center justify-center">
+        <p className="text-theme-muted">Login form would appear here</p>
+      </div>
+    </div>
+  );
+}
+
+// Form only (for component documentation)
+function FormOnlyView({ error }: { error?: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-theme p-6">
+      <LoginForm error={error} animated={false} showMobileLogo={false} />
     </div>
   );
 }
 
 export const Default: Story = {
-  render: () => <LoginView />,
+  render: () => <LoginDesktopView />,
 };
 
 export const WithError: Story = {
-  render: () => <LoginView error="Authentication failed. Please try again." />,
+  render: () => (
+    <LoginDesktopView error="Authentication failed. Please try again." />
+  ),
+};
+
+export const MobileView: Story = {
+  render: () => <LoginMobileView />,
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
+};
+
+export const MobileViewWithError: Story = {
+  render: () => (
+    <LoginMobileView error="Invalid credentials. Please try again." />
+  ),
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
 };
 
 export const CloudNotConfigured: Story = {
   render: () => <LoginUnconfiguredView />,
 };
 
+export const HeroSectionOnly: Story = {
+  render: () => <HeroOnly />,
+  parameters: {
+    docs: {
+      description: {
+        story: "The hero section displayed on desktop screens",
+      },
+    },
+  },
+};
+
+export const FormOnly: Story = {
+  render: () => <FormOnlyView />,
+  parameters: {
+    docs: {
+      description: {
+        story: "The login form component in isolation",
+      },
+    },
+  },
+};
+
+export const FormWithError: Story = {
+  render: () => <FormOnlyView error="Session expired. Please sign in again." />,
+  parameters: {
+    docs: {
+      description: {
+        story: "The login form showing an error state",
+      },
+    },
+  },
+};
