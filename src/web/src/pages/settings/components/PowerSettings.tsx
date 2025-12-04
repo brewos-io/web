@@ -266,7 +266,7 @@ export function PowerSettings() {
                 value={maxCurrent}
                 onChange={(e) => setMaxCurrent(parseInt(e.target.value) || 10)}
                 unit="A"
-                hint="10A (AU), 13A (UK/IE), 15-20A (US/CA), 16A (EU)"
+                hint="10A (AU), 13A (UK/Ireland), 15-20A (US/Canada), 16A (EU)"
               />
             </div>
 
