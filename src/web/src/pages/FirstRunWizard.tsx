@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card } from "@/components/Card";
 import { Button } from "@/components/Button";
 import { useCommand } from "@/lib/useCommand";
@@ -71,6 +71,37 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
     [selectedMachineId]
   );
 
+  const checkCloudStatus = useCallback(async () => {
+    setCheckingCloudStatus(true);
+    try {
+      const response = await fetch("/api/cloud/status");
+      if (response.ok) {
+        const data = await response.json();
+        setCloudConnected(data.connected || false);
+      } else {
+        setCloudConnected(false);
+      }
+    } catch {
+      // Device might not support cloud status endpoint yet
+      setCloudConnected(false);
+    }
+    setCheckingCloudStatus(false);
+  }, []);
+
+  const fetchPairingQR = useCallback(async () => {
+    setLoadingQR(true);
+    try {
+      const response = await fetch("/api/pairing/qr");
+      if (response.ok) {
+        const data = await response.json();
+        setPairing(data);
+      }
+    } catch {
+      console.log("Failed to fetch pairing QR");
+    }
+    setLoadingQR(false);
+  }, []);
+
   // Fetch pairing QR and check cloud status on cloud step
   useEffect(() => {
     if (STEPS[currentStep].id === "cloud") {
@@ -88,38 +119,7 @@ export function FirstRunWizard({ onComplete }: FirstRunWizardProps) {
         setCloudConnected(false);
       }
     }
-  }, [currentStep, cloudEnabled]);
-
-  const checkCloudStatus = async () => {
-    setCheckingCloudStatus(true);
-    try {
-      const response = await fetch("/api/cloud/status");
-      if (response.ok) {
-        const data = await response.json();
-        setCloudConnected(data.connected || false);
-      } else {
-        setCloudConnected(false);
-      }
-    } catch {
-      // Device might not support cloud status endpoint yet
-      setCloudConnected(false);
-    }
-    setCheckingCloudStatus(false);
-  };
-
-  const fetchPairingQR = async () => {
-    setLoadingQR(true);
-    try {
-      const response = await fetch("/api/pairing/qr");
-      if (response.ok) {
-        const data = await response.json();
-        setPairing(data);
-      }
-    } catch {
-      console.log("Failed to fetch pairing QR");
-    }
-    setLoadingQR(false);
-  };
+  }, [currentStep, cloudEnabled, fetchPairingQR, checkCloudStatus]);
 
   const copyPairingCode = () => {
     if (pairing) {
