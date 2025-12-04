@@ -48,7 +48,7 @@ export function EnvironmentStep({
               )}
             >
               <option value="110">110V (US/Japan)</option>
-              <option value="220">220V (EU/AU/Most of World)</option>
+              <option value="220">220V (EU/AU/Most of the World)</option>
               <option value="240">240V (UK)</option>
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-theme-muted pointer-events-none" />
