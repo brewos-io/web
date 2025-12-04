@@ -106,18 +106,17 @@ void CloudConnection::connect() {
 }
 
 bool CloudConnection::parseUrl(const String& url, String& host, uint16_t& port, String& path, bool& useSSL) {
-    String urlLower = url;
-    urlLower.toLowerCase();
-    
-    // Determine protocol
+    // Determine protocol (case-insensitive, only check first 8 chars)
+    String proto = url.substring(0, 8);
+    proto.toLowerCase();
     int protoEnd;
-    if (urlLower.startsWith("https://") || urlLower.startsWith("wss://")) {
+    if (proto.startsWith("https://") || proto.startsWith("wss://")) {
         useSSL = true;
-        protoEnd = urlLower.startsWith("https://") ? 8 : 6;
+        protoEnd = proto.startsWith("https://") ? 8 : 6;
         port = 443;
-    } else if (urlLower.startsWith("http://") || urlLower.startsWith("ws://")) {
+    } else if (proto.startsWith("http://") || proto.startsWith("ws://")) {
         useSSL = false;
-        protoEnd = urlLower.startsWith("http://") ? 7 : 5;
+        protoEnd = proto.startsWith("http://") ? 7 : 5;
         port = 80;
     } else {
         // Assume https if no protocol
