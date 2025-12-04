@@ -115,50 +115,68 @@ jobs:
         id: sha
         run: echo "short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
 
-      # Delete existing dev-latest release if it exists
-      - name: Delete Previous Dev Release
-        uses: dev-drprasad/delete-tag-and-release@v1.1
-        with:
-          tag_name: dev-latest
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          delete_release: true
-        continue-on-error: true
-
-      - name: Create Dev Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: dev-latest
-          name: "🔧 Dev Build (${{ steps.sha.outputs.short }})"
-          draft: false
-          prerelease: true
-          files: |
-            release/brewos_dual_boiler.uf2
-            release/brewos_single_boiler.uf2
-            release/brewos_heat_exchanger.uf2
-            release/brewos_esp32.bin
-            release/brewos_esp32_littlefs.bin
-            release/SHA256SUMS.txt
-          body: |
-            ## Development Build
-
-            ⚠️ **This is an automated dev build from the `main` branch.**
-
-            **Commit:** ${{ github.sha }}
-            **Built:** ${{ github.event.head_commit.timestamp }}
-
-            ### How to Use
-
-            1. Go to your ESP32's local web UI (e.g., `http://brewos.local`)
-            2. Navigate to **Settings → System → Firmware Update**
-            3. Select **Dev** channel
-            4. Download and flash the firmware
-
-            ### Changes
-
-            ${{ github.event.head_commit.message }}
-
-            ---
-
-            🔄 This release is automatically replaced on every push to `main`.
+      # Create or update dev-latest release using GitHub CLI
+      # This is more reliable than delete + recreate which can leave orphaned releases
+      - name: Update Dev Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RELEASE_NAME="🔧 Dev Build (${{ steps.sha.outputs.short }})"
+          RELEASE_NOTES=$(cat <<'EOF'
+          ## Development Build
+
+          ⚠️ **This is an automated dev build from the `main` branch.**
+
+          **Commit:** ${{ github.sha }}
+          **Built:** ${{ github.event.head_commit.timestamp }}
+
+          ### How to Use
+
+          1. Go to your ESP32's local web UI (e.g., `http://brewos.local`)
+          2. Navigate to **Settings → System → Firmware Update**
+          3. Select **Dev** channel
+          4. Download and flash the firmware
+
+          ### Changes
+
+          ${{ github.event.head_commit.message }}
+
+          ---
+
+          🔄 This release is automatically replaced on every push to `main`.
+          EOF
+          )
+
+          # Check if release exists
+          if gh release view dev-latest &>/dev/null; then
+            echo "Updating existing dev-latest release..."
+            
+            # Update release metadata
+            gh release edit dev-latest \
+              --title "$RELEASE_NAME" \
+              --notes "$RELEASE_NOTES" \
+              --prerelease
+            
+            # Upload assets with --clobber to replace existing files
+            gh release upload dev-latest \
+              release/brewos_dual_boiler.uf2 \
+              release/brewos_single_boiler.uf2 \
+              release/brewos_heat_exchanger.uf2 \
+              release/brewos_esp32.bin \
+              release/brewos_esp32_littlefs.bin \
+              release/SHA256SUMS.txt \
+              --clobber
+          else
+            echo "Creating new dev-latest release..."
+            gh release create dev-latest \
+              --title "$RELEASE_NAME" \
+              --notes "$RELEASE_NOTES" \
+              --prerelease \
+              --target main \
+              release/brewos_dual_boiler.uf2 \
+              release/brewos_single_boiler.uf2 \
+              release/brewos_heat_exchanger.uf2 \
+              release/brewos_esp32.bin \
+              release/brewos_esp32_littlefs.bin \
+              release/SHA256SUMS.txt
+          fi

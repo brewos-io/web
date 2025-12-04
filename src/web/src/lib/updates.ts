@@ -170,7 +170,7 @@ async function fetchGitHubReleases(): Promise<VersionInfo[]> {
 
 /**
  * Mock version data for development/testing
- * In production, this would be replaced with actual GitHub releases
+ * Only used when __ENVIRONMENT__ is "development"
  */
 function getMockVersions(): VersionInfo[] {
   return [
@@ -200,20 +200,43 @@ function getMockVersions(): VersionInfo[] {
       downloadUrl: "#",
       isPrerelease: true,
     },
+    {
+      version: "dev-latest",
+      channel: "dev",
+      releaseDate: new Date().toISOString(),
+      releaseNotes: "## Dev Build\n- Latest from main branch\n- For development testing only",
+      downloadUrl: "#",
+      isPrerelease: true,
+    },
   ];
 }
 
 /**
+ * Check if we should use mock data
+ * Only use mock data in development mode (local dev server)
+ */
+function shouldUseMockData(): boolean {
+  // __ENVIRONMENT__ is set at build time by vite.config.ts
+  // "development" = local dev server, "staging"/"production" = real builds
+  return __ENVIRONMENT__ === "development";
+}
+
+/**
  * Check for available updates
+ * Automatically uses real GitHub API in production/staging, mock data in development
  */
 export async function checkForUpdates(
-  currentVersion: string,
-  useMockData = true
+  currentVersion: string
 ): Promise<UpdateCheckResult> {
-  // Use mock data in development, real GitHub API in production
-  const releases = useMockData
+  // Use mock data in development, real GitHub API in production/staging
+  const useMock = shouldUseMockData();
+  const releases = useMock
     ? getMockVersions()
     : await fetchGitHubReleases();
+  
+  if (!useMock) {
+    console.log("[Updates] Fetched releases from GitHub:", releases.map(r => `${r.version} (${r.channel})`));
+  }
 
   // Find latest stable version
   const stableReleases = releases

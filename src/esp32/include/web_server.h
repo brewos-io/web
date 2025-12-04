@@ -68,6 +68,9 @@ private:
     // Helpers
     String getContentType(const String& filename);
     bool streamFirmwareToPico(File& firmwareFile, size_t firmwareSize);
+    
+    // GitHub OTA - Download and install firmware from GitHub releases
+    void startGitHubOTA(const String& version);
 };
 
 #endif // WEB_SERVER_H

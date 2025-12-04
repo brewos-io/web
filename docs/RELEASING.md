@@ -34,9 +34,10 @@ Examples:
 
 ### Dev Channel
 
-- Automated builds from `main` branch on every push
+- Automated builds from `main` branch on every push (to `src/esp32/`, `src/pico/`, `src/web/`, or `src/shared/`)
 - For developers testing latest changes
-- Tagged as `dev-latest` (rolling release)
+- Single rolling release tagged as `dev-latest` (updated in-place, not recreated)
+- Only **one** dev release exists at any time - new builds replace the previous one
 - May be unstable or contain breaking changes
 
 ## Creating Releases

@@ -73,6 +73,13 @@
 #define OTA_FILE_PATH           "/pico_firmware.bin"
 #define OTA_MAX_SIZE            (2 * 1024 * 1024)   // 2MB max
 
+// GitHub OTA - Download firmware from GitHub releases
+#define GITHUB_OWNER            "mizrachiran"
+#define GITHUB_REPO             "brewos"
+#define GITHUB_ESP32_ASSET      "brewos_esp32.bin"
+// GitHub API URL template: https://api.github.com/repos/OWNER/REPO/releases/tags/TAG
+// Asset download URL: https://github.com/OWNER/REPO/releases/download/TAG/ASSET
+
 // -----------------------------------------------------------------------------
 // Debug
 // -----------------------------------------------------------------------------

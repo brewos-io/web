@@ -8,6 +8,8 @@
 #include "state/state_manager.h"
 #include "statistics/statistics_manager.h"
 #include <LittleFS.h>
+#include <HTTPClient.h>
+#include <Update.h>
 
 WebServer::WebServer(WiFiManager& wifiManager, PicoUART& picoUart, MQTTClient& mqttClient, PairingManager* pairingManager)
     : _server(WEB_SERVER_PORT)
@@ -1582,8 +1584,13 @@ void WebServer::handleWsMessage(AsyncWebSocketClient* client, uint8_t* data, siz
             broadcastLog("Update check not implemented yet", "info");
         }
         else if (cmd == "ota_start") {
-            // TODO: Implement OTA update start
-            broadcastLog("OTA update not implemented yet", "info");
+            // Download and install ESP32 firmware from GitHub releases
+            String version = doc["version"] | "";
+            if (version.isEmpty()) {
+                broadcastLog("OTA error: No version specified", "error");
+            } else {
+                startGitHubOTA(version);
+            }
         }
         // Machine info (stored in network hostname for now)
         else if (cmd == "set_machine_info" || cmd == "set_device_info") {
@@ -1997,5 +2004,156 @@ void WebServer::handleTestMQTT(AsyncWebServerRequest* request) {
         request->send(500, "application/json", "{\"error\":\"Connection failed\"}");
         broadcastLog("MQTT connection test failed", "error");
     }
+}
+
+// =============================================================================
+// GitHub OTA - Download and install ESP32 firmware from GitHub releases
+// =============================================================================
+
+void WebServer::startGitHubOTA(const String& version) {
+    LOG_I("Starting GitHub OTA for version: %s", version.c_str());
+    broadcastLog("Starting OTA update to " + version + "...", "info");
+    
+    // Build the GitHub release download URL
+    // For tagged versions (v0.2.2): https://github.com/OWNER/REPO/releases/download/v0.2.2/brewos_esp32.bin
+    // For dev-latest: https://github.com/OWNER/REPO/releases/download/dev-latest/brewos_esp32.bin
+    String tag = version;
+    if (version != "dev-latest" && !version.startsWith("v")) {
+        tag = "v" + version;  // Add 'v' prefix for semantic versions
+    }
+    
+    String downloadUrl = "https://github.com/" GITHUB_OWNER "/" GITHUB_REPO "/releases/download/" + tag + "/" GITHUB_ESP32_ASSET;
+    
+    LOG_I("Download URL: %s", downloadUrl.c_str());
+    broadcastLog("Downloading from: " + downloadUrl, "info");
+    
+    // Broadcast OTA progress
+    auto broadcastProgress = [this](const char* stage, int progress, const char* message) {
+        JsonDocument doc;
+        doc["type"] = "ota_progress";
+        doc["stage"] = stage;
+        doc["progress"] = progress;
+        doc["message"] = message;
+        String json;
+        serializeJson(doc, json);
+        _ws.textAll(json);
+    };
+    
+    broadcastProgress("download", 0, "Connecting to GitHub...");
+    
+    HTTPClient http;
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    http.setTimeout(30000);  // 30 second timeout
+    
+    if (!http.begin(downloadUrl)) {
+        LOG_E("Failed to connect to GitHub");
+        broadcastLog("OTA error: Failed to connect to GitHub", "error");
+        broadcastProgress("error", 0, "Failed to connect to GitHub");
+        return;
+    }
+    
+    // GitHub requires User-Agent header
+    http.addHeader("User-Agent", "BrewOS-ESP32/" ESP32_VERSION);
+    
+    int httpCode = http.GET();
+    
+    if (httpCode != HTTP_CODE_OK) {
+        LOG_E("HTTP error: %d", httpCode);
+        String errorMsg = "OTA error: HTTP " + String(httpCode);
+        if (httpCode == 404) {
+            errorMsg += " - Release or asset not found";
+        }
+        broadcastLog(errorMsg, "error");
+        broadcastProgress("error", 0, errorMsg.c_str());
+        http.end();
+        return;
+    }
+    
+    int contentLength = http.getSize();
+    if (contentLength <= 0) {
+        LOG_E("Invalid content length: %d", contentLength);
+        broadcastLog("OTA error: Invalid firmware size", "error");
+        broadcastProgress("error", 0, "Invalid firmware size");
+        http.end();
+        return;
+    }
+    
+    LOG_I("Firmware size: %d bytes", contentLength);
+    broadcastLog("Firmware size: " + String(contentLength / 1024) + " KB", "info");
+    broadcastProgress("download", 5, "Starting download...");
+    
+    // Begin OTA update
+    if (!Update.begin(contentLength)) {
+        LOG_E("Not enough space for OTA");
+        broadcastLog("OTA error: Not enough space", "error");
+        broadcastProgress("error", 0, "Not enough space for OTA");
+        http.end();
+        return;
+    }
+    
+    // Stream the firmware to Update
+    WiFiClient* stream = http.getStreamPtr();
+    uint8_t buffer[1024];
+    size_t written = 0;
+    int lastProgress = 0;
+    
+    while (http.connected() && written < (size_t)contentLength) {
+        size_t available = stream->available();
+        if (available > 0) {
+            size_t toRead = min(available, sizeof(buffer));
+            size_t bytesRead = stream->readBytes(buffer, toRead);
+            
+            if (bytesRead > 0) {
+                size_t bytesWritten = Update.write(buffer, bytesRead);
+                if (bytesWritten != bytesRead) {
+                    LOG_E("Write error at offset %d", written);
+                    broadcastLog("OTA error: Write failed", "error");
+                    broadcastProgress("error", 0, "Write failed");
+                    Update.abort();
+                    http.end();
+                    return;
+                }
+                written += bytesWritten;
+                
+                // Report progress every 5%
+                int progress = (written * 100) / contentLength;
+                if (progress >= lastProgress + 5) {
+                    lastProgress = progress;
+                    LOG_I("OTA progress: %d%% (%d/%d)", progress, written, contentLength);
+                    broadcastProgress("download", progress, ("Downloading: " + String(progress) + "%").c_str());
+                }
+            }
+        }
+        delay(1);  // Yield to other tasks
+    }
+    
+    http.end();
+    
+    if (written != (size_t)contentLength) {
+        LOG_E("Download incomplete: %d/%d bytes", written, contentLength);
+        broadcastLog("OTA error: Download incomplete", "error");
+        broadcastProgress("error", 0, "Download incomplete");
+        Update.abort();
+        return;
+    }
+    
+    broadcastProgress("flash", 95, "Finalizing update...");
+    
+    if (!Update.end(true)) {
+        LOG_E("Update failed: %s", Update.errorString());
+        broadcastLog("OTA error: " + String(Update.errorString()), "error");
+        broadcastProgress("error", 0, Update.errorString());
+        return;
+    }
+    
+    LOG_I("OTA update successful!");
+    broadcastLog("OTA update successful! Restarting...", "info");
+    broadcastProgress("complete", 100, "Update complete! Restarting...");
+    
+    // Give time for the message to be sent
+    delay(1000);
+    
+    // Restart to apply the update
+    ESP.restart();
 }
 
