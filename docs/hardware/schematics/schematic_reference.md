@@ -4,24 +4,25 @@
 
 **Board Size:** 130mm × 80mm (2-layer, 2oz copper)  
 **Enclosure:** 150mm × 100mm mounting area  
-**Revision:** Matches ECM_Control_Board_Specification_v2.md (v2.20)
+**Revision:** Matches ECM_Control_Board_Specification_v2.md (v2.21)
 
 ---
 
-## ⚠️ KEY DESIGN CHANGES IN v2.20
+## ⚠️ KEY DESIGN CHANGES IN v2.21
 
-1. **Unified J26 Screw Terminal (24-pos)** - ALL low-voltage connections consolidated into single Phoenix MKDS 1/24-5.08 terminal block
-2. **J26 includes:** Switches (S1-S4), NTCs (T1-T2), Thermocouple, Pressure transducer, CT clamp, SSR control outputs
-3. **Eliminates:** J10, J11, J12, J13, J18, J19, J25 (all merged into J26)
-4. **6.3mm spades retained ONLY for 220V AC**: Mains input (L, N, PE), K1 LED (J2), K2 Pump (J3), K3 Solenoid (J4)
-5. **OPA342 + TLV3201** for steam boiler level probe (AC sensing with common components)
-6. **PZEM-004T v3.0** external power meter (NO high current through PCB)
-7. **HLK-5M05** power supply (3A, compact 16mm height)
-8. **10A fuse** with PCB mount holder (Littelfuse 01000056Z)
-9. **Optimized NTC pull-ups**: R1=3.3kΩ (brew 93°C), R2=1.2kΩ (steam 135°C)
-10. **Pressure divider R4=4.7kΩ** (91% ADC range utilization)
-11. **Snubbers MANDATORY** for K2 (Pump) and K3 (Solenoid)
-12. **Mounting holes**: MH1=PE star point (PTH), MH2-4=NPTH (isolated)
+1. **Universal External Power Metering** - REMOVED embedded PZEM daughterboard (J17/J24 headers)
+2. **J17 (JST-XH 6-pin)** - New universal power meter interface (TTL UART + RS485)
+3. **Supports multiple modules:** PZEM-004T, JSY-MK-163T/194T, Eastron SDM, and more
+4. **MAX3485 RS485 transceiver (U8)** - On-board with jumper-selectable 120Ω termination
+5. **J26 reduced to 22-pos** - CT clamp pins removed (now on external module)
+6. **No HV on PCB for metering** - External modules handle their own mains connections
+7. **GPIO20 → RS485 DE/RE** - Direction control for industrial meters
+8. **Unified J26 Screw Terminal (22-pos)** - Switches, sensors, SSR outputs (no CT)
+9. **6.3mm spades retained ONLY for 220V AC**: Mains input (L, N, PE), relay outputs
+10. **OPA342 + TLV3201** for steam boiler level probe (AC sensing)
+11. **HLK-5M05** power supply (3A, compact 16mm height)
+12. **Snubbers MANDATORY** for K2 (Pump) and K3 (Solenoid)
+13. **Mounting holes**: MH1=PE star point (PTH), MH2-4=NPTH (isolated)
 
 ---
 
@@ -1079,113 +1080,169 @@
 
 ---
 
-# Sheet 8: Power Metering (PZEM-004T External)
+# Sheet 8: Power Metering (Universal External Interface)
 
-## 8.1 PZEM-004T v3.0 External Power Meter
+## 8.1 Universal External Power Meter Interface
 
 ```
-                    PZEM-004T v3.0 EXTERNAL POWER METERING
+                    UNIVERSAL EXTERNAL POWER METER INTERFACE
     ════════════════════════════════════════════════════════════════════════════
 
-    ✅ NO HIGH CURRENT THROUGH CONTROL PCB!
-    ✅ Power metering via external CT clamp (non-invasive)
-    ✅ UART interface (9600 baud Modbus-RTU)
+    ✅ NO HIGH VOLTAGE THROUGH CONTROL PCB FOR METERING!
+    ✅ External modules handle their own mains connections
+    ✅ Supports TTL UART (direct) or RS485 (differential) meters
+    ✅ Compatible with PZEM-004T, JSY-MK-163T/194T, Eastron SDM, and more
 
     ═══════════════════════════════════════════════════════════════════════════
-    PZEM-004T-100A-D-P DIRECT MOUNT (Plugs into PCB via two female headers)
+    OFF-BOARD POWER METER DESIGN (User mounts module externally)
     ═══════════════════════════════════════════════════════════════════════════
 
-    PZEM Module (user-supplied, plugs directly into PCB):
-    ─────────────────────────────────────────────────────
+    SYSTEM TOPOLOGY:
+    ────────────────
 
-               J24 (HV+CT)                      J17 (LV/UART)
-               Left Side                        Right Side
-                  │                                │
-       ┌──────────┴────────────────────────────────┴──────────┐
-       │               PZEM-004T-100A-D-P                     │
-       │   ┌────┐                                 ┌─────┐     │
-       │   │▼▼▼▼│  ← Pin headers                 │▼▼▼▼▼│     │
-       └───┴────┴─────────────────────────────────┴─────┴─────┘
-            ║║║║                                    ║║║║║
-   ═════════╩╩╩╩════════════════════════════════════╩╩╩╩╩═════  ← Control PCB
-           J24                                       J17
-        (4-pin)                                    (5-pin)
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │                         CONTROL PCB                                    │
+    │                                                                        │
+    │   J17 (JST-XH 6-pin)                                                   │
+    │   ┌─────┬─────┬─────┬─────┬─────┬─────┐                               │
+    │   │ 3V3 │ 5V  │ GND │ RX  │ TX  │DE/RE│                               │
+    │   │  1  │  2  │  3  │  4  │  5  │  6  │                               │
+    │   └──┬──┴──┬──┴──┬──┴──┬──┴──┬──┴──┬──┘                               │
+    │      │     │     │     │     │     │                                   │
+    │      │     │     │     │     │     └──► GPIO20 (RS485 DE/RE control)  │
+    │      │     │     │     │     └────────► GPIO6 (UART TX to meter)       │
+    │      │     │     │     └──────────────► GPIO7 (UART RX from meter)     │
+    │      │     │     └────────────────────► GND                            │
+    │      │     └──────────────────────────► 5V (for 5V meters)             │
+    │      └────────────────────────────────► 3.3V (for 3.3V meters)         │
+    │                                                                        │
+    │   ═══════════════════════════════════════════════════════════════════  │
+    │                                                                        │
+    │   RS485 TRANSCEIVER (U8: MAX3485) - For Industrial Meters              │
+    │   ───────────────────────────────────────────────────────              │
+    │                                                                        │
+    │                               +3.3V                                    │
+    │                                 │                                      │
+    │                            ┌────┴────┐                                 │
+    │                            │  100nF  │ C70                             │
+    │                            └────┬────┘                                 │
+    │                            VCC──┤                                      │
+    │                                 │  U8: MAX3485                         │
+    │                       ┌─────────┴─────────┐                            │
+    │   GPIO6 (TX) ────────►│ DI            A   │◄───► J17-4 (RS485 mode)    │
+    │                       │                   │      or METER_RX (TTL)     │
+    │   GPIO7 (RX) ◄────────│ RO            B   │◄───► J17-5 (RS485 mode)    │
+    │                       │                   │      or METER_TX (TTL)     │
+    │   GPIO20 (DE/RE) ────►│ DE/RE         GND │                            │
+    │                       │                   │                            │
+    │                       └─────────┬─────────┘                            │
+    │                                ─┴─                                     │
+    │                                GND                                     │
+    │                                                                        │
+    │   TERMINATION (Jumper Selectable):                                     │
+    │   ─────────────────────────────────                                    │
+    │   J17-4 (A) ────┬────[120Ω R99]────┬──── J17-5 (B)                     │
+    │                 └────── JP1 ───────┘                                   │
+    │                    (Solder jumper)                                     │
+    │                                                                        │
+    │   JP1 CLOSED: 120Ω termination enabled (for long RS485 runs)           │
+    │   JP1 OPEN:   No termination (for short cables or TTL mode)            │
+    │                                                                        │
+    └────────────────────────────────────────────────────────────────────────┘
 
-    CT CLAMP CONNECTION:
-    ────────────────────
-    Machine Live wire ──────────────────────────────► To all loads
-                          │
-                     ┌────┴────┐
-                     │   CT    │  ← Clamp around Live wire (non-invasive)
-                     │  Clamp  │    User-supplied with PZEM module
-                     └────┬────┘
-                          │ (2-wire cable)
-                          └─────────────────────► J26-17/18 (CT+/CT-)
-                                                       │
-                                                       └──► Routed to J24 CT+/CT-
 
-    ═══════════════════════════════════════════════════════════════════════════
+    EXTERNAL POWER METER (User-mounted, off-board):
+    ────────────────────────────────────────────────
 
-    PZEM-004T Specifications:
-    ─────────────────────────
-    • Voltage Range: 80-260V AC
-    • Current Range: 0-100A (via CT clamp)
-    • Accuracy: ±0.5% (pre-calibrated)
-    • Interface: UART 9600 baud, Modbus-RTU
-    • Measurements: V, I, P, E (energy), PF, Frequency
+    ┌────────────────────────────────────────────────────────────────────────┐
+    │              EXTERNAL POWER METER MODULE                               │
+    │              (PZEM-004T, JSY-MK-163T, Eastron SDM, etc.)              │
+    │                                                                        │
+    │   ┌──────────────────┐     ┌──────────────────────────────────────┐   │
+    │   │   LV INTERFACE   │     │         HV INTERFACE                 │   │
+    │   │   (JST or wire)  │     │    (Screw terminals on module)       │   │
+    │   │                  │     │                                      │   │
+    │   │   5V ◄───────────│     │   L ◄──────── Machine Mains Live     │   │
+    │   │   GND ◄──────────│     │   N ◄──────── Machine Mains Neutral  │   │
+    │   │   TX ────────────│     │                                      │   │
+    │   │   RX ◄───────────│     │   CT+ ◄────┬───── CT Clamp           │   │
+    │   │                  │     │   CT- ◄────┘      (on Live wire)     │   │
+    │   └──────────────────┘     └──────────────────────────────────────┘   │
+    │         │                              │                              │
+    │         │ JST cable                    │ User wires directly          │
+    │         │ to J17                       │ to mains                     │
+    │         ▼                              ▼                              │
+    │   CONTROL PCB                    MACHINE WIRING                       │
+    │                                  (NOT through PCB)                    │
+    │                                                                        │
+    └────────────────────────────────────────────────────────────────────────┘
 
-    Control PCB Power Distribution (Simplified):
-    ─────────────────────────────────────────────
-    J1-L (Live) ──►[FUSE F1: 10A]──► L_FUSED bus
-                                        │
-                                        ├──► K1 COM (Water LED → J2 spade, 220V)
-                                        ├──► K2 COM (Pump ~5A → J3 spade, 220V)
-                                        └──► K3 COM (3-Way Valve → J4 spade, 220V)
 
-    J26 LOW-VOLTAGE INPUTS: 8-pos screw terminal for digital switch
-                            inputs (S1-S4) ONLY. 3.3V logic level.
+    ⚠️  CRITICAL: NO HIGH VOLTAGE ON CONTROL PCB FOR METERING
+    ────────────────────────────────────────────────────────────
+    • External meter module handles its own L, N, CT connections
+    • Control PCB provides ONLY 5V/3.3V power and UART/RS485 data
+    • User wires machine mains directly to external module terminals
+    • CT clamp connects directly to external module (not through PCB)
 
-    Note: Heaters connect to external SSRs via machine's existing wiring.
-          SSR control signals only come from PCB (J26 Pin 19-22).
-          NO heater current flows through control PCB.
 
-    J17 Pinout (UART - Right side of PZEM):
-    ───────────────────────────────────────
-    Pin 1: 5V (to PZEM VCC)
-    Pin 2: RX (GPIO7 ← PZEM TX) - 33Ω series resistor
-    Pin 3: TX (GPIO6 → PZEM RX) - 33Ω series resistor
-    Pin 4: CF (not connected - pulse output)
-    Pin 5: GND (to PZEM GND)
+    SUPPORTED MODULES:
+    ──────────────────
+    │ Module          │ Baud  │ Protocol   │ Interface │ CT Type        │
+    │─────────────────│───────│────────────│───────────│────────────────│
+    │ PZEM-004T V3    │ 9600  │ Modbus RTU │ TTL UART  │ Split-core 100A│
+    │ JSY-MK-163T     │ 4800  │ Modbus RTU │ TTL UART  │ Internal shunt │
+    │ JSY-MK-194T     │ 4800  │ Modbus RTU │ TTL UART  │ Dual-channel   │
+    │ Eastron SDM120  │ 2400  │ Modbus RTU │ RS485     │ DIN-rail CT    │
+    │ Eastron SDM230  │ 9600  │ Modbus RTU │ RS485     │ DIN-rail CT    │
 
-    J24 Pinout (HV+CT - Left side of PZEM):
-    ───────────────────────────────────────
-    Pin 1: CT+ (routed to J26-17)
-    Pin 2: CT- (routed to J26-18)
-    Pin 3: N (from N bus)
-    Pin 4: L (from L_FUSED bus) ⚠️ 220V!
 
-    J26-17/18 (CT Clamp connections - part of unified terminal):
-    ─────────────────────────────────────
-    Pin 1: CT+ (from J24 Pin 1)
-    Pin 2: CT- (from J24 Pin 2)
+    J17 PINOUT (JST-XH 6-pin):
+    ──────────────────────────
+    Pin 1: 3V3    → Power for 3.3V logic modules
+    Pin 2: 5V     → Power for 5V modules (PZEM, JSY)
+    Pin 3: GND    → System ground
+    Pin 4: RX     → GPIO7 (from meter TX, via 33Ω R44)
+    Pin 5: TX     → GPIO6 (to meter RX, via 33Ω R45)
+    Pin 6: DE/RE  → GPIO20 (RS485 direction control)
 
-    Component Values:
+
+    COMPONENT VALUES:
     ─────────────────
-    J17:     Female Header 1×5 2.54mm
-    J24:     Female Header 1×4 2.54mm (⚠️ HV!)
-    J26:     Unified Screw Terminal 24-pos 5.08mm (Phoenix MKDS 1/24-5.08)
-    R44-45:  33Ω 5%, 0805 (UART series protection)
+    U8:     MAX3485ESA+ or SP3485EN-L/TR (SOIC-8 or SOT-23-8)
+    C70:    100nF 25V Ceramic, 0805 (U8 decoupling)
+    R44:    33Ω 5%, 0805 (RX series protection)
+    R45:    33Ω 5%, 0805 (TX series protection)
+    R99:    120Ω 1%, 0805 (RS485 termination, via JP1)
+    JP1:    Solder jumper for termination (default: open)
+    J17:    JST-XH 6-pin header (B6B-XH-A)
 
-    ⚠️ CRITICAL: J24 MILLING SLOT REQUIREMENT
-    ─────────────────────────────────────────
-    J24 carries Mains L and N on adjacent pins (2.54mm pitch).
-    Mill a 1mm wide slot between Pin 3 (N) and Pin 4 (L) for safety.
 
-    J24 Top View:
-    ┌─────────────────────────────┐
-    │ Pin1  Pin2  Pin3 ║║ Pin4   │
-    │  CT+   CT-    N  ║║   L    │  ← 1mm slot between N and L
-    └─────────────────────────────┘
+    TTL UART MODE (PZEM, JSY - Most Common):
+    ────────────────────────────────────────
+    • U8 can be bypassed or GPIO6/7 routed directly to J17-4/5
+    • GPIO20 (DE/RE) not connected or held LOW
+    • Direct 3.3V/5V logic levels between Pico and meter
+
+
+    RS485 MODE (Eastron, Industrial):
+    ──────────────────────────────────
+    • GPIO6/7 connect through U8 (MAX3485)
+    • GPIO20 controls DE/RE for half-duplex direction
+    • J17-4/5 become differential A/B pair
+    • Enable JP1 for 120Ω termination on long cable runs
+
+
+    FIRMWARE AUTO-DETECTION:
+    ────────────────────────
+    On startup, firmware scans:
+    1. 9600 baud → Try PZEM registers
+    2. 4800 baud → Try JSY registers
+    3. 2400 baud → Try Eastron registers
+    4. 19200 baud → Try other Modbus devices
+
+    Successfully detected meter configuration saved to flash.
+
 ```
 
 ---
@@ -1233,7 +1290,7 @@
     POWER NETS:
     ───────────
     +5V          → Pico VSYS, Relay coils, SSR drivers, ESP32 (J15-1), LED anodes
-    +3.3V        → Pico 3V3, Digital I/O, pull-ups
+    +3.3V        → Pico 3V3, Digital I/O, pull-ups, MAX3485 (U8)
     +3.3V_ANALOG → ADC reference, NTC dividers, MAX31855
     GND          → System ground (isolated from mains PE)
 
@@ -1244,9 +1301,9 @@
     N            → J1-N (Mains Neutral)
     PE           → J1-PE (Protective Earth, to chassis)
 
-    NOTE: With PZEM-004T external power metering, NO heater current
-    flows through the control PCB. Heaters connect directly to
-    external SSRs via machine's existing wiring.
+    NOTE: NO heater current or power metering HV flows through control PCB.
+    Heaters connect to external SSRs, power meters connect to mains
+    via their own terminals. PCB provides only LV control signals.
 
     RELAY OUTPUT NETS:
     ──────────────────
@@ -1262,8 +1319,8 @@
     GPIO3  → TANK_LVL (J26-3, S2)
     GPIO4  → STEAM_LVL (J26-5, S3 via comparator)
     GPIO5  → BREW_SW (J26-6, S4)
-    GPIO6  → PZEM_TX (UART to PZEM RX, J17-3)
-    GPIO7  → PZEM_RX (UART from PZEM TX, J17-4)
+    GPIO6  → METER_TX (UART to meter RX / RS485 DI, J17-5)
+    GPIO7  → METER_RX (UART from meter TX / RS485 RO, J17-4)
     GPIO8  → I2C0_SDA (J23-3, with 4.7kΩ pull-up)
     GPIO9  → I2C0_SCL (J23-4, with 4.7kΩ pull-up)
     GPIO10 → K1_DRIVE (relay coil, output to J2 spade - 220V)
@@ -1276,7 +1333,7 @@
     GPIO17 → SPI_CS (MAX31855 CS)
     GPIO18 → SPI_SCK (MAX31855 CLK)
     GPIO19 → BUZZER
-    GPIO20 → TP1 (spare - test point for future expansion)
+    GPIO20 → RS485_DE_RE (MAX3485 direction control, J17-6)
     GPIO21 → WEIGHT_STOP (J15-7, ESP32 brew-by-weight signal)
     GPIO22 → SPARE (J15-8, reserved for future)
     GPIO26 → ADC0_BREW_NTC (J26-8/9)
@@ -1291,8 +1348,17 @@
     J3-NO  → Relay K2 N.O. output (Pump, 220V 5A)
     J4-NO  → Relay K3 N.O. output (Solenoid, 220V ~0.5A)
 
-    J26 LOW-VOLTAGE SWITCH INPUT TERMINAL BLOCK (8-pos, 3.3V):
-    ──────────────────────────────────────────────────────────
+    J17 POWER METER INTERFACE (JST-XH 6-pin):
+    ─────────────────────────────────────────
+    J17-1  (3V3)   → 3.3V power for logic-level meters
+    J17-2  (5V)    → 5V power for PZEM, JSY modules
+    J17-3  (GND)   → System ground
+    J17-4  (RX)    → GPIO7 (from meter TX, via 33Ω)
+    J17-5  (TX)    → GPIO6 (to meter RX, via 33Ω)
+    J17-6  (DE/RE) → GPIO20 (RS485 direction control)
+
+    J26 UNIFIED LOW-VOLTAGE TERMINAL BLOCK (22-pos):
+    ─────────────────────────────────────────────────
     J26-1  (S1)    → Water Reservoir Switch Signal → GPIO2
     J26-2  (S1-G)  → Water Reservoir Switch GND
     J26-3  (S2)    → Tank Level Sensor Signal → GPIO3
@@ -1300,20 +1366,27 @@
     J26-5  (S3)    → Steam Boiler Level Probe → GPIO4 (via comparator)
     J26-6  (S4)    → Brew Handle Switch Signal → GPIO5
     J26-7  (S4-G)  → Brew Handle Switch GND
-    J26-8  (GND)   → Common Ground (spare)
+    J26-8  (T1)    → Brew NTC Signal → ADC0 via divider
+    J26-9  (T1-G)  → Brew NTC GND
+    J26-10 (T2)    → Steam NTC Signal → ADC1 via divider
+    J26-11 (T2-G)  → Steam NTC GND
+    J26-12 (TC+)   → Thermocouple + → MAX31855
+    J26-13 (TC-)   → Thermocouple - → MAX31855
+    J26-14 (P-5V)  → Pressure transducer 5V
+    J26-15 (P-GND) → Pressure transducer GND
+    J26-16 (P-SIG) → Pressure signal → ADC2 via divider
+    J26-17 (SSR1+) → +5V (Brew heater SSR power)
+    J26-18 (SSR1-) → SSR1_NEG (Brew heater SSR trigger)
+    J26-19 (SSR2+) → +5V (Steam heater SSR power)
+    J26-20 (SSR2-) → SSR2_NEG (Steam heater SSR trigger)
+    J26-21 (GND)   → Spare ground
+    J26-22 (GND)   → Spare ground
 
-    ANALOG SENSOR CONNECTOR NETS:
-    ─────────────────────────────
-    J26-8/9 (Brew NTC)      → NTC_BREW+ to R1, NTC_BREW- to GND
-    J26-10/11 (Steam NTC)   → NTC_STEAM+ to R2, NTC_STEAM- to GND
-    J26-12/13 (Thermocouple)→ TC+ to U4 pin 1, TC- to U4 pin 2
-    J26-14/15/16 (Pressure) → 5V, GND, SIGNAL to R3/R4 divider
-    J26-17/18 (CT Clamp)    → CT+/CT- from PZEM J24
-    J26-19/20 (SSR1)        → +5V, SSR1_NEG (Brew heater control)
-    J26-21/22 (SSR2)        → +5V, SSR2_NEG (Steam heater control)
+    ⚠️ CT CLAMP: Connects directly to external power meter module (not on J26)
 
     SOLDER BRIDGE:
     ──────────────
+    JP1 → RS485 120Ω termination (default: OPEN)
 ```
 
 ---
