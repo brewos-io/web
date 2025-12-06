@@ -1083,12 +1083,12 @@ Connect all sensors but do NOT connect mains loads. **All sensors connect to uni
 
 ## Thermal
 
-| Risk              | Mitigation             | Verified |
-| ----------------- | ---------------------- | -------- |
-| Shunt overheating | 5W rating (20× margin) |          |
-| Relay coil heat   | Spacing adequate       |          |
-| AC/DC module heat | Ventilation space      |          |
-| Buck regulator    | Minimal heat (>90% eff)|          |
+| Risk              | Mitigation              | Verified |
+| ----------------- | ----------------------- | -------- |
+| Shunt overheating | 5W rating (20× margin)  |          |
+| Relay coil heat   | Spacing adequate        |          |
+| AC/DC module heat | Ventilation space       |          |
+| Buck regulator    | Minimal heat (>90% eff) |          |
 
 ## Signal Integrity
 

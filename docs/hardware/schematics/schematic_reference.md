@@ -132,7 +132,7 @@ critical for reliable operation inside hot espresso machine enclosures.
     ─────────────────────────────────────────────────────
     LDO Problem: P = (5V - 3.3V) × I = 1.7V × I
     At 250mA in hot environment: junction temp exceeds 125°C max
-    
+
     Buck Solution: >90% efficient, minimal self-heating
     Same footprint, better thermal reliability
 
@@ -1421,7 +1421,7 @@ critical for reliable operation inside hot espresso machine enclosures.
     N            → J1-N (Mains Neutral)
     PE           → J1-PE (Protective Earth, to chassis)
 
-    NOTE: No HV measurement circuitry on control PCB. Heaters connect to 
+    NOTE: No HV measurement circuitry on control PCB. Heaters connect to
     external SSRs. J24 provides L/N/PE pass-through to meter in existing
     HV zone (same traces as relay L_FUSED bus). PCB provides LV control signals.
 

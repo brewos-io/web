@@ -2832,16 +2832,16 @@ Relay-switched loads (pump, valves) are fused and distributed via internal bus. 
 
 ### High-Power Terminal Assignments (6.3mm Spade)
 
-| Designator                                                   | Function            | Terminal Type | Wire Gauge | Notes                           |
-| ------------------------------------------------------------ | ------------------- | ------------- | ---------- | ------------------------------- |
+| Designator                                                   | Function            | Terminal Type | Wire Gauge | Notes                            |
+| ------------------------------------------------------------ | ------------------- | ------------- | ---------- | -------------------------------- |
 | **Mains Input**                                              |
-| J1-L                                                         | Mains Live Input    | 6.3mm male    | 14 AWG     | Fused, to relay COMs            |
-| J1-N                                                         | Mains Neutral Input | 6.3mm male    | 14 AWG     | Common neutral bus              |
-| J1-PE                                                        | Protective Earth    | 6.3mm male    | 14 AWG     | To chassis                      |
+| J1-L                                                         | Mains Live Input    | 6.3mm male    | 14 AWG     | Fused, to relay COMs             |
+| J1-N                                                         | Mains Neutral Input | 6.3mm male    | 14 AWG     | Common neutral bus               |
+| J1-PE                                                        | Protective Earth    | 6.3mm male    | 14 AWG     | To chassis                       |
 | **220V AC Relay Outputs (All COMs internal to L_FUSED bus)** |
-| J2-NO                                                        | Relay K1 N.O.       | 6.3mm male    | 16 AWG     | Mains lamp output (≤100mA, 220V)|
-| J3-NO                                                        | Relay K2 N.O.       | 6.3mm male    | 14 AWG     | Pump output (5A peak, 220V)     |
-| J4-NO                                                        | Relay K3 N.O.       | 6.3mm male    | 16 AWG     | Solenoid output (~0.5A, 220V)   |
+| J2-NO                                                        | Relay K1 N.O.       | 6.3mm male    | 16 AWG     | Mains lamp output (≤100mA, 220V) |
+| J3-NO                                                        | Relay K2 N.O.       | 6.3mm male    | 14 AWG     | Pump output (5A peak, 220V)      |
+| J4-NO                                                        | Relay K3 N.O.       | 6.3mm male    | 16 AWG     | Solenoid output (~0.5A, 220V)    |
 
 **Note:** Relay K1, K2, K3 COMs are connected internally to the fused live bus - no external COM terminals needed.
 
