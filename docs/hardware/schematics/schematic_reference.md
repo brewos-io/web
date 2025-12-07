@@ -75,9 +75,9 @@
                               │     ╔═══════╗            │       │
                               │     ║ 3kV   ║            │   C2  │
                               │     ║ISOLATE║            │ ┌─────┴─────┐
-    N_FUSED ──────────────────┤ N   ╚═══════╝    -Vout   │ │   100µF   │
-                              │                          ├─┤   16V     │
-                              │                          │ │   Alum.   │
+    N_FUSED ──────────────────┤ N   ╚═══════╝    -Vout   │ │   470µF   │
+                              │                          ├─┤   6.3V    │
+                              │                          │ │  Polymer  │
                               └──────────────────────────┘ └─────┬─────┘
                                                                  │
                                                                 ─┴─
@@ -110,7 +110,7 @@ critical for reliable operation inside hot espresso machine enclosures.
                             U3: TPS563200DDCR
                            ┌──────────────────────┐
                            │                      │
-    +5V ─────┬─────────────┤ VIN            SW    ├────┬────[L1 4.7µH]────┬──► +3.3V
+    +5V ─────┬─────────────┤ VIN            SW    ├────┬────[L1 2.2µH]────┬──► +3.3V
              │             │                      │    │                   │
          C3  │             │ EN              FB   ├────┼───────────────────┤
        ┌─────┴─────┐       │        │             │    │                   │
@@ -139,7 +139,7 @@ critical for reliable operation inside hot espresso machine enclosures.
     Component Values:
     ─────────────────
     U3:  TI TPS563200DDCR, 3A sync buck, SOT-23-6
-    L1:  2.2µH, 3A saturation, DCR<100mΩ (Murata LQH32CN2R2M23)
+    L1:  2.2µH, 3A saturation, DCR <100mΩ (Murata LQH32CN2R2M23)
          ⚠️ 2.2µH per TI datasheet for 3.3V output - D-CAP2 requires adequate ripple!
     C3:  22µF 25V X5R Ceramic, 1206 (input)
     C4:  22µF 10V X5R Ceramic, 1206 (output)
@@ -201,12 +201,12 @@ the reference voltage collapses under load, causing complete temperature sensing
     ⚠️ WHY BUFFER IS MANDATORY (The Math):
     ────────────────────────────────────────
     Without buffer, R7 provides only 0.3mA to share between LM4040 and sensor loads.
-    
+
     NTC Load Current (at operating temperatures):
     • Brew NTC at 93°C: R_NTC ≈ 3.5kΩ → I = 3.0V/(3.3kΩ+3.5kΩ) ≈ 441µA
     • Steam NTC at 135°C: R_NTC ≈ 1kΩ → I = 3.0V/(1.2kΩ+1kΩ) ≈ 1.36mA
     • Total: ~1.8mA (6× more than available 0.3mA!)
-    
+
     Without buffer: ADC_VREF collapses to ~0.5V → SYSTEM FAILURE
     With buffer: Op-amp drives load from 3.3V rail → ADC_VREF stable at 3.0V
 
@@ -464,14 +464,14 @@ the reference voltage collapses under load, causing complete temperature sensing
                ┌─────────────────────────┴─────────────────────────┐
                │                                                   │
                │                                              ┌────┴────┐
-               │                                              │   1kΩ   │
+               │                                              │  330Ω   │
                │                                              │ R34/35  │
                │                                              └────┬────┘
                ▼                                                   │
     ┌──────────────────┐                                      ┌────┴────┐
     │  To SSR Input    │                                      │   LED   │
     │  (+) Positive    │                                      │ Orange  │
-    │ J26-19/21 (SSR+) │                                      │ LED5/6  │
+    │ J26-17/19 (SSR+) │                                      │ LED5/6  │
     └────────┬─────────┘                                      └────┬────┘
              │                                                     │
              │    ┌───────────────────────────────┐                │
@@ -483,7 +483,7 @@ the reference voltage collapses under load, causing complete temperature sensing
     ┌────────┴─────────┐                                           │
     │  To SSR Input    │                                           │
     │  (-) Negative    ├───────────────────────────────────────────┤
-    │ J26-20/22 (SSR-) │                                           │
+    │ J26-18/20 (SSR-) │                                           │
     └────────┬─────────┘                                      ┌────┴────┐
              │                                                │    C    │
              │                                                │  Q5/Q6  │  MMBT2222A
@@ -510,13 +510,13 @@ the reference voltage collapses under load, causing complete temperature sensing
     External SSR Connections:
     ─────────────────────────
     SSR1 (Brew Heater):
-        J26-19 (SSR1+) ── SSR Input (+) ── from 5V rail
-        J26-20 (SSR1-) ── SSR Input (-) ── to transistor collector
+        J26-17 (SSR1+) ── SSR Input (+) ── from 5V rail
+        J26-18 (SSR1-) ── SSR Input (-) ── to transistor collector
         SSR AC Load side: Connected via EXISTING MACHINE WIRING (not through PCB)
 
     SSR2 (Steam Heater):
-        J26-21 (SSR2+) ── SSR Input (+) ── from 5V rail
-        J26-22 (SSR2-) ── SSR Input (-) ── to transistor collector
+        J26-19 (SSR2+) ── SSR Input (+) ── from 5V rail
+        J26-20 (SSR2-) ── SSR Input (-) ── to transistor collector
         SSR AC Load side: Connected via EXISTING MACHINE WIRING (not through PCB)
 
     ⚠️ IMPORTANT: NO HIGH CURRENT THROUGH PCB
@@ -531,7 +531,7 @@ the reference voltage collapses under load, causing complete temperature sensing
     ─────────────────
     External SSRs: KS15 D-24Z25-LQ (25A, 4-32V DC input, 24-280V AC output)
     R24-25: 1kΩ 5% 0805 (transistor base drive, ~3mA)
-    R34-35: 1kΩ 5% 0805 (LED current limit, ~3mA)
+    R34-35: 330Ω 5% 0805 (LED current limit, ~8mA brighter indicator)
     R14-15: 10kΩ 5% 0805 (pull-down, keeps SSR OFF at boot)
     Q5-Q6:  MMBT2222A (SOT-23), Vce(sat) < 0.3V @ 100mA
     LED5-6: Orange 0805, Vf~2.0V
@@ -753,7 +753,7 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
     (Signal)                            │                        (Yellow/White wire)
     0.5V - 4.5V                         │
                                    ┌────┴────┐
-                                   │  4.7kΩ  │  R4 (Series) ±1%
+                                   │  5.6kΩ  │  R4 (Series) ±1%
                                    │         │
                                    └────┬────┘
                                         │
@@ -1492,8 +1492,8 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
                └────────────┘           │
                                    ┌────┴────┐    ┌────┴────┐
                                    │  D20    │    │  C2     │
-                                   │  TVS    │    │  100µF  │
-                                   │ SMBJ5.0A│    │  16V    │
+                                   │  TVS    │    │  470µF  │
+                                   │ SMBJ5.0A│    │  6.3V   │
                                    └────┬────┘    └────┬────┘
                                         │              │
                                        ─┴─            ─┴─
