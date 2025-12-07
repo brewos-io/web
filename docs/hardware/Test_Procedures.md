@@ -115,6 +115,7 @@
 Verify the voltage divider produces correct output for temperature measurement with **50kΩ @ 25°C NTC sensors** (ECM/Profitec default). The production board uses a **3.0V precision reference** (LM4040).
 
 > **Note:** ECM Synchronika uses 50kΩ NTC sensors. The pull-up resistor values are optimized per channel:
+>
 > - **Brew boiler:** 3.3kΩ pull-up (optimized for 90-96°C range)
 > - **Steam boiler:** 1.2kΩ pull-up (optimized for 125-150°C range)
 
@@ -140,26 +141,26 @@ Verify the voltage divider produces correct output for temperature measurement w
 
 ### Test Procedure
 
-| Step | Action                                | Expected Result         | ✓   |
-| ---- | ------------------------------------- | ----------------------- | --- |
-| 1    | Set bench supply to exactly 3.000V    | Display shows 3.00V     |     |
-| 2    | Connect 50kΩ 1% resistor as "NTC"     | Simulates 25°C          |     |
-| 3    | Measure V_out                         | 2.81V ±0.05V            |     |
-| 4    | Replace with actual NTC at room temp  | Should match room temp  |     |
-| 5    | Place NTC in ice water (0°C)          | V_out ≈ 2.94V           |     |
-| 6    | Place NTC in boiling water (~100°C)   | V_out ≈ 1.55V           |     |
-| 7    | Connect 4.3kΩ resistor (simulates 93°C brew temp) | V_out ≈ 1.70V |     |
-| 8    | Record actual readings below          |                         |     |
+| Step | Action                                            | Expected Result        | ✓   |
+| ---- | ------------------------------------------------- | ---------------------- | --- |
+| 1    | Set bench supply to exactly 3.000V                | Display shows 3.00V    |     |
+| 2    | Connect 50kΩ 1% resistor as "NTC"                 | Simulates 25°C         |     |
+| 3    | Measure V_out                                     | 2.81V ±0.05V           |     |
+| 4    | Replace with actual NTC at room temp              | Should match room temp |     |
+| 5    | Place NTC in ice water (0°C)                      | V_out ≈ 2.94V          |     |
+| 6    | Place NTC in boiling water (~100°C)               | V_out ≈ 1.55V          |     |
+| 7    | Connect 4.3kΩ resistor (simulates 93°C brew temp) | V_out ≈ 1.70V          |     |
+| 8    | Record actual readings below                      |                        |     |
 
 ### Results Log
 
-| Condition            | Expected V_out | Measured V_out | Expected Temp | Calculated Temp | Error    |
-| -------------------- | -------------- | -------------- | ------------- | --------------- | -------- |
-| 50kΩ resistor        | 2.81V          | \_\_\_V        | 25°C          | N/A             | N/A      |
-| 4.3kΩ resistor       | 1.70V          | \_\_\_V        | 93°C          | N/A             | N/A      |
-| Room temp (actual)   | ~2.81V         | \_\_\_V        | ~25°C         | \_\_\_°C        | \_\_\_°C |
-| Ice water            | 2.94V          | \_\_\_V        | 0°C           | \_\_\_°C        | \_\_\_°C |
-| Boiling water        | 1.55V          | \_\_\_V        | ~100°C        | \_\_\_°C        | \_\_\_°C |
+| Condition          | Expected V_out | Measured V_out | Expected Temp | Calculated Temp | Error    |
+| ------------------ | -------------- | -------------- | ------------- | --------------- | -------- |
+| 50kΩ resistor      | 2.81V          | \_\_\_V        | 25°C          | N/A             | N/A      |
+| 4.3kΩ resistor     | 1.70V          | \_\_\_V        | 93°C          | N/A             | N/A      |
+| Room temp (actual) | ~2.81V         | \_\_\_V        | ~25°C         | \_\_\_°C        | \_\_\_°C |
+| Ice water          | 2.94V          | \_\_\_V        | 0°C           | \_\_\_°C        | \_\_\_°C |
+| Boiling water      | 1.55V          | \_\_\_V        | ~100°C        | \_\_\_°C        | \_\_\_°C |
 
 ### Pass Criteria
 
@@ -180,11 +181,11 @@ Verify the voltage divider produces correct output for temperature measurement w
 
 For steam boiler testing, use **1.2kΩ pull-up** instead of 3.3kΩ:
 
-| Condition            | Pull-up | Expected V_out | Simulated Temp |
-| -------------------- | ------- | -------------- | -------------- |
-| 50kΩ resistor        | 1.2kΩ   | 2.93V          | 25°C           |
-| 1.4kΩ resistor       | 1.2kΩ   | 1.62V          | 135°C          |
-| 1.0kΩ resistor       | 1.2kΩ   | 1.36V          | 150°C          |
+| Condition      | Pull-up | Expected V_out | Simulated Temp |
+| -------------- | ------- | -------------- | -------------- |
+| 50kΩ resistor  | 1.2kΩ   | 2.93V          | 25°C           |
+| 1.4kΩ resistor | 1.2kΩ   | 1.62V          | 135°C          |
+| 1.0kΩ resistor | 1.2kΩ   | 1.36V          | 150°C          |
 
 ---
 
@@ -649,6 +650,7 @@ while True:
 Verify UART communication between Pico and ESP32 display module, and test the **brew-by-weight (WEIGHT_STOP)** signal.
 
 > **Important Architecture Note:** In the production design:
+>
 > - **ESP32 controls Pico** (not the other way around) for OTA firmware updates
 > - ESP32 controls Pico's **RUN** pin (J15 Pin 5) and **BOOTSEL** pin (J15 Pin 6) directly
 > - GPIO21 is **WEIGHT_STOP** (input signal from ESP32 to stop brew when target weight reached)
@@ -662,16 +664,16 @@ Verify UART communication between Pico and ESP32 display module, and test the **
 
 ### J15 Connector Wiring (8-pin JST-XH)
 
-| J15 Pin | Function          | Pico Connection   | ESP32 Connection  |
-| ------- | ----------------- | ----------------- | ----------------- |
-| 1       | 5V Power          | VSYS (5V)         | VIN               |
-| 2       | Ground            | GND               | GND               |
-| 3       | TX (Pico→ESP32)   | GPIO0 (via 33Ω)   | RX                |
-| 4       | RX (Pico←ESP32)   | GPIO1 (via 33Ω)   | TX                |
-| 5       | RUN               | Pico RUN pin      | GPIO (open-drain) |
-| 6       | BOOTSEL           | Pico BOOTSEL      | GPIO (open-drain) |
-| 7       | WEIGHT_STOP       | GPIO21 (input)    | GPIO (output)     |
-| 8       | SPARE             | GPIO22            | GPIO (optional)   |
+| J15 Pin | Function        | Pico Connection | ESP32 Connection  |
+| ------- | --------------- | --------------- | ----------------- |
+| 1       | 5V Power        | VSYS (5V)       | VIN               |
+| 2       | Ground          | GND             | GND               |
+| 3       | TX (Pico→ESP32) | GPIO0 (via 33Ω) | RX                |
+| 4       | RX (Pico←ESP32) | GPIO1 (via 33Ω) | TX                |
+| 5       | RUN             | Pico RUN pin    | GPIO (open-drain) |
+| 6       | BOOTSEL         | Pico BOOTSEL    | GPIO (open-drain) |
+| 7       | WEIGHT_STOP     | GPIO21 (input)  | GPIO (output)     |
+| 8       | SPARE           | GPIO22          | GPIO (optional)   |
 
 ### Test Firmware - Pico Side (MicroPython)
 
@@ -732,16 +734,16 @@ while True:
 
 ### Test Procedure
 
-| Step | Action                                    | Expected Result                | ✓   |
-| ---- | ----------------------------------------- | ------------------------------ | --- |
-| 1    | Connect ESP32 to J15, power on            | Both devices boot              |     |
-| 2    | Type "uart" - send test message           | Data transmitted to ESP32      |     |
-| 3    | Verify ESP32 receives message             | Message received on ESP32 RX   |     |
-| 4    | ESP32 sends response                      | Pico receives response         |     |
-| 5    | Type "weight" to monitor WEIGHT_STOP      | Shows "LOW" initially          |     |
-| 6    | ESP32 sets WEIGHT_STOP HIGH               | Pico prints "HIGH - STOP BREW!"|     |
-| 7    | ESP32 releases WEIGHT_STOP                | Pico prints "LOW"              |     |
-| 8    | ESP32 pulses J15 Pin 5 (RUN) LOW          | Pico resets                    |     |
+| Step | Action                               | Expected Result                 | ✓   |
+| ---- | ------------------------------------ | ------------------------------- | --- |
+| 1    | Connect ESP32 to J15, power on       | Both devices boot               |     |
+| 2    | Type "uart" - send test message      | Data transmitted to ESP32       |     |
+| 3    | Verify ESP32 receives message        | Message received on ESP32 RX    |     |
+| 4    | ESP32 sends response                 | Pico receives response          |     |
+| 5    | Type "weight" to monitor WEIGHT_STOP | Shows "LOW" initially           |     |
+| 6    | ESP32 sets WEIGHT_STOP HIGH          | Pico prints "HIGH - STOP BREW!" |     |
+| 7    | ESP32 releases WEIGHT_STOP           | Pico prints "LOW"               |     |
+| 8    | ESP32 pulses J15 Pin 5 (RUN) LOW     | Pico resets                     |     |
 
 ### Results Log
 
@@ -980,23 +982,23 @@ if __name__ == "__main__":
 
 ### Input Test Results
 
-| GPIO | Function     | Pull     | Open State | Active State | Pass |
-| ---- | ------------ | -------- | ---------- | ------------ | ---- |
-| 2    | Water Switch | Pull-up  | HIGH       | LOW          |      |
-| 3    | Tank Level   | Pull-up  | HIGH       | LOW          |      |
-| 4    | Steam Level  | None     | HIGH       | LOW          |      |
-| 5    | Brew Switch  | Pull-up  | HIGH       | LOW          |      |
-| 21   | WEIGHT_STOP  | Pull-down| LOW        | HIGH         |      |
+| GPIO | Function     | Pull      | Open State | Active State | Pass |
+| ---- | ------------ | --------- | ---------- | ------------ | ---- |
+| 2    | Water Switch | Pull-up   | HIGH       | LOW          |      |
+| 3    | Tank Level   | Pull-up   | HIGH       | LOW          |      |
+| 4    | Steam Level  | None      | HIGH       | LOW          |      |
+| 5    | Brew Switch  | Pull-up   | HIGH       | LOW          |      |
+| 21   | WEIGHT_STOP  | Pull-down | LOW        | HIGH         |      |
 
 ### ADC Test Results
 
 > **Note:** ADC uses 3.0V precision reference (LM4040). Verify at TP2.
 
-| GPIO | Function  | No Input   | With 50kΩ NTC @ 25°C | Pass |
-| ---- | --------- | ---------- | -------------------- | ---- |
-| 26   | Brew NTC  | ~2.9V      | ~2.81V               |      |
-| 27   | Steam NTC | ~2.9V      | ~2.93V (1.2kΩ PU)    |      |
-| 28   | Pressure  | 0.32V min  | (varies with input)  |      |
+| GPIO | Function  | No Input  | With 50kΩ NTC @ 25°C | Pass |
+| ---- | --------- | --------- | -------------------- | ---- |
+| 26   | Brew NTC  | ~2.9V     | ~2.81V               |      |
+| 27   | Steam NTC | ~2.9V     | ~2.93V (1.2kΩ PU)    |      |
+| 28   | Pressure  | 0.32V min | (varies with input)  |      |
 
 ---
 
