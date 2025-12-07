@@ -72,7 +72,7 @@ Plug & play replacement for the factory GICAR control board and PID controller:
 | **JP3** | OPEN    | Power meter voltage: OPEN=5V, CLOSE=3.3V               |
 | **JP4** | 1-2     | Power meter type: 1-2=RS485, 2-3=TTL                   |
 
-**See:** [Component Reference Guide](schematics/COMPONENT_REFERENCE_GUIDE.md) for complete component listings.
+**See:** [Component Reference Guide](schematics/Component_Reference_Guide.md) for complete component listings.
 
 ---
 
