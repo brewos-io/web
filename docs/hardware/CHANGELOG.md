@@ -2,21 +2,176 @@
 
 ## Revision History
 
-| Rev    | Date     | Description                                                  |
-| ------ | -------- | ------------------------------------------------------------ |
-| 2.24   | Dec 2025 | **CURRENT** - Critical VREF buffer, TC protection, ratiometric ADC |
-| 2.23   | Dec 2025 | Design review action items (warnings, coating)               |
-| 2.22   | Dec 2025 | Engineering review fixes (thermal, GPIO protection)          |
-| 2.21.1 | Dec 2025 | Pico 2 compatibility fixes, power supply                     |
-| 2.21   | Dec 2025 | External power metering, multi-machine NTC support           |
-| 2.20   | Dec 2025 | Unified 22-pos screw terminal (J26)                          |
-| 2.19   | Dec 2025 | Removed spare relay K4                                       |
-| 2.17   | Nov 2025 | Brew-by-weight support (J15 8-pin)                           |
-| 2.16   | Nov 2025 | Production-ready specification                               |
+| Rev        | Date           | Description                                                                               |
+| ---------- | -------------- | ----------------------------------------------------------------------------------------- |
+| **2.24.2** | **Dec 7 2025** | **CURRENT** - 🔴 SAFETY FIXES: Wien gain corrected, MOV relocated, JP5 added              |
+| 2.24.1     | Dec 7 2025     | CRITICAL FIXES: Buck feedback, Wien gain (wrong value), VREF isolation (DO NOT FABRICATE) |
+| 2.24       | Dec 2025       | Critical VREF buffer, TC protection, ratiometric ADC (DO NOT FABRICATE)                   |
+| 2.23       | Dec 2025       | Design review action items (warnings, coating)                                            |
+| 2.22       | Dec 2025       | Engineering review fixes (thermal, GPIO protection)                                       |
+| 2.21.1     | Dec 2025       | Pico 2 compatibility fixes, power supply                                                  |
+| 2.21       | Dec 2025       | External power metering, multi-machine NTC support                                        |
+| 2.20       | Dec 2025       | Unified 22-pos screw terminal (J26)                                                       |
+| 2.19       | Dec 2025       | Removed spare relay K4                                                                    |
+| 2.17       | Nov 2025       | Brew-by-weight support (J15 8-pin)                                                        |
+| 2.16       | Nov 2025       | Production-ready specification                                                            |
 
 ---
 
-## v2.24 (December 2025)
+## v2.24.2 (December 7, 2025) - 🔴 SAFETY COMPLIANCE FIXES
+
+**Corrects calculation error and safety violations in v2.24.1**
+
+### Critical Corrections to v2.24.1
+
+| Issue              | v2.24.1 (Incorrect)   | v2.24.2 (Corrected)   | Impact                                 |
+| ------------------ | --------------------- | --------------------- | -------------------------------------- |
+| **Wien gain**      | R91A = 5.1kΩ (A=2.96) | R91A = 4.7kΩ (A=3.13) | Loop gain 0.987→1.043 (NOW oscillates) |
+| **MOV placement**  | Across relay contacts | Across load (Phase-N) | IEC 60335-1 compliance                 |
+| **GPIO7 conflict** | Firmware control only | JP5 hardware jumper   | Prevents bus contention                |
+
+### Component Changes from v2.24.1
+
+| Component | Change                     | Reason                                       |
+| --------- | -------------------------- | -------------------------------------------- |
+| **R91A**  | 5.1kΩ → **4.7kΩ**          | Barkhausen criterion: A×β must be >1, not ~1 |
+| **RV2**   | K2_NO↔K2_COM → **J3_NO↔N** | MOV short must blow fuse, not bypass relay   |
+| **RV3**   | K3_NO↔K3_COM → **J4_NO↔N** | Same safety logic as RV2                     |
+| **JP5**   | (new) 3-pad jumper         | Hardware GPIO7 source selection (RS485/TTL)  |
+
+### Technical Analysis
+
+#### Wien Bridge Calculation Error (v2.24.1)
+
+**The Mistake in v2.24.1:**
+
+```
+R91A = 5.1kΩ
+A_CL = 1 + (10k/5.1k) = 2.96
+Loop gain = A_CL × β = 2.96 × (1/3) = 0.987 < 1 ✗
+
+Barkhausen criterion NOT met → oscillation decays to zero!
+```
+
+**Corrected in v2.24.2:**
+
+```
+R91A = 4.7kΩ (standard E24 value)
+A_CL = 1 + (10k/4.7k) = 3.13
+Loop gain = 3.13 × (1/3) = 1.043 > 1 ✓
+
+Provides 4.3% margin above unity for robust oscillation startup.
+```
+
+#### MOV Safety Violation (v2.24.1)
+
+**The Flaw:**
+v2.24.1 claimed "Water tank switch (GPIO2) would prevent pump operation if MOV shorts."
+
+**The Reality:**
+
+- GPIO2 is just a sensor input to the MCU (not a power interrupt)
+- If RV2 shorts across relay contacts: Live → MOV short → Pump (relay bypassed)
+- **Firmware has ZERO control** - it's a hardware short circuit
+- Violates IEC 60335-1 §19.11.2 single-fault safety requirement
+
+**The Fix:**
+
+```
+Old: RV2 from K2_NO to K2_COM (across relay contacts)
+New: RV2 from J3_NO to Neutral (across pump load)
+
+If MOV shorts now: Phase → Neutral short → F1 (10A fuse) blows → Safe
+```
+
+Arc suppression still effective (MOV absorbs inductive kickback energy).
+
+#### GPIO7 Hardware Protection (v2.24.2)
+
+**The Risk:** v2.24.1 relied on firmware tri-stating MAX3485 in TTL mode via GPIO20.
+
+**Problem:** If firmware crashes or GPIO20 floats during reset, BOTH drivers active on GPIO7 = bus contention.
+
+**Solution:** JP5 3-pad solder jumper physically selects source:
+
+```
+     U8_RO (MAX3485)          J17_DIV (External Meter)
+          │                          │
+          1 ◄──── 2 (center) ────► 3
+                  │
+               GPIO7
+
+JP5 Setting:
+• Pads 1-2: RS485 mode (U8 RO → GPIO7)
+• Pads 2-3: TTL mode (J17_DIV → GPIO7)
+```
+
+Hardware isolation eliminates firmware dependency for safety.
+
+---
+
+## v2.24.1 (December 7, 2025) - 🔴 EMERGENCY CRITICAL FIXES (SUPERSEDED)
+
+**DO NOT FABRICATE v2.24 - Three Critical Circuit Errors Identified**
+
+External peer review identified showstopper issues that would cause complete board failure:
+
+### Critical Components Added
+
+| Ref   | Value    | Purpose                   | Failure Mode if Missing                |
+| ----- | -------- | ------------------------- | -------------------------------------- |
+| R_FB1 | 33kΩ 1%  | TPS563200 feedback upper  | Buck outputs 5V → destroys 3.3V domain |
+| R_FB2 | 10kΩ 1%  | TPS563200 feedback lower  | Same - CRITICAL system failure         |
+| R91A  | 5.1kΩ 1% | Wien bridge gain resistor | No oscillation → level probe dead      |
+| R_ISO | 47Ω 1%   | VREF buffer isolation     | Op-amp oscillates → noisy readings     |
+
+### Components Updated
+
+| Component | v2.24     | v2.24.1    | Reason                   |
+| --------- | --------- | ---------- | ------------------------ |
+| C2        | 100µF 16V | 470µF 6.3V | Per HLK-15M05C spec      |
+| R1A       | (missing) | 1.5kΩ 1%   | Brew NTC parallel (JP2)  |
+| R2A       | (missing) | 680Ω 1%    | Steam NTC parallel (JP3) |
+
+### Issue Details
+
+**1. TPS563200 Missing Feedback Divider**
+
+- D-CAP2 buck converter requires external divider on FB pin to set output voltage
+- v2.24 showed FB→VOUT direct connection (incorrect for 3.3V output)
+- Without R_FB1/R_FB2: Output voltage indeterminate, likely 4-5V
+- **Impact:** First power-up would immediately destroy RP2350 MCU
+
+**2. Wien Bridge Missing Gain Resistor**
+
+- Oscillator requires A_CL ≈ 3 for sustained oscillation (Barkhausen criterion)
+- R91 (feedback) present, but R91A (to GND) was missing
+- Without R91A: Unity gain (A=1), no oscillation
+- **Impact:** Level probe failure → boiler overfill → safety hazard
+
+**3. ADC Reference Buffer Capacitive Load**
+
+- OPA2342 cannot drive 22µF directly (causes instability)
+- Missing isolation resistor between op-amp output and C7
+- **Impact:** Ringing on ADC_VREF → unstable temperature control
+
+### Review Process
+
+- External technical review conducted December 7, 2025
+- Reviewer identified issues through circuit analysis and datasheet verification
+- Design team validated claims and implemented corrections same day
+- See `docs/hardware/schematics/REVIEW_RESPONSE.md` for full analysis
+
+**Files Modified:**
+
+- `netlist.csv` - Added 4 critical components, corrected 3 values
+- `Schematic_Reference.md` - Updated circuit diagrams
+- `Specification.md` - Updated schematics, BOM, added warning header
+- `CHANGELOG.md` - This entry
+
+---
+
+## v2.24 (December 2025) - ⚠️ DO NOT FABRICATE
 
 **Independent Engineering Review - Critical Analog Fixes**
 
@@ -26,12 +181,12 @@ This revision addresses critical issues identified in an independent engineering
 
 #### 1. VREF Buffer Op-Amp (SYSTEM-CRITICAL FIX)
 
-| Component | Old (v2.23)           | New (v2.24)                  | Reason                                      |
-| --------- | --------------------- | ---------------------------- | ------------------------------------------- |
-| **U9**    | (none)                | OPA2342UA (dual op-amp)      | Buffers ADC_VREF for high-current loads     |
-| **C80**   | (none)                | 100nF 25V ceramic            | U9 VCC decoupling                           |
-| **R7**    | To ADC_VREF directly  | To U9A input (high-Z)        | LM4040 now sees only ~60µA load             |
-| **ADC_VREF** | Direct from LM4040 | From U9A output (buffered)   | Can now drive 10mA+ without voltage collapse |
+| Component    | Old (v2.23)          | New (v2.24)                | Reason                                       |
+| ------------ | -------------------- | -------------------------- | -------------------------------------------- |
+| **U9**       | (none)               | OPA2342UA (dual op-amp)    | Buffers ADC_VREF for high-current loads      |
+| **C80**      | (none)               | 100nF 25V ceramic          | U9 VCC decoupling                            |
+| **R7**       | To ADC_VREF directly | To U9A input (high-Z)      | LM4040 now sees only ~60µA load              |
+| **ADC_VREF** | Direct from LM4040   | From U9A output (buffered) | Can now drive 10mA+ without voltage collapse |
 
 **The Problem (Why This Was Critical):**
 
@@ -39,6 +194,7 @@ The LM4040 shunt reference with R7=1kΩ provides only **300µA** of bias current
 $$I_{available} = \frac{3.3V - 3.0V}{1k\Omega} = 0.3mA$$
 
 But the NTC sensor dividers demand **~4mA** at operating temperature:
+
 - Brew NTC at 93°C: R_NTC ≈ 3.5kΩ → I = 3.0V / (3.3kΩ + 3.5kΩ) ≈ 441µA
 - Steam NTC at 135°C: R_NTC ≈ 1kΩ → I = 3.0V / (1.2kΩ + 1kΩ) ≈ **1.36mA**
 - Total: **~1.8mA minimum**, often higher
@@ -77,6 +233,7 @@ But the NTC sensor dividers demand **~4mA** at operating temperature:
 ```
 
 The op-amp buffer:
+
 - Presents ~pA input bias to LM4040 (maintains precision reference accuracy)
 - Drives the ~4mA sensor load from its output stage (powered from 3.3V rail)
 - Unity-gain follower: Vout = Vin (no gain error)
@@ -85,12 +242,12 @@ The op-amp buffer:
 
 #### 2. Pressure Sensor Ratiometric Compensation (ADC Channel)
 
-| Component | Old (v2.23)           | New (v2.24)                  | Reason                                      |
-| --------- | --------------------- | ---------------------------- | ------------------------------------------- |
-| **R100**  | (none)                | 10kΩ 1% 0805                 | 5V monitor upper divider                    |
-| **R101**  | (none)                | 5.6kΩ 1% 0805                | 5V monitor lower divider (same ratio as R3/R4) |
-| **C81**   | (none)                | 100nF 25V ceramic            | 5V monitor filter                           |
-| **ADC3**  | (unused internal)     | 5V_MONITOR                   | Firmware ratiometric correction             |
+| Component | Old (v2.23)       | New (v2.24)       | Reason                                         |
+| --------- | ----------------- | ----------------- | ---------------------------------------------- |
+| **R100**  | (none)            | 10kΩ 1% 0805      | 5V monitor upper divider                       |
+| **R101**  | (none)            | 5.6kΩ 1% 0805     | 5V monitor lower divider (same ratio as R3/R4) |
+| **C81**   | (none)            | 100nF 25V ceramic | 5V monitor filter                              |
+| **ADC3**  | (unused internal) | 5V_MONITOR        | Firmware ratiometric correction                |
 
 **The Problem:**
 
@@ -136,13 +293,14 @@ This cancels out any 5V supply drift.
 
 #### 3. Thermocouple ESD Protection
 
-| Component | Old (v2.23) | New (v2.24)     | Reason                                      |
-| --------- | ----------- | --------------- | ------------------------------------------- |
-| **D22**   | (none)      | TPD2E001DRLR    | TC_POS/TC_NEG ESD protection                |
+| Component | Old (v2.23) | New (v2.24)  | Reason                       |
+| --------- | ----------- | ------------ | ---------------------------- |
+| **D22**   | (none)      | TPD2E001DRLR | TC_POS/TC_NEG ESD protection |
 
 **The Problem:**
 
 Thermocouple inputs (TC_POS, TC_NEG on J26 pins 12-13) are the most ESD-vulnerable points in the system:
+
 - Long wires act as antennas
 - Connector is user-accessible during installation
 - No protection between connector and MAX31855
@@ -152,6 +310,7 @@ A static discharge could destroy U4 (MAX31855) - an expensive failure requiring 
 **The Solution:**
 
 Add TPD2E001DRLR dual-line ESD protection diode near J26:
+
 - Bidirectional TVS clamp
 - Ultra-low capacitance (<0.5pF) - won't affect µV-level TC signals
 - ±15kV ESD protection (HBM)
@@ -169,10 +328,10 @@ Add TPD2E001DRLR dual-line ESD protection diode near J26:
 
 #### 4. Thermocouple Common-Mode Filter
 
-| Component | Old (v2.23) | New (v2.24)     | Reason                                      |
-| --------- | ----------- | --------------- | ------------------------------------------- |
-| **C41**   | (none)      | 1nF 50V ceramic | TC+ common-mode shunt                       |
-| **C42**   | (none)      | 1nF 50V ceramic | TC- common-mode shunt                       |
+| Component | Old (v2.23) | New (v2.24)     | Reason                |
+| --------- | ----------- | --------------- | --------------------- |
+| **C41**   | (none)      | 1nF 50V ceramic | TC+ common-mode shunt |
+| **C42**   | (none)      | 1nF 50V ceramic | TC- common-mode shunt |
 
 **The Problem:**
 
@@ -181,6 +340,7 @@ C40 (10nF across TC+/TC-) filters **differential** noise, but **common-mode** in
 **The Solution:**
 
 Add small capacitors from each TC line to GND:
+
 - 1nF is small enough to not affect thermocouple response time
 - Shunts common-mode RF/EMI to ground
 - Standard practice in industrial thermocouple interfaces
@@ -206,9 +366,9 @@ Add small capacitors from each TC line to GND:
 
 #### 5. J17 Level Shifter 3.3V Bypass Jumper
 
-| Component | Old (v2.23)         | New (v2.24)                  | Reason                                |
-| --------- | ------------------- | ---------------------------- | ------------------------------------- |
-| **JP4**   | (none)              | Solder jumper (default OPEN) | Bypass 5V→3.3V divider for 3.3V meters |
+| Component | Old (v2.23) | New (v2.24)                  | Reason                                 |
+| --------- | ----------- | ---------------------------- | -------------------------------------- |
+| **JP4**   | (none)      | Solder jumper (default OPEN) | Bypass 5V→3.3V divider for 3.3V meters |
 
 **The Problem:**
 
@@ -245,22 +405,22 @@ Add JP4 solder jumper to bypass the voltage divider when using 3.3V meters:
          └────────────────────────────────────► GPIO7 (METER_RX)
 ```
 
-| Meter Type | JP4 Setting | Result                              |
-| ---------- | ----------- | ----------------------------------- |
-| 5V TTL     | OPEN        | 5V → 3.0V via divider (safe)        |
-| 3.3V       | CLOSED      | 3.3V → 3.3V bypassed (direct)       |
+| Meter Type | JP4 Setting | Result                        |
+| ---------- | ----------- | ----------------------------- |
+| 5V TTL     | OPEN        | 5V → 3.0V via divider (safe)  |
+| 3.3V       | CLOSED      | 3.3V → 3.3V bypassed (direct) |
 
 **⚠️ WARNING:** Closing JP4 with a 5V meter connected will damage GPIO7!
 
 ### 📋 Component Summary (v2.24 Changes)
 
-| Category       | Added                          | Changed                           | Removed |
-| -------------- | ------------------------------ | --------------------------------- | ------- |
-| **ICs**        | U9 (OPA2342UA dual buffer)     | -                                 | -       |
-| **Diodes**     | D22 (TPD2E001DRLR ESD)         | -                                 | -       |
-| **Resistors**  | R100, R101 (5V monitor)        | -                                 | -       |
-| **Capacitors** | C41, C42 (1nF TC CM), C80, C81 | -                                 | -       |
-| **Jumpers**    | JP4 (J17 3.3V bypass)          | -                                 | -       |
+| Category       | Added                          | Changed | Removed |
+| -------------- | ------------------------------ | ------- | ------- |
+| **ICs**        | U9 (OPA2342UA dual buffer)     | -       | -       |
+| **Diodes**     | D22 (TPD2E001DRLR ESD)         | -       | -       |
+| **Resistors**  | R100, R101 (5V monitor)        | -       | -       |
+| **Capacitors** | C41, C42 (1nF TC CM), C80, C81 | -       | -       |
+| **Jumpers**    | JP4 (J17 3.3V bypass)          | -       | -       |
 
 ### Design Verdict
 

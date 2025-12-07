@@ -4,27 +4,23 @@
 
 **Board Size:** 130mm × 80mm (2-layer, 2oz copper)  
 **Enclosure:** 150mm × 100mm mounting area  
-**Revision:** Matches ECM_Control_Board_Specification_v2.md (v2.24)
+**Revision:** v2.24.2  
+**Date:** December 2025
 
 ---
 
-## ⚠️ KEY DESIGN CHANGES IN v2.21+
+## Key Design Features
 
-1. **Universal External Power Metering** - REMOVED embedded PZEM daughterboard
-2. **J17 (JST-XH 6-pin)** - LV power meter interface (TTL UART + RS485)
-3. **J24 (Screw Terminal 3-pos)** - HV power meter input (L fused, N, PE)
-4. **Supports multiple modules:** PZEM-004T, JSY-MK-163T/194T, Eastron SDM, and more
-5. **MAX3485 RS485 transceiver (U8)** - On-board with jumper-selectable 120Ω termination
-6. **JP2/JP3 NTC jumpers** - Select between 50kΩ (ECM) and 10kΩ (Rocket/Gaggia) NTC sensors
-7. **J26 reduced to 22-pos** - CT clamp pins removed (now on external module)
-8. **No HV measurement circuitry on PCB** - J24 provides L/N/PE pass-through to external meter
-9. **GPIO20 → RS485 DE/RE** - Direction control for industrial meters
-10. **Unified J26 Screw Terminal (22-pos)** - Switches, sensors, SSR outputs (no CT)
-11. **6.3mm spades retained ONLY for 220V AC**: Mains input (L, N, PE), relay outputs
-12. **OPA342 + TLV3201** for steam boiler level probe (AC sensing)
-13. **HLK-15M05C** power supply (3A/15W, 48×28×18mm)
-14. **MOV arc suppression MANDATORY** for K2 (Pump) and K3 (Solenoid)
-15. **Mounting holes**: MH1=PE star point (PTH), MH2-4=NPTH (isolated)
+1. Universal external power metering interface (J17 LV + J24 HV)
+2. Multi-machine NTC compatibility via JP2/JP3 jumpers (50kΩ or 10kΩ)
+3. RS485 and TTL UART support via on-board MAX3485 transceiver
+4. Unified 22-position low-voltage terminal block (J26)
+5. OPA342 + TLV3201 AC-excited level probe (prevents electrolysis)
+6. Buffered precision ADC reference (LM4040 + OPA2342)
+7. HLK-15M05C isolated power supply (5V 3A)
+8. TPS563200 synchronous buck converter (3.3V 3A, >90% efficient)
+9. MOV arc suppression on inductive loads (across load, not contacts)
+10. Mounting: MH1=PE star point (PTH), MH2-4=NPTH (isolated)
 
 ---
 
@@ -112,21 +108,36 @@ critical for reliable operation inside hot espresso machine enclosures.
                            │                      │
     +5V ─────┬─────────────┤ VIN            SW    ├────┬────[L1 2.2µH]────┬──► +3.3V
              │             │                      │    │                   │
-         C3  │             │ EN              FB   ├────┼───────────────────┤
-       ┌─────┴─────┐       │        │             │    │                   │
-       │   22µF    │       │        ▼             │    │              ┌────┴────┐
-       │   25V     │       │       GND            │    │              │  22µF   │
-       │ Ceramic   │       └──────────────────────┘    │              │  10V    │
-       │  (X5R)    │                                   │              │  (C4)   │
-       └─────┬─────┘                                   │              └────┬────┘
-             │                                         │                   │
-            ─┴─                                        │              ┌────┴────┐
-            GND                                        │              │  22µF   │
-                                                       │              │  10V    │
-                                                       │              │  (C4A)  │
+         C3  │      ┌──────┤ EN              FB   ├────┼───────────────────┼──┐
+       ┌─────┴─────┐│      │                      │    │                   │  │
+       │   22µF    ││      │                      │    │              ┌────┴────┐
+       │   25V     ││      │       GND            │    │              │  22µF   │
+       │ Ceramic   ││      └──────────┬───────────┘    │              │  10V    │
+       │  (X5R)    ││                 │                │              │  (C4)   │
+       └─────┬─────┘│                ─┴─               │              └────┬────┘
+             │      │                GND               │                   │
+            ─┴─     │                                  │              ┌────┴────┐
+            GND     │                                  │              │  22µF   │
+                    │                                  │              │  10V    │
+                    └───► +5V (EN tied high)           │              │  (C4A)  │
                                                        │              └────┬────┘
-                                                      ─┴─                 ─┴─
-                                                      GND                 GND
+                                                       │                   │
+    Feedback Divider (sets 3.3V output):              │                   │
+    ─────────────────────────────────────              │                   │
+                           ┌────┴────┐                │                   │
+                           │  33kΩ   │ R_FB1          │                   │
+                           │   1%    │                │                   │
+                           └────┬────┘                │                   │
+                                │                     │                   │
+                           FB ──┴─────────────────────┘                   │
+                                │                                         │
+                           ┌────┴────┐                                    │
+                           │  10kΩ   │ R_FB2                              │
+                           │   1%    │                                    │
+                           └────┬────┘                                    │
+                                │                                         │
+                               ─┴─                                       ─┴─
+                               GND                                       GND
 
     ✅ WHY BUCK INSTEAD OF LDO? (Engineering Review Fix)
     ─────────────────────────────────────────────────────
@@ -138,30 +149,33 @@ critical for reliable operation inside hot espresso machine enclosures.
 
     Component Values:
     ─────────────────
-    U3:  TI TPS563200DDCR, 3A sync buck, SOT-23-6
-    L1:  2.2µH, 3A saturation, DCR <100mΩ (Murata LQH32CN2R2M23)
-         ⚠️ 2.2µH per TI datasheet for 3.3V output - D-CAP2 requires adequate ripple!
-    C3:  22µF 25V X5R Ceramic, 1206 (input)
-    C4:  22µF 10V X5R Ceramic, 1206 (output)
-    C4A: 22µF 10V X5R Ceramic, 1206 (output, parallel for ripple)
+    U3:     TI TPS563200DDCR, 3A sync buck, SOT-23-6
+    L1:     2.2µH, 3A saturation, DCR <100mΩ (Murata LQH32CN2R2M23)
+            ⚠️ 2.2µH per TI datasheet for 3.3V output - D-CAP2 requires adequate ripple!
+    C3:     22µF 25V X5R Ceramic, 1206 (input)
+    C4:     22µF 10V X5R Ceramic, 1206 (output)
+    C4A:    22µF 10V X5R Ceramic, 1206 (output, parallel for ripple)
+    R_FB1:  33kΩ 1% 0805 (feedback upper resistor, FB to 3.3V)
+    R_FB2:  10kΩ 1% 0805 (feedback lower resistor, FB to GND)
 
-    ⚠️ CRITICAL: PICO INTERNAL REGULATOR DISABLED
+    Output Voltage Setting:
+    V_OUT = 0.768V × (1 + R_FB1/R_FB2) = 0.768V × (1 + 33k/10k) = 3.30V ✓
+
+    Pico Internal Regulator Configuration:
     ─────────────────────────────────────────────
     Pico 2 Pin 37 (3V3_EN) is connected to GND, disabling the internal RT6150B
     regulator. The TPS563200 powers the ENTIRE 3.3V domain via Pico Pin 36 (3V3).
     This avoids "hard parallel" regulator contention and potential reverse current.
 ```
 
-## 1.4 Precision ADC Voltage Reference (Buffered - v2.24 CRITICAL FIX)
+## 1.4 Precision ADC Voltage Reference (Buffered)
 
 **Purpose:** Provides stable reference for NTC measurements, eliminating supply drift errors.
 
-**⚠️ CRITICAL (v2.24):** The LM4040 MUST be buffered by an op-amp. Without the buffer,
-the reference voltage collapses under load, causing complete temperature sensing failure.
+The LM4040 is buffered by an op-amp to drive the NTC pull-up network without voltage collapse.
 
 ```
                       PRECISION ADC VOLTAGE REFERENCE (BUFFERED)
-                          ⚠️ v2.24 CRITICAL DESIGN FIX
     ════════════════════════════════════════════════════════════════════════════
 
     +3.3V ──────[FB1: 600Ω @ 100MHz]───────┬──────────────────────────────────┐
@@ -183,8 +197,14 @@ the reference voltage collapses under load, causing complete temperature sensing
                                       │  Ref    │           └───┤ +   OUT   ├────┐
                                       └────┬────┘           ┌───┤ -         │    │
                                            │                │   └───────────┘    │
-                                          ─┴─               └────────────────────┤
-                                          GND                    (feedback)      │
+                                          ─┴─               │        │           │
+                                          GND               │    ┌───┴───┐       │
+                                                            │    │ 47Ω  │ R_ISO │
+                                                            │    │ 1%   │       │
+                                                            │    └───┬───┘       │
+                                                            │        │           │
+                                                            └────────┴───────────┤
+                                                                (feedback)       │
                                                                                  │
                                                       ADC_VREF (3.0V BUFFERED) ◄─┘
                                                                  │
@@ -198,7 +218,7 @@ the reference voltage collapses under load, causing complete temperature sensing
                                         ─┴─                     ─┴─         To NTC ADCs
                                         GND                     GND
 
-    ⚠️ WHY BUFFER IS MANDATORY (The Math):
+    Buffer Design Rationale:
     ────────────────────────────────────────
     Without buffer, R7 provides only 0.3mA to share between LM4040 and sensor loads.
 
@@ -212,13 +232,17 @@ the reference voltage collapses under load, causing complete temperature sensing
 
     Component Values:
     ─────────────────
-    U5:  TI LM4040DIM3-3.0, 3.0V shunt ref, SOT-23-3
-    U9:  TI OPA2342UA, dual RRIO op-amp, SOIC-8 (U9A used, U9B spare)
-    R7:  1kΩ 1%, 0805 (bias resistor - now loads only pA into buffer input)
-    FB1: Murata BLM18PG601SN1D, 600Ω @ 100MHz, 0603
-    C7:  22µF 10V X5R Ceramic, 1206 (bulk, on ADC_VREF output)
-    C7A: 100nF 25V Ceramic, 0805 (HF decoupling, on ADC_VREF output)
-    C80: 100nF 25V Ceramic, 0805 (U9 VCC decoupling)
+    U5:    TI LM4040DIM3-3.0, 3.0V shunt ref, SOT-23-3
+    U9:    TI OPA2342UA, dual RRIO op-amp, SOIC-8 (U9A used, U9B spare)
+    R7:    1kΩ 1%, 0805 (bias resistor - now loads only pA into buffer input)
+    R_ISO: 47Ω 1%, 0805 (buffer output isolation - prevents oscillation with C7 load)
+    FB1:   Murata BLM18PG601SN1D, 600Ω @ 100MHz, 0603
+    C7:    22µF 10V X5R Ceramic, 1206 (bulk, on ADC_VREF output)
+    C7A:   100nF 25V Ceramic, 0805 (HF decoupling, on ADC_VREF output)
+    C80:   100nF 25V Ceramic, 0805 (U9 VCC decoupling)
+
+    R_ISO (47Ω) isolates the op-amp output from the 22µF capacitive load,
+    preventing oscillation while maintaining DC accuracy.
 
     Connection to NTC Pull-ups:
     ──────────────────────────
@@ -410,20 +434,31 @@ the reference voltage collapses under load, causing complete temperature sensing
     MOV ARC SUPPRESSION (Inductive Load Protection)
     ═══════════════════════════════════════════════════════════════════════════
 
-    ⚠️ MANDATORY for K2 (Pump) and K3 (Solenoid) - prevents contact welding!
+    Required for K2 (Pump) and K3 (Solenoid) to prevent contact welding.
 
-    MOV across relay contacts (HV side):
-    ─────────────────────────────────────
+    MOV Placement (Across Load):
+    ──────────────────────────────────────────────────────────
 
-         Relay NO ──────┬───────────────────────────► To Load
-                        │
-                   ┌────┴────┐
-                   │   MOV   │  RV2 or RV3 (275V Varistor)
-                   │  275VAC │  10mm disc, ~4mm thick
-                   │  10mm   │
-                   └────┬────┘
-                        │
-         Relay COM ─────┴───────────────────────────── From L_FUSED
+    Incorrect Placement:            Correct Placement:
+
+         Relay NO ──┬─► Load            Relay NO ─────┬──────► Pump Live
+                    │                                 │
+               ┌────┴────┐                      ┌─────┴─────┐
+               │   MOV   │ ✗ WRONG!            │   Pump    │
+               └────┬────┘                      │   Motor   │
+                    │                           └─────┬─────┘
+         Relay COM ─┴─── Live                         │
+                                                  ┌────┴────┐
+    If MOV shorts:                               │   MOV   │ ✓ CORRECT
+    Direct L → Pump                              │  RV2/3  │   (Load side)
+    Relay bypassed!                              └────┬────┘
+    UNSAFE!                                            │
+                                                  Neutral ──┴─── Return
+
+                                              If MOV shorts:
+                                              Live → Neutral short
+                                              → F1 fuse blows
+                                              → SAFE shutdown
 
     MOV vs RC Snubber:
     ───────────────────
@@ -432,16 +467,26 @@ the reference voltage collapses under load, causing complete temperature sensing
     • Faster clamping response (nanoseconds)
     • Critical with downsized K1/K3 relays (3A contacts)
 
-    MOV Components:
-    ────────────────
-    K2 (Pump):     RV2 (S10K275) - MANDATORY
-    K3 (Solenoid): RV3 (S10K275) - MANDATORY
-    K1 (LED):      DNP (footprint only, resistive load)
+    MOV Placement Strategy (IEC 60335-1 Compliant):
+    ────────────────────────────────────────────────
+    K2 (Pump):     RV2 from J3-NO to Neutral (across load)
+                   • MOV short creates L-N fault → F1 fuse clears
+                   • Provides arc suppression at contact opening
+
+    K3 (Solenoid): RV3 from J4-NO to Neutral (across load)
+                   • Same protection strategy as K2
+
+    K1 (LED):      DNP (footprint only, resistive load - no inductive kickback)
 
     MOV Component Values:
     ─────────────────────
     RV2-RV3: S10K275 (275V AC, 10mm disc, 2500A surge)
              Footprint: Disc_D10mm_W5.0mm_P7.50mm
+
+    Safety Note:
+    MOVs are placed across the load (Phase to Neutral) rather than across
+    relay contacts. This ensures that MOV failure creates a fuse-clearable
+    fault rather than bypassing the switching element.
 ```
 
 ---
@@ -617,20 +662,18 @@ the reference voltage collapses under load, causing complete temperature sensing
     • Steam (135°C): ~25 ADC counts/°C → 0.04°C resolution
 ```
 
-## 5.2 K-Type Thermocouple Input (v2.24: ESD + CM Protection)
+## 5.2 K-Type Thermocouple Input
 
-**⚠️ SENSOR RESTRICTION:** MAX31855**K** is hard-wired for **Type-K ONLY**.
+**Sensor Requirement:** MAX31855K supports Type-K thermocouples only.
 
-- ✅ Type-K (Chromel/Alumel) - Standard for E61 group head thermometers
-- ❌ Type-J, Type-T, PT100/RTD (will NOT work - different chips required)
+- Type-K (Chromel/Alumel) - Standard for E61 group head thermometers
+- Type-J, Type-T, PT100/RTD require different amplifier chips
 
-**🔴 CRITICAL: USE UNGROUNDED (INSULATED) THERMOCOUPLES ONLY! 🔴**
-
-Grounded junction thermocouples create a ground loop through the boiler PE bond,
-causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for details.
+**Thermocouple Junction:** Use ungrounded (insulated) junction thermocouples to avoid
+ground loops through the boiler PE connection. See Specification §7.2 for details.
 
 ```
-                   K-TYPE THERMOCOUPLE INPUT (v2.24 Enhanced)
+                   K-TYPE THERMOCOUPLE INPUT
                       with ESD Protection & Common-Mode Filter
     ════════════════════════════════════════════════════════════════════════════
 
@@ -664,7 +707,7 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
                        GND           GND
 
 
-    PROTECTION STAGES (v2.24):
+    PROTECTION STAGES:
     ──────────────────────────
 
     1. ESD PROTECTION (D22: TPD2E001DRLR) - Place CLOSEST to J26 connector
@@ -872,6 +915,13 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
     │                  │           │          │
     │                  │          ─┴─         │
     │                  │          GND         │
+    │             ┌────┴────┐                 │
+    │             │  4.7kΩ  │ R91A            │
+    │             │   1%    │ (Gain setting)  │
+    │             └────┬────┘                 │
+    │                  │                      │
+    │                 ─┴─                     │
+    │                 GND                     │
     │                  │                      │
     │             ┌────┴────┐           ┌────┴────┐
     │             │  10kΩ   │           │  10kΩ   │
@@ -942,26 +992,42 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
 
     Component Values:
     ─────────────────
-    U6:  OPA342UA (SOIC-8) or OPA2342UA (use one section)
-         Alt: OPA207 for lower noise
-    U7:  TLV3201AIDBVR (SOT-23-5)
-    R91: 10kΩ 1%, 0805 (oscillator feedback)
-    R92: 10kΩ 1%, 0805 (Wien bridge)
-    R93: 10kΩ 1%, 0805 (Wien bridge)
-    R94: 100Ω 5%, 0805 (probe current limit)
-    R95: 10kΩ 5%, 0805 (AC bias)
-    R96: 100kΩ 1%, 0805 (reference divider)
-    R97: 100kΩ 1%, 0805 (reference divider)
-    R98: 1MΩ 5%, 0805 (hysteresis)
-    C60: 100nF 25V, 0805 (OPA342 decoupling)
-    C61: 10nF 50V, 0805 (Wien bridge timing - 1.6kHz for probe longevity)
-    C62: 10nF 50V, 0805 (Wien bridge timing - 1.6kHz for probe longevity)
+    U6:   OPA342UA (SOIC-8) or OPA2342UA (use one section)
+          Alt: OPA207 for lower noise
+    U7:   TLV3201AIDBVR (SOT-23-5)
+    R91:  10kΩ 1%, 0805 (oscillator feedback)
+    R91A: 4.7kΩ 1%, 0805 (gain setting resistor to GND, sets A_CL=3.13)
+    R92:  10kΩ 1%, 0805 (Wien bridge)
+    R93:  10kΩ 1%, 0805 (Wien bridge)
+    R94:  100Ω 5%, 0805 (probe current limit)
+    R95:  10kΩ 5%, 0805 (AC bias)
+    R96:  100kΩ 1%, 0805 (reference divider)
+    R97:  100kΩ 1%, 0805 (reference divider)
+    R98:  1MΩ 5%, 0805 (hysteresis)
+    C60:  100nF 25V, 0805 (OPA342 decoupling)
+    C61:  10nF 50V, 0805 (Wien bridge timing - 1.6kHz for probe longevity)
+    C62:  10nF 50V, 0805 (Wien bridge timing - 1.6kHz for probe longevity)
+
+    Oscillator Gain Calculation:
+    ────────────────────────────
+    A_CL = 1 + (R91/R91A) = 1 + (10kΩ/4.7kΩ) = 3.13
+    Loop gain = A_CL × β = 3.13 × (1/3) = 1.043 > 1 ✓
+
+    Barkhausen Criterion Satisfied: Loop gain >1 ensures robust oscillation startup
+    and sustained oscillation even with component tolerances.
 
     ⚠️ WHY 1.6kHz (NOT 160Hz)?
     ──────────────────────────
     Lower frequencies allow electrochemical reactions (electrolysis) during
     each AC half-cycle, corroding the probe. Industry standard: 1-10 kHz.
     At 1.6kHz, probe life extends from months to 5-10+ years.
+
+    ⚠️ NOTE ON WAVEFORM SHAPE:
+    ──────────────────────────
+    Without AGC (automatic gain control), the oscillator will produce a
+    clipped/saturated waveform (rail-to-rail square-ish wave) rather than
+    a pure sine wave. This is ACCEPTABLE for conductivity sensing - we only
+    need AC excitation at the correct frequency, not a pure sinusoid.
     C63: 100nF 25V, 0805 (TLV3201 decoupling)
     C64: 1µF 25V, 0805 (AC coupling to probe)
     C65: 100nF 25V, 0805 (sense filter)
@@ -1368,7 +1434,7 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
     └────────────────────────────────────────────────────────────────────────┘
 
 
-    ⚠️  CRITICAL: NO HV MEASUREMENT CIRCUITRY ON CONTROL PCB
+    Design Note: No HV measurement circuitry on control PCB
     ────────────────────────────────────────────────────────────
     • J24 routes L/N/PE to external meter (in PCB's existing HV zone)
     • CT clamp wires directly to meter module (not via this PCB)
@@ -1398,7 +1464,7 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
     Pin 6: DE/RE  → GPIO20 (RS485 direction control)
 
 
-    ⚠️ CRITICAL: 5V→3.3V LEVEL SHIFTING (J17 RX LINE)
+    5V to 3.3V Level Shifting (J17 RX Line):
     ─────────────────────────────────────────────────────
     Some power meters (PZEM, JSY, etc.) output 5V TTL. RP2350 is NOT 5V tolerant!
     Without level shifting, 5V signals cause GPIO damage over time.
@@ -1445,19 +1511,50 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
     J17:    JST-XH 6-pin header (B6B-XH-A)
 
 
+    JP5 Hardware Mode Selection:
+
+    JP5 solder jumper selects the GPIO7 signal source to prevent bus contention:
+
+                U8 (MAX3485)                  J17 (External Meter)
+                    RO                              RX (via divider)
+                     │                               │
+                     │        JP5 (3-pad)            │
+                     1 ◄──────  2  ──────► 3
+                     │      (center)        │
+                     │          │           │
+                     └──────────┴───────────┘
+                                │
+                             GPIO7
+
+    JP5 Solder Jumper Settings:
+    ───────────────────────────
+    • Pad 1-2 bridged (RS485 MODE): U8 RO → GPIO7 (J17_DIV disconnected)
+    • Pad 2-3 bridged (TTL MODE):   J17_DIV → GPIO7 (U8 RO disconnected)
+    • Center pad (2) always connects to GPIO7
+
+
     TTL UART MODE (PZEM, JSY - Most Common):
     ────────────────────────────────────────
-    • U8 can be bypassed or GPIO6/7 routed directly to J17-4/5
-    • GPIO20 (DE/RE) not connected or held LOW
+    • JP5: Bridge pads 2-3 (center to J17 side)
+    • U8 RO physically disconnected from GPIO7
+    • GPIO6/7 communicate directly with external meter via J17-4/5
     • RX line level-shifted via on-board resistor divider (safe for RP2350)
+    • GPIO20 can be left floating or used for other purposes
 
 
     RS485 MODE (Eastron, Industrial):
     ──────────────────────────────────
-    • GPIO6/7 connect through U8 (MAX3485)
-    • GPIO20 controls DE/RE for half-duplex direction
+    • JP5: Bridge pads 1-2 (center to U8 side)
+    • J17 RX physically disconnected from GPIO7
+    • U8 (MAX3485) ACTIVE - transceiver converts TTL to differential RS485
+    • GPIO6/7 connect through U8 (DI/RO pins)
+    • GPIO20 controls DE/RE for half-duplex direction (HIGH=TX, LOW=RX)
     • J17-4/5 become differential A/B pair
-    • Enable JP1 for 120Ω termination on long cable runs
+    • Enable JP1 if RS485 communication issues occur (adds 120Ω termination)
+
+
+    JP5 provides hardware-level source selection, ensuring only one signal path
+    to GPIO7 is active. This eliminates bus contention regardless of firmware state.
 
 
     FIRMWARE AUTO-DETECTION:
@@ -1624,9 +1721,11 @@ causing MAX31855 to report "Short to GND" fault. See Specification §7.2 for det
 
     SOLDER JUMPERS:
     ────────────────
-    JP1 → RS485 120Ω termination (default: OPEN)
+    JP1 → RS485 120Ω termination (OPEN=default, CLOSE=enable termination)
     JP2 → Brew NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
     JP3 → Steam NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
+    JP4 → J17 RX voltage bypass (OPEN=5V meters, CLOSE=3.3V meters)
+    JP5 → GPIO7 source select (1-2=RS485, 2-3=TTL)
 ```
 
 ---
