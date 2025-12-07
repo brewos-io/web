@@ -2440,7 +2440,6 @@ The control PCB provides a universal interface for connecting external power met
 │    • Uses on-board MAX3485 transceiver                                        │
 │    • Pin 4/5 become RS485 A/B differential pair                               │
 │    • Pin 6 controls transceiver direction                                     │
-│    • JP1 jumper enables 120Ω termination resistor                             │
 │                                                                                 │
 └────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -2486,18 +2485,10 @@ The control PCB provides a universal interface for connecting external power met
 │    ─────────────────────────────────────────                                   │
 │                                                                                 │
 │    J17 Pin 4 (A) ────┬────[120Ω R99]────┬──── J17 Pin 5 (B)                   │
-│                      │                  │                                      │
-│                      └───── JP1 ────────┘                                      │
-│                         (Solder jumper)                                        │
-│                                                                                 │
-│    • JP1 CLOSED: 120Ω termination enabled (if RS485 requires it)              │
-│    • JP1 OPEN: No termination (default for typical installations)             │
-│                                                                                 │
 │    Component Values:                                                           │
 │    ─────────────────                                                           │
 │    U8:  MAX3485 or SP3485 (3.3V, SOT-23-8 or SOIC-8)                          │
 │    C70: 100nF 25V Ceramic, 0805                                               │
-│    R99: 120Ω 1%, 0805 (termination, via JP1)                                  │
 │                                                                                 │
 │    OPERATION:                                                                  │
 │    ──────────                                                                  │
@@ -3558,23 +3549,21 @@ GPIO22 is available on **J15 Pin 8 (SPARE)** for future expansion:
 | 1   | R95     | 10kΩ  | 5%        | 0805    | Level probe AC bias                                           |
 | 2   | R96-R97 | 100kΩ | 1%        | 0805    | Level probe threshold divider                                 |
 | 1   | R98     | 1MΩ   | 5%        | 0805    | Level probe hysteresis                                        |
-| 1   | R99     | 120Ω  | 1%        | 0805    | RS485 termination (via JP1 solder jumper)                     |
 | 1   | R100    | 10kΩ  | 1%        | 0805    | 5V monitor upper divider (ratiometric pressure compensation)  |
 | 1   | R101    | 5.6kΩ | 1%        | 0805    | 5V monitor lower divider (ratiometric pressure compensation)  |
 
 ## 14.3a Solder Jumpers
 
-| Qty | Ref | Type  | Function               | Default | Notes                                       |
-| --- | --- | ----- | ---------------------- | ------- | ------------------------------------------- |
-| 1   | JP1 | 2-pad | RS485 120Ω termination | OPEN    | Enable for RS485 bus termination            |
-| 1   | JP2 | 2-pad | Brew NTC selection     | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
-| 1   | JP3 | 2-pad | Steam NTC selection    | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
-| 1   | JP4 | 2-pad | J17 RX 3.3V bypass     | OPEN    | OPEN=5V meters, CLOSE=3.3V meters           |
-| 1   | JP5 | 3-pad | GPIO7 source select    | 1-2     | 1-2=RS485 mode, 2-3=TTL mode                |
+| Qty | Ref | Type  | Function            | Default | Notes                                       |
+| --- | --- | ----- | ------------------- | ------- | ------------------------------------------- |
+| 1   | JP2 | 2-pad | Brew NTC selection  | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
+| 1   | JP3 | 2-pad | Steam NTC selection | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
+| 1   | JP4 | 2-pad | J17 RX 3.3V bypass  | OPEN    | OPEN=5V meters, CLOSE=3.3V meters           |
+| 1   | JP5 | 3-pad | GPIO7 source select | 1-2     | 1-2=RS485 mode, 2-3=TTL mode                |
 
 **Solder Jumper Implementation:**
 
-- **2-pad jumpers (JP1-JP4):** Two pads with ~0.5mm gap. Apply solder blob to bridge.
+- **2-pad jumpers (JP2-JP4):** Two pads with ~0.5mm gap. Apply solder blob to bridge.
 - **3-pad jumper (JP5):** Three pads in a row. Bridge center pad (2) to left (1) or right (3).
 
 **Configuration Requirements:**

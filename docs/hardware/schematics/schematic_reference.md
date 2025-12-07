@@ -1397,12 +1397,8 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
     │                                                                        │
     │   TERMINATION (Jumper Selectable):                                     │
     │   ─────────────────────────────────                                    │
-    │   J17-4 (A) ────┬────[120Ω R99]────┬──── J17-5 (B)                     │
-    │                 └────── JP1 ───────┘                                   │
-    │                    (Solder jumper)                                     │
-    │                                                                        │
-    │   JP1 CLOSED: 120Ω termination enabled (for long RS485 runs)           │
-    │   JP1 OPEN:   No termination (for short cables or TTL mode)            │
+    │   RS485 differential bus (A/B) - no termination resistor                 │
+    │   (Not required for short cable runs inside machine enclosure)         │
     │                                                                        │
     └────────────────────────────────────────────────────────────────────────┘
 
@@ -1506,8 +1502,6 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
     • Clamps to -7V / +12V (matches RS485 common-mode range)
     • Protects against lightning surges and motor switching noise
     • Place close to J17 connector, between connector and MAX3485
-    R99:    120Ω 1%, 0805 (RS485 termination, via JP1)
-    JP1:    Solder jumper for termination (default: open)
     J17:    JST-XH 6-pin header (B6B-XH-A)
 
 
@@ -1550,7 +1544,6 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
     • GPIO6/7 connect through U8 (DI/RO pins)
     • GPIO20 controls DE/RE for half-duplex direction (HIGH=TX, LOW=RX)
     • J17-4/5 become differential A/B pair
-    • Enable JP1 if RS485 communication issues occur (adds 120Ω termination)
 
 
     JP5 provides hardware-level source selection, ensuring only one signal path
@@ -1721,7 +1714,6 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
 
     SOLDER JUMPERS:
     ────────────────
-    JP1 → RS485 120Ω termination (OPEN=default, CLOSE=enable termination)
     JP2 → Brew NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
     JP3 → Steam NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
     JP4 → J17 RX voltage bypass (OPEN=5V meters, CLOSE=3.3V meters)

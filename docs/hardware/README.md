@@ -65,7 +65,6 @@ Plug & play replacement for the factory GICAR control board and PID controller:
 
 | Jumper  | Default | Function                                               |
 | ------- | ------- | ------------------------------------------------------ |
-| **JP1** | OPEN    | RS485 120Ω termination (enable if needed for RS485)    |
 | **JP2** | OPEN    | Brew NTC: OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia)  |
 | **JP3** | OPEN    | Steam NTC: OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
 
