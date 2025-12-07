@@ -112,23 +112,27 @@
 
 ### Purpose
 
-Verify the voltage divider produces correct output for temperature measurement with 3.3kΩ NTC sensors.
+Verify the voltage divider produces correct output for temperature measurement with **50kΩ @ 25°C NTC sensors** (ECM/Profitec default). The production board uses a **3.0V precision reference** (LM4040).
 
-### Circuit to Build
+> **Note:** ECM Synchronika uses 50kΩ NTC sensors. The pull-up resistor values are optimized per channel:
+> - **Brew boiler:** 3.3kΩ pull-up (optimized for 90-96°C range)
+> - **Steam boiler:** 1.2kΩ pull-up (optimized for 125-150°C range)
+
+### Circuit to Build (Brew Boiler Example)
 
 ```
-        3.3V (from bench supply)
+        3.0V (from bench supply - matches ADC_VREF)
           │
      ┌────┴────┐
-     │  3.3kΩ  │  R_series (use 1% tolerance)
+     │  3.3kΩ  │  R_pullup (use 1% tolerance)
      │   1%    │
      └────┬────┘
           │
           ├────────────► V_out (measure here)
           │
      ┌────┴────┐
-     │  NTC    │  Your actual ECM NTC sensor
-     │  3.3kΩ  │  (or 3.3kΩ 1% resistor to simulate 25°C)
+     │  NTC    │  ECM 50kΩ @ 25°C NTC sensor
+     │  50kΩ   │  (or 50kΩ 1% resistor to simulate 25°C)
      └────┬────┘
           │
          GND
@@ -136,24 +140,26 @@ Verify the voltage divider produces correct output for temperature measurement w
 
 ### Test Procedure
 
-| Step | Action                               | Expected Result        | ✓   |
-| ---- | ------------------------------------ | ---------------------- | --- |
-| 1    | Set bench supply to exactly 3.300V   | Display shows 3.30V    |     |
-| 2    | Connect 3.3kΩ 1% resistor as "NTC"   | Simulates 25°C         |     |
-| 3    | Measure V_out                        | 1.65V ±0.05V           |     |
-| 4    | Replace with actual NTC at room temp | Should match room temp |     |
-| 5    | Place NTC in ice water (0°C)         | V_out ≈ 2.45V          |     |
-| 6    | Place NTC in hot water (~90°C)       | V_out ≈ 0.37V          |     |
-| 7    | Record actual readings below         |                        |     |
+| Step | Action                                | Expected Result         | ✓   |
+| ---- | ------------------------------------- | ----------------------- | --- |
+| 1    | Set bench supply to exactly 3.000V    | Display shows 3.00V     |     |
+| 2    | Connect 50kΩ 1% resistor as "NTC"     | Simulates 25°C          |     |
+| 3    | Measure V_out                         | 2.81V ±0.05V            |     |
+| 4    | Replace with actual NTC at room temp  | Should match room temp  |     |
+| 5    | Place NTC in ice water (0°C)          | V_out ≈ 2.94V           |     |
+| 6    | Place NTC in boiling water (~100°C)   | V_out ≈ 1.55V           |     |
+| 7    | Connect 4.3kΩ resistor (simulates 93°C brew temp) | V_out ≈ 1.70V |     |
+| 8    | Record actual readings below          |                         |     |
 
 ### Results Log
 
-| Condition          | Expected V_out | Measured V_out | Expected Temp | Calculated Temp | Error    |
-| ------------------ | -------------- | -------------- | ------------- | --------------- | -------- |
-| 3.3kΩ resistor     | 1.65V          | \_\_\_V        | 25°C          | N/A             | N/A      |
-| Room temp (actual) | ~1.65V         | \_\_\_V        | ~25°C         | \_\_\_°C        | \_\_\_°C |
-| Ice water          | 2.45V          | \_\_\_V        | 0°C           | \_\_\_°C        | \_\_\_°C |
-| Hot water          | 0.37V          | \_\_\_V        | ~90°C         | \_\_\_°C        | \_\_\_°C |
+| Condition            | Expected V_out | Measured V_out | Expected Temp | Calculated Temp | Error    |
+| -------------------- | -------------- | -------------- | ------------- | --------------- | -------- |
+| 50kΩ resistor        | 2.81V          | \_\_\_V        | 25°C          | N/A             | N/A      |
+| 4.3kΩ resistor       | 1.70V          | \_\_\_V        | 93°C          | N/A             | N/A      |
+| Room temp (actual)   | ~2.81V         | \_\_\_V        | ~25°C         | \_\_\_°C        | \_\_\_°C |
+| Ice water            | 2.94V          | \_\_\_V        | 0°C           | \_\_\_°C        | \_\_\_°C |
+| Boiling water        | 1.55V          | \_\_\_V        | ~100°C        | \_\_\_°C        | \_\_\_°C |
 
 ### Pass Criteria
 
@@ -165,10 +171,20 @@ Verify the voltage divider produces correct output for temperature measurement w
 
 | Issue             | Possible Cause        | Solution                          |
 | ----------------- | --------------------- | --------------------------------- |
-| V_out always 3.3V | NTC open/disconnected | Check NTC continuity              |
+| V_out always 3.0V | NTC open/disconnected | Check NTC continuity              |
 | V_out always 0V   | NTC shorted           | Check for shorts                  |
 | Noisy readings    | Poor connections      | Use shorter wires, add 100nF cap  |
 | Wrong temperature | Incorrect B-value     | Recalculate with sensor datasheet |
+
+### Steam Boiler NTC Test (Optional)
+
+For steam boiler testing, use **1.2kΩ pull-up** instead of 3.3kΩ:
+
+| Condition            | Pull-up | Expected V_out | Simulated Temp |
+| -------------------- | ------- | -------------- | -------------- |
+| 50kΩ resistor        | 1.2kΩ   | 2.93V          | 25°C           |
+| 1.4kΩ resistor       | 1.2kΩ   | 1.62V          | 135°C          |
+| 1.0kΩ resistor       | 1.2kΩ   | 1.36V          | 150°C          |
 
 ---
 
@@ -338,9 +354,32 @@ Verify the SSR trigger circuit provides adequate voltage (~4.8V) for KS15 D-24Z2
 
 ### Purpose
 
-Verify the level probe sensing circuit works correctly and requires PE-GND connection.
+Verify the level probe sensing concept works correctly and requires PE-GND connection.
 
-### Circuit to Build
+```
+┌────────────────────────────────────────────────────────────────────────────────┐
+│  ⚠️  IMPORTANT: DC vs AC SENSING                                              │
+├────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                 │
+│  This breadboard test uses a SIMPLIFIED DC CIRCUIT for concept validation.     │
+│                                                                                 │
+│  The PRODUCTION DESIGN uses an AC OSCILLATOR circuit (OPA342 Wien-bridge       │
+│  + TLV3201 comparator) operating at ~1.6kHz to PREVENT PROBE CORROSION.        │
+│                                                                                 │
+│  DC sensing causes electrolysis, which corrodes the probe within months.       │
+│  The AC design extends probe life to 5-10+ years.                              │
+│                                                                                 │
+│  This DC test is ONLY for validating:                                          │
+│  • Basic conductivity detection concept                                        │
+│  • PE-GND connection requirement                                               │
+│  • Threshold resistances for water detection                                   │
+│                                                                                 │
+│  DO NOT use this DC circuit in production! See Phase 2/3 for AC circuit test. │
+│                                                                                 │
+└────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Simplified DC Circuit for Concept Validation
 
 ```
         3.3V
@@ -364,7 +403,7 @@ Verify the level probe sensing circuit works correctly and requires PE-GND conne
                          GND (connected to PE in real machine)
 ```
 
-### Test Procedure
+### Test Procedure (DC Concept Validation Only)
 
 | Step | Action                                             | Expected Result                | ✓   |
 | ---- | -------------------------------------------------- | ------------------------------ | --- |
@@ -386,19 +425,22 @@ Verify the level probe sensing circuit works correctly and requires PE-GND conne
 | Probe via 10kΩ to GND  | LOW           | \_\_\_V          |      |
 | Probe via 100kΩ to GND | HIGH          | \_\_\_V          |      |
 
-### Pass Criteria
+### Pass Criteria (DC Concept Test)
 
 - [ ] Open probe reads HIGH (no water detected)
 - [ ] Grounded probe reads LOW (water detected)
 - [ ] Detection threshold appropriate for water conductivity
 - [ ] No oscillation or noise on signal
 
-### Critical Note
+### Critical Notes
 
 ```
 ⚠️  This circuit REQUIRES PE (Protective Earth) to be connected to signal GND.
     In the actual machine, the boiler body is connected to PE.
     Without PE-GND connection, this circuit will NOT work!
+
+⚠️  DO NOT USE THIS DC CIRCUIT IN PRODUCTION!
+    The production AC oscillator circuit (OPA342 + TLV3201) is tested in Phase 2/3.
 ```
 
 ### Phase 2/3: AC Oscillator Circuit Validation (On Assembled PCB)
@@ -434,7 +476,7 @@ The production design uses a Wien-bridge oscillator (OPA342) + comparator (TLV32
 
 ### Purpose
 
-Verify the voltage divider correctly scales the YD4060's 0.5-4.5V output to 0.3-2.7V ADC range.
+Verify the voltage divider correctly scales the YD4060's 0.5-4.5V output to **0.32-2.88V** ADC range (stays below 3.0V reference).
 
 **Transducer:** YD4060 (0-16 bar, 0.5-4.5V output, 5VDC supply)
 
@@ -446,45 +488,47 @@ Verify the voltage divider correctly scales the YD4060's 0.5-4.5V output to 0.3-
           │                                  │
           │                                  │
      ┌────┴────┐                             │
-     │  10kΩ   │  R3                         │
+     │  5.6kΩ  │  R4 (series resistor)       │
      │   1%    │                             │
      └────┬────┘                             │
           │                                  │
           ├──────────────────────────────────┤
           │                                  │
      ┌────┴────┐                        ┌────┴────┐
-     │  15kΩ   │  R4                    │  100nF  │
+     │  10kΩ   │  R3 (to GND)           │  100nF  │
      │   1%    │                        │         │
      └────┬────┘                        └────┬────┘
           │                                  │
          GND                                GND
 ```
 
+**Divider Ratio:** R3 / (R3 + R4) = 10k / (10k + 5.6k) = **0.641**
+
 ### Test Procedure
 
 | Step | Action                           | Expected V_out | ✓   |
 | ---- | -------------------------------- | -------------- | --- |
-| 1    | Set input to 0.50V               | 0.30V          |     |
-| 2    | Set input to 1.00V               | 0.60V          |     |
-| 3    | Set input to 2.50V               | 1.50V          |     |
-| 4    | Set input to 4.00V               | 2.40V          |     |
-| 5    | Set input to 4.50V               | 2.70V          |     |
+| 1    | Set input to 0.50V (0 bar)       | 0.32V          |     |
+| 2    | Set input to 1.00V               | 0.64V          |     |
+| 3    | Set input to 2.50V (8 bar)       | 1.60V          |     |
+| 4    | Set input to 4.00V               | 2.56V          |     |
+| 5    | Set input to 4.50V (16 bar)      | 2.88V          |     |
 | 6    | Verify output never exceeds 3.0V | <3.0V always   |     |
 
 ### Results Log
 
 | Input Voltage | Expected Output | Measured Output | Ratio | Pass |
 | ------------- | --------------- | --------------- | ----- | ---- |
-| 0.50V         | 0.30V           | \_\_\_V         | 0.60  |      |
-| 1.00V         | 0.60V           | \_\_\_V         | 0.60  |      |
-| 2.50V         | 1.50V           | \_\_\_V         | 0.60  |      |
-| 4.00V         | 2.40V           | \_\_\_V         | 0.60  |      |
-| 4.50V         | 2.70V           | \_\_\_V         | 0.60  |      |
+| 0.50V         | 0.32V           | \_\_\_V         | 0.641 |      |
+| 1.00V         | 0.64V           | \_\_\_V         | 0.641 |      |
+| 2.50V         | 1.60V           | \_\_\_V         | 0.641 |      |
+| 4.00V         | 2.56V           | \_\_\_V         | 0.641 |      |
+| 4.50V         | 2.88V           | \_\_\_V         | 0.641 |      |
 
 ### Pass Criteria
 
-- [ ] Output ratio is 0.60 ±2%
-- [ ] Output never exceeds 3.0V (safe for Pico ADC)
+- [ ] Output ratio is **0.641 ±2%**
+- [ ] Output never exceeds 3.0V (safe for Pico ADC with 3.0V reference)
 - [ ] Stable readings (no noise/drift)
 
 ---
@@ -602,25 +646,32 @@ while True:
 
 ### Purpose
 
-Verify UART communication and reset/boot control for ESP32 display module.
+Verify UART communication between Pico and ESP32 display module, and test the **brew-by-weight (WEIGHT_STOP)** signal.
+
+> **Important Architecture Note:** In the production design:
+> - **ESP32 controls Pico** (not the other way around) for OTA firmware updates
+> - ESP32 controls Pico's **RUN** pin (J15 Pin 5) and **BOOTSEL** pin (J15 Pin 6) directly
+> - GPIO21 is **WEIGHT_STOP** (input signal from ESP32 to stop brew when target weight reached)
+> - GPIO22 is **SPARE** for future expansion
 
 ### Required
 
-- Raspberry Pi Pico
+- Raspberry Pi Pico 2 (or Pico 2 W)
 - ESP32 display module (or any ESP32 dev board)
-- 2N7002 MOSFETs (2x)
-- Resistors per schematic
+- Resistors per schematic (33Ω series on UART lines)
 
-### Wiring
+### J15 Connector Wiring (8-pin JST-XH)
 
-| Pico GPIO | Function      | ESP32 Pin        |
-| --------- | ------------- | ---------------- |
-| GPIO0     | UART TX       | RX (via 33Ω)     |
-| GPIO1     | UART RX       | TX (via 33Ω)     |
-| GPIO21    | Reset Control | EN (via 2N7002)  |
-| GPIO22    | Boot Control  | IO0 (via 2N7002) |
-| 5V        | Power         | VIN              |
-| GND       | Ground        | GND              |
+| J15 Pin | Function          | Pico Connection   | ESP32 Connection  |
+| ------- | ----------------- | ----------------- | ----------------- |
+| 1       | 5V Power          | VSYS (5V)         | VIN               |
+| 2       | Ground            | GND               | GND               |
+| 3       | TX (Pico→ESP32)   | GPIO0 (via 33Ω)   | RX                |
+| 4       | RX (Pico←ESP32)   | GPIO1 (via 33Ω)   | TX                |
+| 5       | RUN               | Pico RUN pin      | GPIO (open-drain) |
+| 6       | BOOTSEL           | Pico BOOTSEL      | GPIO (open-drain) |
+| 7       | WEIGHT_STOP       | GPIO21 (input)    | GPIO (output)     |
+| 8       | SPARE             | GPIO22            | GPIO (optional)   |
 
 ### Test Firmware - Pico Side (MicroPython)
 
@@ -631,30 +682,8 @@ import time
 # Initialize UART
 uart = UART(0, baudrate=115200, tx=Pin(0), rx=Pin(1))
 
-# Reset and boot control
-rst_pin = Pin(21, Pin.OUT)
-boot_pin = Pin(22, Pin.OUT)
-rst_pin.value(0)   # LOW = ESP32 running
-boot_pin.value(0)  # LOW = normal boot
-
-def reset_esp32():
-    """Reset ESP32 into normal run mode"""
-    boot_pin.value(0)  # Normal boot
-    rst_pin.value(1)   # Assert reset
-    time.sleep_ms(100)
-    rst_pin.value(0)   # Release reset
-    time.sleep_ms(500)
-    print("ESP32 reset complete")
-
-def enter_bootloader():
-    """Put ESP32 into bootloader mode"""
-    boot_pin.value(1)  # Boot mode
-    rst_pin.value(1)   # Assert reset
-    time.sleep_ms(100)
-    rst_pin.value(0)   # Release reset
-    time.sleep_ms(100)
-    boot_pin.value(0)  # Release boot
-    print("ESP32 in bootloader mode")
+# WEIGHT_STOP signal (input from ESP32 for brew-by-weight)
+weight_stop = Pin(21, Pin.IN, Pin.PULL_DOWN)
 
 def uart_test():
     """Test UART communication"""
@@ -668,51 +697,67 @@ def uart_test():
     else:
         print("No response received")
 
+def weight_stop_test():
+    """Monitor WEIGHT_STOP signal from ESP32"""
+    print("Monitoring WEIGHT_STOP (GPIO21)...")
+    print("ESP32 should pulse this HIGH when target weight is reached")
+    print("Press Ctrl+C to stop")
+    last_state = weight_stop.value()
+    while True:
+        state = weight_stop.value()
+        if state != last_state:
+            print(f"WEIGHT_STOP: {'HIGH - STOP BREW!' if state else 'LOW'}")
+            last_state = state
+        time.sleep_ms(10)
+
 # Main
 print("ESP32 Interface Test")
 print("-" * 40)
-print("Commands: reset, boot, uart, quit")
+print("Commands: uart, weight, quit")
+print("")
+print("NOTE: ESP32 controls Pico RUN/BOOTSEL pins directly (not GPIO)")
 
 while True:
     cmd = input("> ").strip().lower()
-    if cmd == "reset":
-        reset_esp32()
-    elif cmd == "boot":
-        enter_bootloader()
-    elif cmd == "uart":
+    if cmd == "uart":
         uart_test()
+    elif cmd == "weight":
+        try:
+            weight_stop_test()
+        except KeyboardInterrupt:
+            print("\nStopped monitoring")
     elif cmd == "quit":
         break
 ```
 
 ### Test Procedure
 
-| Step | Action                                | Expected Result                            | ✓   |
-| ---- | ------------------------------------- | ------------------------------------------ | --- |
-| 1    | Power on ESP32, observe serial output | Boot messages visible                      |     |
-| 2    | Type "reset" command                  | ESP32 reboots, boot messages again         |     |
-| 3    | Type "boot" command                   | ESP32 enters bootloader (no boot messages) |     |
-| 4    | Connect esptool, verify bootloader    | Chip detected                              |     |
-| 5    | Type "reset" to return to normal      | ESP32 boots normally                       |     |
-| 6    | Type "uart" - send test message       | Data transmitted                           |     |
-| 7    | Verify ESP32 receives message         | Message received                           |     |
-| 8    | ESP32 sends response                  | Pico receives response                     |     |
+| Step | Action                                    | Expected Result                | ✓   |
+| ---- | ----------------------------------------- | ------------------------------ | --- |
+| 1    | Connect ESP32 to J15, power on            | Both devices boot              |     |
+| 2    | Type "uart" - send test message           | Data transmitted to ESP32      |     |
+| 3    | Verify ESP32 receives message             | Message received on ESP32 RX   |     |
+| 4    | ESP32 sends response                      | Pico receives response         |     |
+| 5    | Type "weight" to monitor WEIGHT_STOP      | Shows "LOW" initially          |     |
+| 6    | ESP32 sets WEIGHT_STOP HIGH               | Pico prints "HIGH - STOP BREW!"|     |
+| 7    | ESP32 releases WEIGHT_STOP                | Pico prints "LOW"              |     |
+| 8    | ESP32 pulses J15 Pin 5 (RUN) LOW          | Pico resets                    |     |
 
 ### Results Log
 
-| Test                   | Result      | Notes |
-| ---------------------- | ----------- | ----- |
-| Reset control          | Pass / Fail |       |
-| Bootloader entry       | Pass / Fail |       |
-| UART TX (Pico → ESP32) | Pass / Fail |       |
-| UART RX (ESP32 → Pico) | Pass / Fail |       |
+| Test                        | Result      | Notes |
+| --------------------------- | ----------- | ----- |
+| UART TX (Pico → ESP32)      | Pass / Fail |       |
+| UART RX (ESP32 → Pico)      | Pass / Fail |       |
+| WEIGHT_STOP signal (GPIO21) | Pass / Fail |       |
+| ESP32 can reset Pico (RUN)  | Pass / Fail |       |
 
 ### Pass Criteria
 
-- [ ] Reset control toggles ESP32 reliably
-- [ ] Bootloader mode can be entered
 - [ ] UART communication works bidirectionally
 - [ ] No data corruption at 115200 baud
+- [ ] WEIGHT_STOP signal (GPIO21) reads correctly
+- [ ] ESP32 can reset Pico via RUN pin
 
 ---
 
@@ -808,28 +853,28 @@ Upload a comprehensive test firmware to exercise all GPIOs:
 from machine import Pin, ADC, PWM, SPI, UART
 import time
 
-# Define all outputs
+# Define all outputs (directly controlled by Pico)
 outputs = {
-    10: "K1_RELAY",
-    11: "K2_RELAY",
-    12: "K3_RELAY",
-    13: "SSR1",
-    14: "SSR2",
-    15: "STATUS_LED",
-    19: "BUZZER",
-    21: "ESP32_RST",
-    22: "ESP32_BOOT",
+    10: "K1_RELAY",      # Mains indicator lamp relay
+    11: "K2_RELAY",      # Pump relay
+    12: "K3_RELAY",      # Solenoid relay
+    13: "SSR1",          # Brew heater SSR trigger
+    14: "SSR2",          # Steam heater SSR trigger
+    15: "STATUS_LED",    # Green status LED
+    19: "BUZZER",        # Passive piezo buzzer (PWM)
 }
 
 # Define all inputs
 inputs = {
-    2: "WATER_SW",
-    3: "TANK_LVL",
-    4: "STEAM_LVL",
-    5: "BREW_SW",
+    2: "WATER_SW",       # Water reservoir switch (active low)
+    3: "TANK_LVL",       # Tank level sensor (active low)
+    4: "STEAM_LVL",      # Steam boiler level (from TLV3201 comparator)
+    5: "BREW_SW",        # Brew handle switch (active low)
+    21: "WEIGHT_STOP",   # Brew-by-weight signal from ESP32 (active high)
 }
 
-# ADC channels
+# ADC channels (3.0V reference from LM4040)
+ADC_VREF = 3.0  # Precision reference voltage
 adcs = {
     26: "BREW_NTC",
     27: "STEAM_NTC",
@@ -852,18 +897,23 @@ def test_inputs():
     """Read all inputs"""
     print("\n=== INPUT TEST ===")
     for gpio, name in inputs.items():
-        pin = Pin(gpio, Pin.IN, Pin.PULL_UP)
-        value = pin.value()
-        state = "HIGH (open)" if value else "LOW (active)"
+        # WEIGHT_STOP uses pull-down, others use pull-up
+        if gpio == 21:
+            pin = Pin(gpio, Pin.IN, Pin.PULL_DOWN)
+            state = "HIGH (active)" if pin.value() else "LOW (idle)"
+        else:
+            pin = Pin(gpio, Pin.IN, Pin.PULL_UP)
+            state = "HIGH (open)" if pin.value() else "LOW (active)"
         print(f"GPIO{gpio} ({name}): {state}")
 
 def test_adc():
     """Read all ADC channels"""
     print("\n=== ADC TEST ===")
+    print(f"(Reference voltage: {ADC_VREF}V)")
     for gpio, name in adcs.items():
         adc = ADC(gpio)
         raw = adc.read_u16()
-        voltage = raw * 3.3 / 65535
+        voltage = raw * ADC_VREF / 65535
         print(f"GPIO{gpio} ({name}): {raw} ({voltage:.3f}V)")
 
 def test_buzzer():
@@ -883,11 +933,12 @@ def main():
     print("=" * 50)
     print("ECM Control Board - GPIO Test")
     print("=" * 50)
+    print("Note: ESP32 controls Pico RUN/BOOTSEL via J15 pins 5/6")
 
     while True:
         print("\nOptions:")
         print("  1 - Test all outputs (relays, SSRs, LEDs)")
-        print("  2 - Read all inputs (switches)")
+        print("  2 - Read all inputs (switches, WEIGHT_STOP)")
         print("  3 - Read all ADC channels")
         print("  4 - Buzzer test")
         print("  5 - Run all tests")
@@ -929,20 +980,23 @@ if __name__ == "__main__":
 
 ### Input Test Results
 
-| GPIO | Function     | Open State | Grounded State | Pass |
-| ---- | ------------ | ---------- | -------------- | ---- |
-| 2    | Water Switch | HIGH / LOW | HIGH / LOW     |      |
-| 3    | Tank Level   | HIGH / LOW | HIGH / LOW     |      |
-| 4    | Steam Level  | HIGH / LOW | HIGH / LOW     |      |
-| 5    | Brew Switch  | HIGH / LOW | HIGH / LOW     |      |
+| GPIO | Function     | Pull     | Open State | Active State | Pass |
+| ---- | ------------ | -------- | ---------- | ------------ | ---- |
+| 2    | Water Switch | Pull-up  | HIGH       | LOW          |      |
+| 3    | Tank Level   | Pull-up  | HIGH       | LOW          |      |
+| 4    | Steam Level  | None     | HIGH       | LOW          |      |
+| 5    | Brew Switch  | Pull-up  | HIGH       | LOW          |      |
+| 21   | WEIGHT_STOP  | Pull-down| LOW        | HIGH         |      |
 
 ### ADC Test Results
 
-| GPIO | Function  | No Input | 3.3kΩ to GND | Pass |
-| ---- | --------- | -------- | ------------ | ---- |
-| 26   | Brew NTC  | \_\_\_V  | ~1.65V       |      |
-| 27   | Steam NTC | \_\_\_V  | ~1.65V       |      |
-| 28   | Pressure  | \_\_\_V  | (varies)     |      |
+> **Note:** ADC uses 3.0V precision reference (LM4040). Verify at TP2.
+
+| GPIO | Function  | No Input   | With 50kΩ NTC @ 25°C | Pass |
+| ---- | --------- | ---------- | -------------------- | ---- |
+| 26   | Brew NTC  | ~2.9V      | ~2.81V               |      |
+| 27   | Steam NTC | ~2.9V      | ~2.93V (1.2kΩ PU)    |      |
+| 28   | Pressure  | 0.32V min  | (varies with input)  |      |
 
 ---
 
@@ -1025,7 +1079,7 @@ ONLY proceed if:
 | Original control board removed                   | Documented wire positions  |      |
 | All machine wires labeled                        | Photos taken               |      |
 | New board PE connected                           | Continuity to chassis      |      |
-| **LV Wiring:** Wires stripped 6mm or ferrules    | Visual (J26 - all 24 pins) |      |
+| **LV Wiring:** Wires stripped 6mm or ferrules    | Visual (J26 - all 22 pins) |      |
 | **HV Wiring:** Spade connectors crimped properly | Tug test (J1, J2, J3, J4)  |      |
 
 ---
@@ -1046,6 +1100,9 @@ Connect all sensors but do NOT connect mains loads. **All sensors connect to uni
 | Pressure          | 14, 15, 16 | 0 bar                | \_\_\_bar |      |
 | SSR1 Control      | 17, 18     | 5V output            |           |      |
 | SSR2 Control      | 19, 20     | 5V output            |           |      |
+| Spare GND         | 21, 22     | 0V (GND)             |           |      |
+
+> **J26 Terminal Block:** Phoenix MKDS 1/22-5.08 (22-position, 5.08mm pitch). Pins 21-22 are spare GND terminals for convenience wiring.
 
 > **Note for CT Clamp:** CT clamp connects directly to the external power meter module (not via this PCB). Verify CT clamp wiring per meter module datasheet.
 
