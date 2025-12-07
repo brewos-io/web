@@ -12,7 +12,7 @@
 ## Key Design Features
 
 1. Universal external power metering interface (J17 LV + J24 HV)
-2. Multi-machine NTC compatibility via JP2/JP3 jumpers (50kΩ or 10kΩ)
+2. Multi-machine NTC compatibility via JP1/JP2 jumpers (50kΩ or 10kΩ)
 3. RS485 and TTL UART support via on-board MAX3485 transceiver
 4. Unified 22-position low-voltage terminal block (J26)
 5. OPA342 + TLV3201 AC-excited level probe (prevents electrolysis)
@@ -588,9 +588,9 @@ The LM4040 is buffered by an op-amp to drive the NTC pull-up network without vol
 
 ## 5.1 NTC Thermistor Inputs
 
-**Multi-Machine Compatibility:** Use **solder jumpers JP2/JP3** to switch NTC configurations.
+**Multi-Machine Compatibility:** Use **solder jumpers JP1/JP2** to switch NTC configurations.
 
-| Machine Brand     | NTC @ 25°C | JP2       | JP3       | Effective R1 | Effective R2 |
+| Machine Brand     | NTC @ 25°C | JP1       | JP2       | Effective R1 | Effective R2 |
 | ----------------- | ---------- | --------- | --------- | ------------ | ------------ |
 | **ECM, Profitec** | 50kΩ       | **OPEN**  | **OPEN**  | 3.3kΩ        | 1.2kΩ        |
 | Rocket, Rancilio  | 10kΩ       | **CLOSE** | **CLOSE** | ~1kΩ         | ~430Ω        |
@@ -601,7 +601,7 @@ The LM4040 is buffered by an op-amp to drive the NTC pull-up network without vol
     ════════════════════════════════════════════════════════════════════════════
 
     ⚠️ EACH SENSOR HAS DIFFERENT PULL-UP - OPTIMIZED FOR TARGET TEMPERATURE
-    ⚠️ JP2/JP3 SOLDER JUMPERS SELECT NTC TYPE (NO RESISTOR SWAPPING NEEDED)
+    ⚠️ JP1/JP2 SOLDER JUMPERS SELECT NTC TYPE (NO RESISTOR SWAPPING NEEDED)
 
     BREW NTC (GPIO26/ADC0)                  STEAM NTC (GPIO27/ADC1)
     Target: 90-100°C                        Target: 125-150°C
@@ -640,21 +640,21 @@ The LM4040 is buffered by an op-amp to drive the NTC pull-up network without vol
     Component Values:
     ─────────────────
     R1:      3.3kΩ ±1%, 0805 (Brew NTC pull-up, always populated)
-    R1A:     1.5kΩ ±1%, 0805 (Brew parallel, enabled by JP2)
+    R1A:     1.5kΩ ±1%, 0805 (Brew parallel, enabled by JP1)
     R2:      1.2kΩ ±1%, 0805 (Steam NTC pull-up, always populated)
-    R2A:     680Ω ±1%, 0805 (Steam parallel, enabled by JP3)
+    R2A:     680Ω ±1%, 0805 (Steam parallel, enabled by JP2)
     R5-R6:   1kΩ 1%, 0805 (series protection)
     C8-C9:   100nF 25V, 0805, Ceramic
     D10-D11: PESD5V0S1BL, SOD-323 (bidirectional ESD clamp)
+    JP1:     Solder jumper (OPEN=50kΩ NTC, CLOSE=10kΩ NTC)
     JP2:     Solder jumper (OPEN=50kΩ NTC, CLOSE=10kΩ NTC)
-    JP3:     Solder jumper (OPEN=50kΩ NTC, CLOSE=10kΩ NTC)
 
     JUMPER MATH:
-    • JP2 CLOSED: R1 || R1A = 3.3kΩ || 1.5kΩ ≈ 1.03kΩ (for 10kΩ NTC)
-    • JP3 CLOSED: R2 || R2A = 1.2kΩ || 680Ω ≈ 434Ω (for 10kΩ NTC)
+    • JP1 CLOSED: R1 || R1A = 3.3kΩ || 1.5kΩ ≈ 1.03kΩ (for 10kΩ NTC)
+    • JP2 CLOSED: R2 || R2A = 1.2kΩ || 680Ω ≈ 434Ω (for 10kΩ NTC)
 
-    Default: JP2/JP3 OPEN = ECM/Profitec (50kΩ NTC)
-    For Rocket/Gaggia: Close JP2 and JP3 with solder bridge
+    Default: JP1/JP2 OPEN = ECM/Profitec (50kΩ NTC)
+    For Rocket/Gaggia: Close JP1 and JP2 with solder bridge
 
     Resolution at Target Temps:
     ───────────────────────────
@@ -1505,14 +1505,14 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
     J17:    JST-XH 6-pin header (B6B-XH-A)
 
 
-    JP5 Hardware Mode Selection:
+    JP4 Hardware Mode Selection:
 
-    JP5 solder jumper selects the GPIO7 signal source to prevent bus contention:
+    JP4 solder jumper selects the GPIO7 signal source to prevent bus contention:
 
                 U8 (MAX3485)                  J17 (External Meter)
                     RO                              RX (via divider)
                      │                               │
-                     │        JP5 (3-pad)            │
+                     │        JP4 (3-pad)            │
                      1 ◄──────  2  ──────► 3
                      │      (center)        │
                      │          │           │
@@ -1520,7 +1520,7 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
                                 │
                              GPIO7
 
-    JP5 Solder Jumper Settings:
+    JP4 Solder Jumper Settings:
     ───────────────────────────
     • Pad 1-2 bridged (RS485 MODE): U8 RO → GPIO7 (J17_DIV disconnected)
     • Pad 2-3 bridged (TTL MODE):   J17_DIV → GPIO7 (U8 RO disconnected)
@@ -1529,7 +1529,7 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
 
     TTL UART MODE (PZEM, JSY - Most Common):
     ────────────────────────────────────────
-    • JP5: Bridge pads 2-3 (center to J17 side)
+    • JP4: Bridge pads 2-3 (center to J17 side)
     • U8 RO physically disconnected from GPIO7
     • GPIO6/7 communicate directly with external meter via J17-4/5
     • RX line level-shifted via on-board resistor divider (safe for RP2350)
@@ -1538,7 +1538,7 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
 
     RS485 MODE (Eastron, Industrial):
     ──────────────────────────────────
-    • JP5: Bridge pads 1-2 (center to U8 side)
+    • JP4: Bridge pads 1-2 (center to U8 side)
     • J17 RX physically disconnected from GPIO7
     • U8 (MAX3485) ACTIVE - transceiver converts TTL to differential RS485
     • GPIO6/7 connect through U8 (DI/RO pins)
@@ -1546,7 +1546,7 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
     • J17-4/5 become differential A/B pair
 
 
-    JP5 provides hardware-level source selection, ensuring only one signal path
+    JP4 provides hardware-level source selection, ensuring only one signal path
     to GPIO7 is active. This eliminates bus contention regardless of firmware state.
 
 
@@ -1714,10 +1714,10 @@ ground loops through the boiler PE connection. See Specification §7.2 for detai
 
     SOLDER JUMPERS:
     ────────────────
-    JP2 → Brew NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
-    JP3 → Steam NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
-    JP4 → J17 RX voltage bypass (OPEN=5V meters, CLOSE=3.3V meters)
-    JP5 → GPIO7 source select (1-2=RS485, 2-3=TTL)
+    JP1 → Brew NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
+    JP2 → Steam NTC selection (OPEN=50kΩ ECM, CLOSE=10kΩ Rocket/Gaggia)
+    JP3 → J17 RX voltage bypass (OPEN=5V meters, CLOSE=3.3V meters)
+    JP4 → GPIO7 source select (1-2=RS485, 2-3=TTL)
 ```
 
 ---

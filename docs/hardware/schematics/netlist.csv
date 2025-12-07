@@ -6,7 +6,7 @@ U4,Thermocouple_Amp,MAX31855KASA+,SOIC-8,T+=TC_POS,T-=TC_NEG,VCC=+3.3V,K-type th
 U5,Voltage_Ref,LM4040DIM3-3.0,SOT-23,VREF=LM4040_VREF,GND=GND,,Precision 3.0V shunt reference (feeds U9A buffer)
 U6,Op_Amp,OPA342UA,SOIC-8,VCC=+3.3V,OUT=AC_OUT,GND=GND,Level probe oscillator (Wien bridge)
 U7,Comparator,TLV3201AIDBVR,SOT-23-5,VCC=+3.3V,OUT=GPIO4,GND=GND,Level probe detector with hysteresis
-U8,RS485_Transceiver,MAX3485ESA+,SOIC-8,VCC=+3.3V,DI=GPIO6,RO=U8_RO,RS485 transceiver for industrial meters (DE/RE=GPIO20) - RO routed via JP5
+U8,RS485_Transceiver,MAX3485ESA+,SOIC-8,VCC=+3.3V,DI=GPIO6,RO=U8_RO,RS485 transceiver for industrial meters (DE/RE=GPIO20) - RO routed via JP4
 U9,Dual_Op_Amp,OPA2342UA,SOIC-8,VCC=+3.3V,OUT_A=U9A_OUT,IN_A+=LM4040_VREF,IN_A-=U9A_OUT,VREF buffer (U9A unity-gain follower) + spare (U9B)
 K1,Relay_SPST,APAN3105,Relay_SPST,Coil+=K1_DRIVE,COM=J2_COM,NO=J2_NO,Mains indicator lamp relay 3A (slim 5mm)
 K2,Relay_SPST,G5LE-1A4-E_DC5,Relay_SPST,Coil+=K2_DRIVE,COM=J3_COM,NO=J3_NO,Pump relay 16A (high-capacity -E variant required)
@@ -36,24 +36,26 @@ LED5,LED,Orange_0805,0805,A=LED5_A,K=GND,,SSR1 indicator
 LED6,LED,Orange_0805,0805,A=LED6_A,K=GND,,SSR2 indicator
 LED7,LED,Green_0805,0805,A=GPIO15,K=GND,,Status LED (Green)
 R1,Resistor,3.3k_1%,0805,1=ADC_VREF,2=ADC0,,Brew NTC pull-up (50k NTC optimized for 93C)
-R1A,Resistor,1.5k_1%,0805,1=ADC_VREF,2=ADC0,,Brew NTC parallel resistor (10k NTC via JP2 solder jumper)
+R1A,Resistor,1.5k_1%,0805,1=ADC_VREF,2=ADC0,,Brew NTC parallel resistor (10kΩ NTC via JP1)
 R2,Resistor,1.2k_1%,0805,1=ADC_VREF,2=ADC1,,Steam NTC pull-up (50k NTC optimized for 135C)
-R2A,Resistor,680R_1%,0805,1=ADC_VREF,2=ADC1,,Steam NTC parallel resistor (10k NTC via JP3 solder jumper)
+R2A,Resistor,680R_1%,0805,1=ADC_VREF,2=ADC1,,Steam NTC parallel resistor (10kΩ NTC via JP2)
 R3,Resistor,10k_1%,0805,1=ADC2,2=GND,,Pressure divider (to GND)
 R4,Resistor,5.6k_1%,0805,1=PRESS_SIG,2=ADC2,,Pressure divider (series) - prevents ADC saturation at 4.5V sensor output
 R5,Resistor,1k_1%,0805,1=ADC0_R,2=ADC0,,Brew NTC series protection
 R6,Resistor,1k_1%,0805,1=ADC1_R,2=ADC1,,Steam NTC series protection
-R7,Resistor,1k_1%,0805,1=3V3_ANALOG,2=LM4040_VREF,,LM4040 bias resistor (0.3mA via FB1) - connects to U9A buffer input
-R_ISO,Resistor,47R_1%,0805,1=U9A_OUT,2=ADC_VREF,,Reference buffer isolation resistor (capacitive load stability)
-R10,Resistor,10k,0805,1=GPIO10,2=GND,,K1 driver pull-down
-R11,Resistor,10k,0805,1=GPIO11,2=GND,,K2 driver pull-down
-R12,Resistor,10k,0805,1=GPIO12,2=GND,,K3 driver pull-down
+R7,Resistor,1k_1%,0805,1=3V3_ANALOG,2=LM4040_VREF,,LM4040 bias resistor (0.3mA via FB1)
+R8,Resistor,47R_1%,0805,1=U9A_OUT,2=ADC_VREF,,ADC VREF buffer isolation (prevents oscillation with cap load)
+R9,Resistor,33k_1%,0805,1=FB,2=+3.3V,,TPS563200 feedback upper (voltage divider)
+R10,Resistor,10k_1%,0805,1=FB,2=GND,,TPS563200 feedback lower (sets 3.3V output)
+R11,Resistor,10k,0805,1=GPIO10,2=GND,,K1 relay driver pull-down
+R12,Resistor,10k,0805,1=GPIO11,2=GND,,K2 relay driver pull-down
+R13,Resistor,10k,0805,1=GPIO12,2=GND,,K3 relay driver pull-down
 R14,Resistor,10k,0805,1=GPIO13,2=GND,,SSR1 driver pull-down
 R15,Resistor,10k,0805,1=GPIO14,2=GND,,SSR2 driver pull-down
-R16,Resistor,10k,0805,1=+3.3V,2=GPIO2,,Water switch pull-up (optional)
-R17,Resistor,10k,0805,1=+3.3V,2=GPIO3,,Tank level pull-up (optional)
-R18,Resistor,10k,0805,1=+3.3V,2=GPIO5,,Brew switch pull-up (optional)
-R19,Resistor,10k,0805,1=GPIO20,2=GND,,RS485 DE/RE pull-down (TX idle)
+R16,Resistor,10k,0805,1=+3.3V,2=GPIO2,,Water reservoir switch pull-up
+R17,Resistor,10k,0805,1=+3.3V,2=GPIO3,,Tank level sensor pull-up
+R18,Resistor,10k,0805,1=+3.3V,2=GPIO5,,Brew handle switch pull-up
+R19,Resistor,10k,0805,1=GPIO20,2=GND,,RS485 DE/RE pull-down
 R20,Resistor,1k,0805,1=GPIO10,2=Q1_B,,Q1 base resistor
 R21,Resistor,1k,0805,1=GPIO11,2=Q2_B,,Q2 base resistor
 R22,Resistor,1k,0805,1=GPIO12,2=Q3_B,,Q3 base resistor
@@ -76,22 +78,20 @@ R46,Resistor,4.7k,0805,1=+3.3V,2=GPIO8,,I2C0 SDA pull-up
 R47,Resistor,4.7k,0805,1=+3.3V,2=GPIO9,,I2C0 SCL pull-up
 R48,Resistor,330R,0805,1=GPIO15,2=LED7_A,,Status LED current limit
 R49,Resistor,100R,0805,1=GPIO19,2=BZ1,,Buzzer series
-R71,Resistor,10k,0805,1=+3.3V,2=PICO_RUN,,Pico RUN pull-up (J15 Pin 5)
-R72,Resistor,10k,0805,1=+3.3V,2=PICO_BOOTSEL,,Pico BOOTSEL pull-up (J15 Pin 6)
-R73,Resistor,10k,0805,1=GND,2=GPIO21,,WEIGHT_STOP pull-down (J15 Pin 7)
-R91,Resistor,10k_1%,0805,1=AC_OUT,2=OPA_NEG,,Level probe oscillator feedback
-R91A,Resistor,4.7k_1%,0805,1=OPA_NEG,2=GND,,Wien bridge gain setting resistor (sets A_CL = 3.13 for robust oscillation startup)
-R92,Resistor,10k_1%,0805,1=OPA_POS,2=WIEN1,,Level probe Wien bridge
-R93,Resistor,10k_1%,0805,1=OPA_POS,2=WIEN2,,Level probe Wien bridge
-R94,Resistor,100R,0805,1=AC_OUT,2=PROBE,,Level probe current limit
-R95,Resistor,10k,0805,1=AC_SENSE,2=COMP_POS,,Level probe AC bias
-R96,Resistor,100k_1%,0805,1=+3.3V,2=VREF,,Level probe reference divider
-R97,Resistor,100k_1%,0805,1=VREF,2=GND,,Level probe reference divider
-R98,Resistor,1M,0805,1=GPIO4,2=COMP_POS,,Level probe hysteresis
-R_FB1,Resistor,33k_1%,0805,1=FB,2=+3.3V,,TPS563200 feedback upper resistor (voltage divider)
-R_FB2,Resistor,10k_1%,0805,1=FB,2=GND,,TPS563200 feedback lower resistor (sets 3.3V output)
-R100,Resistor,10k_1%,0805,1=+5V,2=5V_DIV,,5V monitor upper divider (ratiometric pressure compensation)
-R101,Resistor,5.6k_1%,0805,1=5V_DIV,2=GND,,5V monitor lower divider (ratio matches R3/R4)
+R71,Resistor,10k,0805,1=+3.3V,2=PICO_RUN,,Pico RUN pull-up
+R72,Resistor,10k,0805,1=+3.3V,2=PICO_BOOTSEL,,Pico BOOTSEL pull-up
+R73,Resistor,10k,0805,1=GND,2=GPIO21,,WEIGHT_STOP pull-down
+R81,Resistor,10k_1%,0805,1=AC_OUT,2=OPA_NEG,,Level probe oscillator feedback
+R82,Resistor,4.7k_1%,0805,1=OPA_NEG,2=GND,,Level probe gain setting (A_CL=3.13)
+R83,Resistor,10k_1%,0805,1=OPA_POS,2=WIEN1,,Level probe Wien bridge
+R84,Resistor,10k_1%,0805,1=OPA_POS,2=WIEN2,,Level probe Wien bridge
+R85,Resistor,100R,0805,1=AC_OUT,2=PROBE,,Level probe current limit
+R86,Resistor,10k,0805,1=AC_SENSE,2=COMP_POS,,Level probe AC bias
+R87,Resistor,100k_1%,0805,1=+3.3V,2=VREF,,Level probe reference upper
+R88,Resistor,100k_1%,0805,1=VREF,2=GND,,Level probe reference lower
+R89,Resistor,1M,0805,1=GPIO4,2=COMP_POS,,Level probe hysteresis
+R91,Resistor,10k_1%,0805,1=+5V,2=5V_DIV,,5V monitor upper (ratiometric compensation)
+R92,Resistor,5.6k_1%,0805,1=5V_DIV,2=GND,,5V monitor lower (ratiometric compensation)
 C1,Capacitor,100nF_X2,Radial,1=L_FUSED,2=N_FUSED,,Mains EMI filter
 C2,Capacitor,470uF_6.3V,Radial_6.3mm,1=+5V,2=GND,,5V bulk cap (Polymer low ESR)
 C3,Capacitor,22uF_25V,1206,1=+5V,2=GND,,Buck input cap (ceramic X5R)
@@ -128,10 +128,10 @@ SW1,Switch,Tactile_6x6mm,SMD,1=RUN,2=GND,,Reset button
 SW2,Switch,Tactile_6x6mm,SMD,1=BOOTSEL,2=GND,,Boot button
 BZ1,Buzzer,Passive_12mm,TH,1=BZ1_POS,2=GND,,Passive piezo buzzer
 FB1,Ferrite_Bead,600R_100MHz,0603,1=+3.3V,2=3V3_ANALOG,,ADC reference section isolation (feeds R7→LM4040→U9A→ADC_VREF)
-JP2,Solder_Jumper,Open,2-pad,1=ADC_VREF,2=R1A,,Brew NTC selection (OPEN=50k ECM, CLOSE=10k Rocket) - enables R1A parallel
-JP3,Solder_Jumper,Open,2-pad,1=ADC_VREF,2=R2A,,Steam NTC selection (OPEN=50k ECM, CLOSE=10k Rocket) - enables R2A parallel
-JP4,Solder_Jumper,Open,2-pad,1=J17_RX,2=J17_DIV,,J17 RX 3.3V bypass (OPEN=5V meter via divider, CLOSE=3.3V meter direct) ⚠️ CLOSE ONLY for 3.3V meters!
-JP5,Solder_Jumper,Center+A,3-pad,1=U8_RO,2=GPIO7,3=J17_DIV,,GPIO7 source select: 1-2=RS485 mode, 2-3=TTL mode
+JP1,Solder_Jumper,Open,2-pad,1=ADC_VREF,2=R1A,,Brew NTC selection (OPEN=50kΩ ECM/Profitec, CLOSE=10kΩ Rocket/Gaggia)
+JP2,Solder_Jumper,Open,2-pad,1=ADC_VREF,2=R2A,,Steam NTC selection (OPEN=50kΩ ECM/Profitec, CLOSE=10kΩ Rocket/Gaggia)
+JP3,Solder_Jumper,Open,2-pad,1=J17_RX,2=J17_DIV,,Power meter RX level (OPEN=5V TTL meters, CLOSE=3.3V logic meters)
+JP4,Solder_Jumper,Center+A,3-pad,1=U8_RO,2=GPIO7,3=J17_DIV,,Power meter interface select (1-2=RS485 differential, 2-3=TTL UART)
 J1,Connector,Terminal_3pos,6.3mm_Spade,1=L,2=N,3=PE,Mains input
 J2,Connector,Terminal_2pos,6.3mm_Spade,1=J2_COM,2=J2_NO,,K1 output (Mains indicator lamp)
 J3,Connector,Terminal_2pos,6.3mm_Spade,1=J3_COM,2=J3_NO,,K2 output (Pump)

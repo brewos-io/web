@@ -3554,23 +3554,25 @@ GPIO22 is available on **J15 Pin 8 (SPARE)** for future expansion:
 
 ## 14.3a Solder Jumpers
 
-| Qty | Ref | Type  | Function            | Default | Notes                                       |
-| --- | --- | ----- | ------------------- | ------- | ------------------------------------------- |
-| 1   | JP2 | 2-pad | Brew NTC selection  | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
-| 1   | JP3 | 2-pad | Steam NTC selection | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
-| 1   | JP4 | 2-pad | J17 RX 3.3V bypass  | OPEN    | OPEN=5V meters, CLOSE=3.3V meters           |
-| 1   | JP5 | 3-pad | GPIO7 source select | 1-2     | 1-2=RS485 mode, 2-3=TTL mode                |
+| Qty | Ref | Type  | Function                  | Default | Notes                                       |
+| --- | --- | ----- | ------------------------- | ------- | ------------------------------------------- |
+| 1   | JP1 | 2-pad | Brew NTC selection        | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
+| 1   | JP2 | 2-pad | Steam NTC selection       | OPEN    | OPEN=50kΩ (ECM), CLOSE=10kΩ (Rocket/Gaggia) |
+| 1   | JP3 | 2-pad | Power meter RX level      | OPEN    | OPEN=5V meters, CLOSE=3.3V meters           |
+| 1   | JP4 | 3-pad | Power meter interface sel | 1-2     | 1-2=RS485, 2-3=TTL                          |
 
 **Solder Jumper Implementation:**
 
-- **2-pad jumpers (JP2-JP4):** Two pads with ~0.5mm gap. Apply solder blob to bridge.
-- **3-pad jumper (JP5):** Three pads in a row. Bridge center pad (2) to left (1) or right (3).
+**Implementation:**
 
-**Configuration Requirements:**
+- **2-pad jumpers (JP1-JP3):** Two pads with ~0.5mm gap. Apply solder blob to bridge.
+- **3-pad jumper (JP4):** Three pads in a row. Bridge center pad to left or right.
 
-- JP4: Must match meter voltage level (5V or 3.3V logic)
-- JP5: Must match meter interface type (RS485 or TTL UART)
-- JP2/JP3: Must match installed NTC sensor resistance (50kΩ or 10kΩ)
+**Configuration Guide:**
+
+- JP1/JP2: Set based on installed NTC sensor type (50kΩ or 10kΩ)
+- JP3: Set based on power meter logic level (5V or 3.3V)
+- JP4: Set based on power meter interface (RS485 or TTL UART)
 
 ## 14.4 Passive Components - Capacitors
 
