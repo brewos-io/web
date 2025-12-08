@@ -26,12 +26,12 @@
 
 ### Component Specifications
 
-| Component | Value | Part Number | Purpose |
-|-----------|-------|-------------|---------|
-| F1 | 10A 250V slow-blow | Littelfuse 0218010.MXP | Main circuit protection |
-| F2 | 2A 250V slow-blow | Littelfuse 0218002.MXP | HLK module protection |
-| RV1 | 275V AC MOV | S14K275 | Surge protection |
-| C1 | 100nF X2 275V AC | - | EMI filter |
+| Component | Value              | Part Number            | Purpose                 |
+| --------- | ------------------ | ---------------------- | ----------------------- |
+| F1        | 10A 250V slow-blow | Littelfuse 0218010.MXP | Main circuit protection |
+| F2        | 2A 250V slow-blow  | Littelfuse 0218002.MXP | HLK module protection   |
+| RV1       | 275V AC MOV        | S14K275                | Surge protection        |
+| C1        | 100nF X2 275V AC   | -                      | EMI filter              |
 
 ### Fuse Coordination
 
@@ -59,12 +59,12 @@ Machine MCB (16A): House circuit protection
 
 ### IEC 60950-1 / IEC 62368-1 Compliance
 
-| Boundary | Type | Creepage | Clearance | Implementation |
-|----------|------|----------|-----------|----------------|
-| Mains → 5V DC | Reinforced | **6.0mm** | **4.0mm** | Routed slot + wide gap |
-| Relay coil → contacts | Basic | 3.0mm | 2.5mm | Internal relay design |
-| Phase → Neutral | Functional | 2.5mm | 2.5mm | Trace spacing |
-| HV GND → LV GND | Reinforced | 6.0mm | 4.0mm | Via HLK isolation |
+| Boundary              | Type       | Creepage  | Clearance | Implementation         |
+| --------------------- | ---------- | --------- | --------- | ---------------------- |
+| Mains → 5V DC         | Reinforced | **6.0mm** | **4.0mm** | Routed slot + wide gap |
+| Relay coil → contacts | Basic      | 3.0mm     | 2.5mm     | Internal relay design  |
+| Phase → Neutral       | Functional | 2.5mm     | 2.5mm     | Trace spacing          |
+| HV GND → LV GND       | Reinforced | 6.0mm     | 4.0mm     | Via HLK isolation      |
 
 ### PCB Implementation
 
@@ -78,18 +78,18 @@ Machine MCB (16A): House circuit protection
 
 ### Input Protection Summary
 
-| Signal | Protection | Device | Notes |
-|--------|------------|--------|-------|
-| GPIO2 (Water) | ESD clamp | PESD5V0S1BL (D10) | SOD-323 |
-| GPIO3 (Tank) | ESD clamp | PESD5V0S1BL (D11) | SOD-323 |
-| GPIO4 (Level) | ESD clamp | PESD5V0S1BL (D12) | SOD-323 |
-| GPIO5 (Brew) | ESD clamp | PESD5V0S1BL (D13) | SOD-323 |
-| ADC0 (Brew NTC) | ESD clamp | PESD5V0S1BL (D14) | SOD-323 |
-| ADC1 (Steam NTC) | ESD clamp | PESD5V0S1BL (D15) | SOD-323 |
-| ADC2 (Pressure) | Schottky clamp | BAT54S (D16) | Overvoltage protection |
-| 5V Rail | TVS | SMBJ5.0A (D20) | Surge protection |
-| RS485 A/B | TVS | SM712 (D21) | Asymmetric (-7V/+12V) |
-| Service TX/RX | Zener clamp | BZT52C3V3 (D23/D24) | 5V TTL protection |
+| Signal           | Protection     | Device              | Notes                  |
+| ---------------- | -------------- | ------------------- | ---------------------- |
+| GPIO2 (Water)    | ESD clamp      | PESD5V0S1BL (D10)   | SOD-323                |
+| GPIO3 (Tank)     | ESD clamp      | PESD5V0S1BL (D11)   | SOD-323                |
+| GPIO4 (Level)    | ESD clamp      | PESD5V0S1BL (D12)   | SOD-323                |
+| GPIO5 (Brew)     | ESD clamp      | PESD5V0S1BL (D13)   | SOD-323                |
+| ADC0 (Brew NTC)  | ESD clamp      | PESD5V0S1BL (D14)   | SOD-323                |
+| ADC1 (Steam NTC) | ESD clamp      | PESD5V0S1BL (D15)   | SOD-323                |
+| ADC2 (Pressure)  | Schottky clamp | BAT54S (D16)        | Overvoltage protection |
+| 5V Rail          | TVS            | SMBJ5.0A (D20)      | Surge protection       |
+| RS485 A/B        | TVS            | SM712 (D21)         | Asymmetric (-7V/+12V)  |
+| Service TX/RX    | Zener clamp    | BZT52C3V3 (D23/D24) | 5V TTL protection      |
 
 ### Pressure ADC Protection Detail
 
@@ -114,12 +114,12 @@ BAT54S clamps to 3.3V + 0.3V = 3.6V (within RP2350 absolute max).
 
 ### Heat Sources
 
-| Component | Power Dissipation | Mitigation |
-|-----------|-------------------|------------|
-| HLK-15M05C | ~3W at full load | Adequate PCB area, natural convection |
-| TPS563200 | ~25mW | Minimal (>90% efficient) |
-| Relay coils | ~0.35W (K2) | Continuous operation OK |
-| Transistors | <10mW each | No heatsink needed |
+| Component   | Power Dissipation | Mitigation                            |
+| ----------- | ----------------- | ------------------------------------- |
+| HLK-15M05C  | ~3W at full load  | Adequate PCB area, natural convection |
+| TPS563200   | ~25mW             | Minimal (>90% efficient)              |
+| Relay coils | ~0.35W (K2)       | Continuous operation OK               |
+| Transistors | <10mW each        | No heatsink needed                    |
 
 ### Design Considerations
 
@@ -134,15 +134,15 @@ BAT54S clamps to 3.3V + 0.3V = 3.6V (within RP2350 absolute max).
 
 ### Recommended Areas
 
-| Area | Coating | Notes |
-|------|---------|-------|
-| HV section (relays, MOVs, fuse) | ✅ Yes | Prevents tracking from contamination |
-| Level probe trace area | ✅ Yes | High-impedance, sensitive to moisture |
-| LV analog section | ✅ Yes | Protects ADC inputs from drift |
-| Connectors (J15, J17, J26) | ❌ Mask off | Must remain solderable |
-| Pico module socket | ❌ Mask off | Module must be removable |
-| Relay contacts | ❌ Mask off | Internal, already sealed |
-| Test points (TP1-TP3) | ❌ Mask off | Must remain accessible |
+| Area                            | Coating     | Notes                                 |
+| ------------------------------- | ----------- | ------------------------------------- |
+| HV section (relays, MOVs, fuse) | ✅ Yes      | Prevents tracking from contamination  |
+| Level probe trace area          | ✅ Yes      | High-impedance, sensitive to moisture |
+| LV analog section               | ✅ Yes      | Protects ADC inputs from drift        |
+| Connectors (J15, J17, J26)      | ❌ Mask off | Must remain solderable                |
+| Pico module socket              | ❌ Mask off | Module must be removable              |
+| Relay contacts                  | ❌ Mask off | Internal, already sealed              |
+| Test points (TP1-TP3)           | ❌ Mask off | Must remain accessible                |
 
 **Coating Type:** Acrylic (MG Chemicals 419D) or silicone-based.
 **Apply:** After all testing complete.
@@ -153,12 +153,12 @@ BAT54S clamps to 3.3V + 0.3V = 3.6V (within RP2350 absolute max).
 
 ### Applicable Standards
 
-| Standard | Scope | Status |
-|----------|-------|--------|
-| IEC 60335-1 | Household appliances - General | Reference for safety |
-| IEC 60950-1 / 62368-1 | IT equipment safety | Creepage/clearance |
-| UL 94 V-0 | PCB flammability | FR-4 material |
-| CE marking | European conformity | Design target |
+| Standard              | Scope                          | Status               |
+| --------------------- | ------------------------------ | -------------------- |
+| IEC 60335-1           | Household appliances - General | Reference for safety |
+| IEC 60950-1 / 62368-1 | IT equipment safety            | Creepage/clearance   |
+| UL 94 V-0             | PCB flammability               | FR-4 material        |
+| CE marking            | European conformity            | Design target        |
 
 ### Critical Safety Points
 
@@ -182,25 +182,27 @@ MOVs are placed across **LOADS** (not across relay contacts):
 
 ### Component MTBF Analysis
 
-| Component       | Estimated MTBF (hours) | Failure Mode                    | Mitigation                          |
-|-----------------|------------------------|----------------------------------|-------------------------------------|
-| HLK-15M05C      | 100,000                | Electrolytic capacitor aging    | Derated operation, thermal mgmt     |
-| Relays (K1-K3)  | 500,000 (mechanical)   | Contact wear, coil burnout      | Relay drivers with flyback diodes   |
-| RP2350 Pico     | 1,000,000+             | Overvoltage, ESD damage         | ESD protection on all GPIO          |
-| MOV (RV1)       | Degrades with surges   | Open after multiple surges      | Replaceable, visual inspection      |
-| Fuses (F1, F2)  | N/A (consumable)       | Normal operation on fault       | Spare fuses provided                |
+| Component      | Estimated MTBF (hours) | Failure Mode                 | Mitigation                        |
+| -------------- | ---------------------- | ---------------------------- | --------------------------------- |
+| HLK-15M05C     | 100,000                | Electrolytic capacitor aging | Derated operation, thermal mgmt   |
+| Relays (K1-K3) | 500,000 (mechanical)   | Contact wear, coil burnout   | Relay drivers with flyback diodes |
+| RP2350 Pico    | 1,000,000+             | Overvoltage, ESD damage      | ESD protection on all GPIO        |
+| MOV (RV1)      | Degrades with surges   | Open after multiple surges   | Replaceable, visual inspection    |
+| Fuses (F1, F2) | N/A (consumable)       | Normal operation on fault    | Spare fuses provided              |
 
 ### System MTBF Estimate
 
 **Estimated System MTBF:** ~50,000 hours (5.7 years) under normal operating conditions
 
 **Assumptions:**
+
 - Operating temperature: 25°C average ambient (derated for higher temps)
 - Duty cycle: 2-3 hours/day typical espresso machine usage
 - Surge events: <10 per year (typical residential)
 - No exposure to extreme humidity or contaminants
 
 **Factors Affecting MTBF:**
+
 - Ambient temperature (MTBF halves for every 10°C above 25°C)
 - Voltage surge frequency (MOV degradation)
 - Relay switching cycles (pump/valve actuation frequency)
@@ -215,29 +217,29 @@ Test points enable systematic board verification during commissioning and field 
 
 ### Power Rail Verification
 
-| TP | Signal | Purpose | Expected Value | Tolerance |
-|----|--------|---------|----------------|-----------|
-| TP1 | GND | Ground reference | 0V | — |
-| TP2 | 5V | Main power rail | 5.00V | ±5% (4.75–5.25V) |
-| TP3 | 3.3V | Logic power rail | 3.30V | ±3% (3.20–3.40V) |
-| TP4 | 5V_MON | 5V divider output | 1.79V | ±2% |
+| TP  | Signal | Purpose           | Expected Value | Tolerance        |
+| --- | ------ | ----------------- | -------------- | ---------------- |
+| TP1 | GND    | Ground reference  | 0V             | —                |
+| TP2 | 5V     | Main power rail   | 5.00V          | ±5% (4.75–5.25V) |
+| TP3 | 3.3V   | Logic power rail  | 3.30V          | ±3% (3.20–3.40V) |
+| TP4 | 5V_MON | 5V divider output | 1.79V          | ±2%              |
 
 ### Analog Signal Verification
 
-| TP | Signal | Purpose | Expected Value | Notes |
-|----|--------|---------|----------------|-------|
-| TP5 | ADC_VREF | Reference calibration | 3.00V ±0.5% | Critical for NTC accuracy |
-| TP6 | ADC0 | Brew NTC signal | 0.5–2.5V | Varies with temperature |
-| TP7 | ADC1 | Steam NTC signal | 0.5–2.5V | Varies with temperature |
-| TP8 | ADC2 | Pressure signal | 0.32–2.88V | 0 bar = 0.32V, 16 bar = 2.88V |
+| TP  | Signal   | Purpose               | Expected Value | Notes                         |
+| --- | -------- | --------------------- | -------------- | ----------------------------- |
+| TP5 | ADC_VREF | Reference calibration | 3.00V ±0.5%    | Critical for NTC accuracy     |
+| TP6 | ADC0     | Brew NTC signal       | 0.5–2.5V       | Varies with temperature       |
+| TP7 | ADC1     | Steam NTC signal      | 0.5–2.5V       | Varies with temperature       |
+| TP8 | ADC2     | Pressure signal       | 0.32–2.88V     | 0 bar = 0.32V, 16 bar = 2.88V |
 
 ### Communication Verification
 
-| TP | Signal | Purpose | Expected Value | Notes |
-|----|--------|---------|----------------|-------|
-| TP9 | UART0_TX | Serial debug output | 3.3V idle | Scope for TX activity |
-| TP10 | UART0_RX | Serial debug input | 3.3V idle | Scope for RX activity |
-| TP11 | RS485_DE | Direction control | 0V (RX) / 3.3V (TX) | Verify bus direction |
+| TP   | Signal   | Purpose             | Expected Value      | Notes                 |
+| ---- | -------- | ------------------- | ------------------- | --------------------- |
+| TP9  | UART0_TX | Serial debug output | 3.3V idle           | Scope for TX activity |
+| TP10 | UART0_RX | Serial debug input  | 3.3V idle           | Scope for RX activity |
+| TP11 | RS485_DE | Direction control   | 0V (RX) / 3.3V (TX) | Verify bus direction  |
 
 ### Commissioning Checklist
 
@@ -246,4 +248,3 @@ Test points enable systematic board verification during commissioning and field 
 3. **Sensor verification:** Compare TP6/TP7 readings against reference thermometer
 4. **Communication test:** Verify UART activity on TP9/TP10 during ESP32 handshake
 5. **RS485 verification:** Monitor TP11 during meter polling (should toggle)
-
