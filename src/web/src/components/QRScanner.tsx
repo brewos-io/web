@@ -167,9 +167,9 @@ export function QRScanner({ onScan, onError, compact = false }: QRScannerProps) 
   }, [isScanning]);
 
   return (
-    <div className={compact ? "w-full" : "w-full max-w-xs mx-auto"} ref={containerRef}>
+    <div className={compact ? "w-full h-full flex flex-col" : "w-full max-w-xs mx-auto"} ref={containerRef}>
       {/* Scanner container - fixed aspect ratio to prevent size changes */}
-      <div className="aspect-square w-full rounded-xl overflow-hidden bg-black relative">
+      <div className={`${compact ? "w-full h-full" : "aspect-square w-full"} rounded-xl overflow-hidden bg-black relative`}>
         <div id="qr-reader" className="absolute inset-0 w-full h-full" />
       </div>
 

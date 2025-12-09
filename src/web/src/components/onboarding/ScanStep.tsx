@@ -47,7 +47,9 @@ export function ScanStep({
   }) => (
     <div
       className={
-        size === "compact" ? "w-full aspect-square max-w-xs mx-auto" : "max-w-[200px] xs:max-w-xs mx-auto"
+        size === "compact"
+          ? "w-full h-full"
+          : "max-w-[200px] xs:max-w-xs mx-auto"
       }
     >
       <div
@@ -64,9 +66,7 @@ export function ScanStep({
                 : "w-10 h-10 xs:w-16 xs:h-16 mb-2 xs:mb-3"
             } mx-auto opacity-40`}
           />
-          <p className="text-xs xs:text-sm font-medium">
-            Camera view
-          </p>
+          <p className="text-xs xs:text-sm font-medium">Camera view</p>
         </div>
       </div>
     </div>
@@ -75,25 +75,12 @@ export function ScanStep({
   // Mobile landscape: two-column layout (same pattern as other wizard steps)
   if (isMobileLandscape) {
     return (
-      <div className="h-full flex flex-col animate-in fade-in duration-300">
-        {/* Header row */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center flex-shrink-0 border border-accent/20">
-            <QrCode className="w-6 h-6 text-accent" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-theme">Scan QR Code</h2>
-            <p className="text-sm text-theme-muted">
-              Point camera at your machine's display
-            </p>
-          </div>
-        </div>
-
-        {/* Two columns */}
-        <div className="flex-1 flex gap-6">
-          {/* Left: QR Scanner */}
-          <div className="flex-1 flex items-center justify-center">
-            <div className="w-44">
+      <div className="w-full px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="flex gap-6 items-center">
+          {/* Left column: QR Scanner */}
+          <div className="flex-shrink-0 flex flex-col items-center justify-center">
+            {/* Scanner - constrained to fit in available height */}
+            <div className="w-44 h-44 max-h-[180px] flex flex-col">
               {onScan ? (
                 <QRScanner
                   onScan={onScan}
@@ -132,7 +119,9 @@ export function ScanStep({
                 </Button>
               )}
               <Button
-                className={onBack ? "flex-1 font-semibold" : "w-full font-semibold"}
+                className={
+                  onBack ? "flex-1 font-semibold" : "w-full font-semibold"
+                }
                 onClick={onValidate}
                 disabled={disabled}
                 loading={loading}
