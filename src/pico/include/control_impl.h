@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Control System Internal Interface
+ * Pico Firmware - Control System Internal Interface
  * 
  * Internal header for machine-specific control implementations.
  * Each machine type implements these functions in its own file:

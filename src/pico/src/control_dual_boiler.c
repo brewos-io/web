@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Dual Boiler Control Implementation
+ * Pico Firmware - Dual Boiler Control Implementation
  * 
  * Control logic for dual boiler machines (e.g., ECM Synchronika):
  * - Independent brew and steam boiler PIDs

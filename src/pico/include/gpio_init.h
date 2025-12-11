@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - GPIO Initialization
+ * Pico Firmware - GPIO Initialization
  * 
  * Centralized GPIO initialization based on PCB configuration.
  * All GPIO setup happens here using the active PCB configuration.

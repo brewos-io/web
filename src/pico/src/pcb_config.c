@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - PCB Configuration Implementation
+ * Pico Firmware - PCB Configuration Implementation
  * 
  * Provides runtime access to PCB configuration and validation.
  */

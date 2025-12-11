@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Flash Safety Utilities
+ * Pico Firmware - Flash Safety Utilities
  * 
  * Provides safe flash operations for both RP2040 and RP2350 (Pico 2).
  * 

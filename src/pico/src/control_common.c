@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Control System Common Implementation
+ * Pico Firmware - Control System Common Implementation
  * 
  * Shared control code used by all machine types:
  * - PID computation with derivative filtering

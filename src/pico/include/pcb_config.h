@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - PCB Configuration
+ * Pico Firmware - PCB Configuration
  * 
  * Centralized GPIO pin configuration for different PCB types and versions.
  * This allows the same firmware to support different hardware revisions.

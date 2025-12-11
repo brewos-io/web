@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Safety System
+ * Pico Firmware - Safety System
  * 
  * Critical safety functions that run first and can override all other control.
  * Implements all safety requirements (SAF-001 through SAF-034).

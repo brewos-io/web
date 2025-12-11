@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Water Management
+ * Pico Firmware - Water Management
  * 
  * Handles water tank auto-fill and water LED control.
  */

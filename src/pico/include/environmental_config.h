@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Environmental Configuration
+ * Pico Firmware - Environmental Configuration
  * 
  * Defines installation-specific electrical parameters (voltage, current limits).
  * These vary by installation location and can be set at compile-time or runtime.

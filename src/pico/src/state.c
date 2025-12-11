@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - State Machine
+ * Pico Firmware - State Machine
  * 
  * Manages the overall machine state with complete state transitions,
  * brew cycle control, and entry/exit actions.

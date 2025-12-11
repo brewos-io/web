@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - GPIO Initialization Implementation
+ * Pico Firmware - GPIO Initialization Implementation
  * 
  * Initializes all GPIO pins according to the active PCB configuration.
  */

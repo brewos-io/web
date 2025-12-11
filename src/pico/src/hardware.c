@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Hardware Abstraction Layer Implementation
+ * Pico Firmware - Hardware Abstraction Layer Implementation
  * 
  * Provides hardware access with simulation mode support.
  * 

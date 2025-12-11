@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Serial Bootloader
+ * Pico Firmware - Serial Bootloader
  * 
  * Receives firmware over UART and writes to flash for OTA updates.
  */

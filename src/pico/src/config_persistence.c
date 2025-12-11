@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Configuration Persistence Implementation
+ * Pico Firmware - Configuration Persistence Implementation
  * 
  * Saves and loads configuration to/from flash storage using Pico SDK.
  * Uses a reserved flash sector for configuration storage.

@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Heat Exchanger Control Implementation
+ * Pico Firmware - Heat Exchanger Control Implementation
  * 
  * Control logic for heat exchanger machines (e.g., E61 HX):
  * - Steam boiler only has active PID control

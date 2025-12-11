@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Sensor Utility Functions Implementation
+ * Pico Firmware - Sensor Utility Functions Implementation
  */
 
 #include "sensor_utils.h"

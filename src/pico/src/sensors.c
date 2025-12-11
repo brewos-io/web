@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Sensor Reading
+ * Pico Firmware - Sensor Reading
  * 
  * Handles reading of all sensors (temperature, pressure, water level).
  * Uses hardware abstraction layer for real hardware or simulation.

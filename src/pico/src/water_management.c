@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Water Management
+ * Pico Firmware - Water Management
  * 
  * Handles steam boiler auto-fill and water LED control.
  * 

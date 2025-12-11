@@ -2,9 +2,10 @@
 
 ## Overview
 
-This guide covers debugging strategies for the ECM Pico firmware, from development through production.
+This guide covers debugging strategies for the Pico Firmware, from development through production.
 
 **Debugging Methods:**
+
 1. SWD Hardware Debugging (Picoprobe/J-Link)
 2. USB Serial Printf
 3. Protocol Debug Messages (via ESP32)
@@ -47,13 +48,13 @@ Use a second Raspberry Pi Pico as a debug probe.
 
 #### Wiring
 
-| Picoprobe GPIO | Target Pico | Function |
-|----------------|-------------|----------|
-| GP2 | SWCLK (pad) | Debug clock |
-| GP3 | SWDIO (pad) | Debug data |
-| GND | GND | Ground |
-| GP4 (optional) | UART TX | Serial passthrough |
-| GP5 (optional) | UART RX | Serial passthrough |
+| Picoprobe GPIO | Target Pico | Function           |
+| -------------- | ----------- | ------------------ |
+| GP2            | SWCLK (pad) | Debug clock        |
+| GP3            | SWDIO (pad) | Debug data         |
+| GND            | GND         | Ground             |
+| GP4 (optional) | UART TX     | Serial passthrough |
+| GP5 (optional) | UART RX     | Serial passthrough |
 
 #### Flash Picoprobe Firmware
 
@@ -81,11 +82,13 @@ openocd --version
 #### Start Debug Session
 
 **Terminal 1 - OpenOCD:**
+
 ```bash
 openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg
 ```
 
 **Terminal 2 - GDB:**
+
 ```bash
 arm-none-eabi-gdb build/ecm_firmware.elf
 
@@ -99,49 +102,49 @@ arm-none-eabi-gdb build/ecm_firmware.elf
 #### VS Code Configuration
 
 **.vscode/launch.json:**
+
 ```json
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Pico Debug (Picoprobe)",
-            "type": "cortex-debug",
-            "request": "launch",
-            "cwd": "${workspaceFolder}",
-            "executable": "${workspaceFolder}/build/ecm_firmware.elf",
-            "servertype": "openocd",
-            "configFiles": [
-                "interface/cmsis-dap.cfg",
-                "target/rp2040.cfg"
-            ],
-            "openOCDLaunchCommands": ["adapter speed 5000"],
-            "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
-            "runToEntryPoint": "main",
-            "preLaunchTask": "build"
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Pico Debug (Picoprobe)",
+      "type": "cortex-debug",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/build/ecm_firmware.elf",
+      "servertype": "openocd",
+      "configFiles": ["interface/cmsis-dap.cfg", "target/rp2040.cfg"],
+      "openOCDLaunchCommands": ["adapter speed 5000"],
+      "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
+      "runToEntryPoint": "main",
+      "preLaunchTask": "build"
+    }
+  ]
 }
 ```
 
 **.vscode/tasks.json:**
+
 ```json
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "build",
-            "type": "shell",
-            "command": "cd build && make -j4",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            }
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "shell",
+      "command": "cd build && make -j4",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
 }
 ```
 
 **Required VS Code Extensions:**
+
 - Cortex-Debug
 - C/C++ (Microsoft)
 
@@ -253,9 +256,9 @@ pico_enable_stdio_uart(ecm_firmware 0)
 void read_sensors(void) {
     float brew_temp = read_ntc(ADC_BREW_NTC);
     float steam_temp = read_ntc(ADC_STEAM_NTC);
-    
+
     LOG_D(MOD_SENSORS, "Brew=%.1f°C Steam=%.1f°C", brew_temp, steam_temp);
-    
+
     if (brew_temp > MAX_BREW_TEMP) {
         LOG_E(MOD_SENSORS, "Brew over-temp! %.1f > %.1f", brew_temp, MAX_BREW_TEMP);
     }
@@ -338,17 +341,17 @@ void set_protocol_log_level(uint8_t level) {
 
 void debug_protocol(uint8_t level, uint8_t module, const char* fmt, ...) {
     if (level < protocol_log_level) return;
-    
+
     debug_payload_t payload;
     payload.timestamp = to_ms_since_boot(get_absolute_time());
     payload.level = level;
     payload.module = module;
-    
+
     va_list args;
     va_start(args, fmt);
     payload.len = vsnprintf(payload.message, sizeof(payload.message), fmt, args);
     va_end(args);
-    
+
     send_packet(MSG_DEBUG, &payload, 7 + payload.len);
 }
 
@@ -366,20 +369,20 @@ void debug_protocol(uint8_t level, uint8_t module, const char* fmt, ...) {
 
 void handle_debug_message(const debug_payload_t* dbg) {
     const char* levels[] = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR"};
-    
+
     // To Serial
-    Serial.printf("[%lu] %s/%02X: %s\n", 
-                  dbg->timestamp, 
-                  levels[dbg->level], 
-                  dbg->module, 
+    Serial.printf("[%lu] %s/%02X: %s\n",
+                  dbg->timestamp,
+                  levels[dbg->level],
+                  dbg->module,
                   dbg->message);
-    
+
     // To WebSocket (browser console)
     if (wsClient.connected()) {
-        wsClient.printf("{\"type\":\"log\",\"level\":\"%s\",\"msg\":\"%s\"}", 
+        wsClient.printf("{\"type\":\"log\",\"level\":\"%s\",\"msg\":\"%s\"}",
                         levels[dbg->level], dbg->message);
     }
-    
+
     // To MQTT (remote logging)
     mqtt.publish("ecm/debug", dbg->message);
 }
@@ -435,13 +438,13 @@ void handle_debug_command(const cmd_debug_t* cmd) {
     debug_resp_payload_t resp;
     resp.cmd = cmd->cmd;
     resp.status = 0;
-    
+
     switch (cmd->cmd) {
         case DBG_SET_LOG_LEVEL:
             set_protocol_log_level(cmd->param1);
             resp.len = 0;
             break;
-            
+
         case DBG_DUMP_TIMING: {
             timing_stats_t* stats = get_timing_stats();
             resp.len = snprintf((char*)resp.data, sizeof(resp.data),
@@ -449,21 +452,21 @@ void handle_debug_command(const cmd_debug_t* cmd) {
                 stats->count, stats->avg_us, stats->max_us);
             break;
         }
-        
+
         case DBG_READ_ADC_RAW: {
             uint16_t raw = adc_read_raw(cmd->param1);
             resp.len = snprintf((char*)resp.data, sizeof(resp.data),
                 "ADC%d=%u (%.3fV)", cmd->param1, raw, raw * 3.3f / 4096);
             break;
         }
-        
+
         case DBG_READ_GPIO: {
             uint32_t all_gpio = gpio_get_all();
             memcpy(resp.data, &all_gpio, 4);
             resp.len = 4;
             break;
         }
-        
+
         case DBG_MEMORY_STATS: {
             extern char __StackLimit, __bss_end__;
             uint32_t heap_used = (uint32_t)&__bss_end__ - 0x20000000;
@@ -472,12 +475,12 @@ void handle_debug_command(const cmd_debug_t* cmd) {
                 "heap=%lu stack_free=%lu", heap_used, stack_free);
             break;
         }
-        
+
         default:
             resp.status = 1;  // Unknown command
             resp.len = 0;
     }
-    
+
     send_packet(MSG_DEBUG_RESP, &resp, 3 + resp.len);
 }
 ```
@@ -516,13 +519,13 @@ void debug_blink_error(uint8_t error_code) {
     // Blink error code in binary, MSB first
     for (int i = 7; i >= 0; i--) {
         gpio_put(PIN_STATUS_LED, 1);
-        
+
         if (error_code & (1 << i)) {
             sleep_ms(LONG_MS);   // 1 = long
         } else {
             sleep_ms(SHORT_MS);  // 0 = short
         }
-        
+
         gpio_put(PIN_STATUS_LED, 0);
         sleep_ms(GAP_MS);
     }
@@ -533,7 +536,7 @@ void debug_blink_error(uint8_t error_code) {
 void enter_fault_state(uint8_t error_code) {
     // All outputs safe
     enter_safe_state();
-    
+
     // Blink error code forever
     while (1) {
         debug_blink_error(error_code);
@@ -544,18 +547,18 @@ void enter_fault_state(uint8_t error_code) {
 
 ### Error Code Reference
 
-| Code | Binary | Pattern | Error |
-|------|--------|---------|-------|
+| Code | Binary   | Pattern  | Error            |
+| ---- | -------- | -------- | ---------------- |
 | 0x01 | 00000001 | SSSSSSSL | Watchdog timeout |
-| 0x02 | 00000010 | SSSSSSLS | Brew NTC open |
-| 0x03 | 00000011 | SSSSSSLL | Brew NTC short |
-| 0x04 | 00000100 | SSSSSLS | Steam NTC open |
-| 0x05 | 00000101 | SSSSSLSL | Steam NTC short |
-| 0x06 | 00000110 | SSSSSLLS | Brew over-temp |
-| 0x07 | 00000111 | SSSSSLL | Steam over-temp |
-| 0x08 | 00001000 | SSSSLS | Steam level low |
-| 0x09 | 00001001 | SSSSLSSL | No reservoir |
-| 0x0A | 00001010 | SSSSLSLS | Tank level low |
+| 0x02 | 00000010 | SSSSSSLS | Brew NTC open    |
+| 0x03 | 00000011 | SSSSSSLL | Brew NTC short   |
+| 0x04 | 00000100 | SSSSSLS  | Steam NTC open   |
+| 0x05 | 00000101 | SSSSSLSL | Steam NTC short  |
+| 0x06 | 00000110 | SSSSSLLS | Brew over-temp   |
+| 0x07 | 00000111 | SSSSSLL  | Steam over-temp  |
+| 0x08 | 00001000 | SSSSLS   | Steam level low  |
+| 0x09 | 00001001 | SSSSLSSL | No reservoir     |
+| 0x0A | 00001010 | SSSSLSLS | Tank level low   |
 
 (L = Long, S = Short)
 
@@ -597,11 +600,11 @@ void timing_start(timing_stats_t* stats) {
 
 void timing_stop(timing_stats_t* stats) {
     uint32_t elapsed = time_us_32() - timer_start;
-    
+
     stats->count++;
     stats->total_us += elapsed;
     stats->last_us = elapsed;
-    
+
     if (elapsed < stats->min_us || stats->min_us == 0) {
         stats->min_us = elapsed;
     }
@@ -625,27 +628,27 @@ static timing_stats_t pid_timing;
 
 void control_loop(void) {
     timing_start(&loop_timing);
-    
+
     // Safety
     check_interlocks();
-    
+
     // Sensors
     timing_start(&sensor_timing);
     read_all_sensors();
     timing_stop(&sensor_timing);
-    
+
     // PID
     timing_start(&pid_timing);
     compute_pid();
     timing_stop(&pid_timing);
-    
+
     // ...
-    
+
     timing_stop(&loop_timing);
-    
+
     // Report every 10 seconds
     if (loop_timing.count % 100 == 0) {
-        LOG_I(MOD_MAIN, "Loop: avg=%.0fus max=%luus", 
+        LOG_I(MOD_MAIN, "Loop: avg=%.0fus max=%luus",
               timing_avg_us(&loop_timing), loop_timing.max_us);
         LOG_D(MOD_MAIN, "  Sensors: avg=%.0fus max=%luus",
               timing_avg_us(&sensor_timing), sensor_timing.max_us);
@@ -673,13 +676,13 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(LOG_LEVEL=0)  # TRACE
     add_compile_options(-g3 -O0)
     add_compile_options(-Wall -Wextra -Wpedantic)
-    
+
 elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     message(STATUS "Release with debug info")
     add_compile_definitions(DEBUG=1)
     add_compile_definitions(LOG_LEVEL=2)  # INFO
     add_compile_options(-g -O2)
-    
+
 else()
     message(STATUS "Release build - minimal debugging")
     add_compile_definitions(DEBUG=0)
@@ -732,14 +735,14 @@ make -j4
 
 ### Common Issues
 
-| Symptom | Possible Cause | Debug Approach |
-|---------|----------------|----------------|
-| No USB serial output | USB not initialized | Check `pico_enable_stdio_usb` |
-| Garbled output | Wrong baud rate | Verify 115200 in terminal |
-| Pico resets during debug | Watchdog firing | Disable watchdog or extend timeout |
-| Breakpoint not hit | Optimization | Use `-O0` in debug build |
-| Variables "optimized out" | Compiler optimization | Add `volatile` or use `-O0` |
-| SWD not connecting | Wiring issue | Check SWCLK/SWDIO connections |
+| Symptom                   | Possible Cause        | Debug Approach                     |
+| ------------------------- | --------------------- | ---------------------------------- |
+| No USB serial output      | USB not initialized   | Check `pico_enable_stdio_usb`      |
+| Garbled output            | Wrong baud rate       | Verify 115200 in terminal          |
+| Pico resets during debug  | Watchdog firing       | Disable watchdog or extend timeout |
+| Breakpoint not hit        | Optimization          | Use `-O0` in debug build           |
+| Variables "optimized out" | Compiler optimization | Add `volatile` or use `-O0`        |
+| SWD not connecting        | Wiring issue          | Check SWCLK/SWDIO connections      |
 
 ---
 
@@ -778,31 +781,30 @@ When the machine is assembled and USB is inaccessible:
 
 ### Log Levels
 
-| Level | Value | Use |
-|-------|-------|-----|
-| TRACE | 0 | Detailed flow tracing |
-| DEBUG | 1 | Development debugging |
-| INFO | 2 | Normal operational info |
-| WARN | 3 | Warnings (non-critical) |
-| ERROR | 4 | Errors (critical) |
+| Level | Value | Use                     |
+| ----- | ----- | ----------------------- |
+| TRACE | 0     | Detailed flow tracing   |
+| DEBUG | 1     | Development debugging   |
+| INFO  | 2     | Normal operational info |
+| WARN  | 3     | Warnings (non-critical) |
+| ERROR | 4     | Errors (critical)       |
 
 ### Module IDs
 
-| ID | Module |
-|----|--------|
-| 0x01 | Main |
-| 0x02 | Safety |
+| ID   | Module  |
+| ---- | ------- |
+| 0x01 | Main    |
+| 0x02 | Safety  |
 | 0x03 | Sensors |
-| 0x04 | PID |
+| 0x04 | PID     |
 | 0x05 | Control |
-| 0x06 | Comms |
-| 0x07 | State |
+| 0x06 | Comms   |
+| 0x07 | State   |
 
 ### Debug Message Types
 
-| Type | Value | Direction |
-|------|-------|-----------|
-| MSG_DEBUG | 0x06 | Pico → ESP32 |
-| MSG_DEBUG_RESP | 0x07 | Pico → ESP32 |
-| MSG_CMD_DEBUG | 0x1D | ESP32 → Pico |
-
+| Type           | Value | Direction    |
+| -------------- | ----- | ------------ |
+| MSG_DEBUG      | 0x06  | Pico → ESP32 |
+| MSG_DEBUG_RESP | 0x07  | Pico → ESP32 |
+| MSG_CMD_DEBUG  | 0x1D  | ESP32 → Pico |

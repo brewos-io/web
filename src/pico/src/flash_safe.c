@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Flash Safety Implementation
+ * Pico Firmware - Flash Safety Implementation
  * 
  * Uses the Pico SDK's flash_safe_execute() for safe flash operations.
  * This is compatible with both RP2040 (SDK 1.5.1+) and RP2350 (SDK 2.0+).

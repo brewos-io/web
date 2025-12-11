@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Configuration Persistence
+ * Pico Firmware - Configuration Persistence
  * 
  * Saves and loads configuration settings to/from flash storage.
  * 

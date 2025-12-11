@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Communication Protocol
+ * Pico Firmware - Communication Protocol
  * 
  * Binary protocol implementation for ESP32 communication.
  */

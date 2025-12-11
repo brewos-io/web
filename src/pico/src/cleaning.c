@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Cleaning Mode Implementation
+ * Pico Firmware - Cleaning Mode Implementation
  * 
  * Implements cleaning mode with brew counter and cleaning cycles.
  */

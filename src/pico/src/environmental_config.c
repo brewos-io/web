@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Environmental Configuration Implementation
+ * Pico Firmware - Environmental Configuration Implementation
  * 
  * Manages environmental electrical configuration and runtime electrical state.
  */

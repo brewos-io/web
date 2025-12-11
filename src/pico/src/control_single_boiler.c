@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Single Boiler Control Implementation
+ * Pico Firmware - Single Boiler Control Implementation
  * 
  * Control logic for single boiler machines (e.g., Rancilio Silvia):
  * - Single PID controlling one boiler

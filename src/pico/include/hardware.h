@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Hardware Abstraction Layer
+ * Pico Firmware - Hardware Abstraction Layer
  * 
  * Provides a clean interface to hardware peripherals (ADC, SPI, PWM, GPIO)
  * with support for simulation mode for development and testing.

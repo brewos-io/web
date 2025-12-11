@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Cleaning Mode
+ * Pico Firmware - Cleaning Mode
  * 
  * Implements cleaning mode functionality similar to ECM Synchronika:
  * - Brew counter (tracks cycles >15 seconds)

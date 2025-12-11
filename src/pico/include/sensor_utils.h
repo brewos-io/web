@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Sensor Utility Functions
+ * Pico Firmware - Sensor Utility Functions
  * 
  * Helper functions for sensor data processing:
  * - NTC thermistor temperature conversion (Steinhart-Hart)

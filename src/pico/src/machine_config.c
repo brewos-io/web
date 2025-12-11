@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Machine Configuration Implementation
+ * Pico Firmware - Machine Configuration Implementation
  * 
  * Provides runtime access to machine configuration based on compile-time
  * MACHINE_TYPE selection.

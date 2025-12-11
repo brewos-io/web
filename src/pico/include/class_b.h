@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - IEC 60730/60335 Class B Safety Routines
+ * Pico Firmware - IEC 60730/60335 Class B Safety Routines
  * 
  * Implements self-test routines required for Class B compliance per Annex R:
  * - RAM test (walking bit pattern)

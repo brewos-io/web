@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - IEC 60730/60335 Class B Safety Routines
+ * Pico Firmware - IEC 60730/60335 Class B Safety Routines
  * 
  * Implementation of self-test routines for Class B compliance.
  * 

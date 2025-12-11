@@ -1,5 +1,5 @@
 /**
- * ECM Pico Firmware - Hardware Diagnostics
+ * Pico Firmware - Hardware Diagnostics
  * 
  * Self-test and diagnostic functions for validating hardware wiring
  * and component functionality.
