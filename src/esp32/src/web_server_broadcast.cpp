@@ -10,13 +10,19 @@
 #include <stdio.h>
 
 // Internal helper to broadcast a formatted log message
+// CRITICAL: During OTA, the WebSocket queue can fill up quickly.
+// Check availableForWriteAll() before sending to prevent queue overflow
+// which causes "Too many messages queued" and disconnects the client.
 static void broadcastLogInternal(AsyncWebSocket* ws, CloudConnection* cloudConnection, 
                                  const char* level, const char* message) {
     // Defensive checks: ensure all required pointers are valid
     if (!message || !ws) return;
     
-    // Additional safety: check if WebSocket is in a valid state
-    // Accessing invalid WebSocket can cause LoadProhibited crashes
+    // Clean up disconnected clients first
+    ws->cleanupClients();
+    
+    // If no clients connected, nothing to do (but still send to cloud)
+    if (ws->count() == 0 && !cloudConnection) return;
     
     // Use stack allocation to avoid PSRAM crashes
     #pragma GCC diagnostic push
@@ -38,9 +44,14 @@ static void broadcastLogInternal(AsyncWebSocket* ws, CloudConnection* cloudConne
     
     if (jsonBuffer) {
         serializeJson(doc, jsonBuffer, jsonSize);
-        ws->textAll(jsonBuffer);
         
-        // Also send to cloud - use jsonBuffer directly to avoid String allocation
+        // Only send to WebSocket if clients can receive (prevents queue overflow)
+        // Log messages are less critical than OTA progress, so we just skip if queue is full
+        if (ws->count() > 0 && ws->availableForWriteAll()) {
+            ws->textAll(jsonBuffer);
+        }
+        
+        // Always try to send to cloud - it has its own queue management
         if (cloudConnection) {
             cloudConnection->send(jsonBuffer);
         }

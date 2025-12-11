@@ -2344,25 +2344,29 @@ bool WebServer::streamFirmwareToPico(File& firmwareFile, size_t firmwareSize) {
         if (bytesSent == 0) lastProgress = 0;  // Reset on new OTA
         if (progress >= lastProgress + 10 || bytesSent == firmwareSize) {
             lastProgress = progress;
-            #pragma GCC diagnostic push
-            #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-            StaticJsonDocument<256> doc;
-            #pragma GCC diagnostic pop
-            doc["type"] = "ota_progress";
-            doc["stage"] = "flash";
-            doc["progress"] = progress;
-            doc["sent"] = bytesSent;
-            doc["total"] = firmwareSize;
-            
-            size_t jsonSize = measureJson(doc) + 1;
-            char* jsonBuffer = (char*)heap_caps_malloc(jsonSize, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-            if (!jsonBuffer) jsonBuffer = (char*)malloc(jsonSize);
-            if (jsonBuffer) {
-                serializeJson(doc, jsonBuffer, jsonSize);
-                _ws.textAll(jsonBuffer);
-                free(jsonBuffer);
-            }
             LOG_I("Flash progress: %d%% (%d/%d bytes)", progress, bytesSent, firmwareSize);
+            
+            // Only send WebSocket update if clients can receive (prevents queue overflow)
+            if (_ws.count() > 0 && _ws.availableForWriteAll()) {
+                #pragma GCC diagnostic push
+                #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+                StaticJsonDocument<256> doc;
+                #pragma GCC diagnostic pop
+                doc["type"] = "ota_progress";
+                doc["stage"] = "flash";
+                doc["progress"] = progress;
+                doc["sent"] = bytesSent;
+                doc["total"] = firmwareSize;
+                
+                size_t jsonSize = measureJson(doc) + 1;
+                char* jsonBuffer = (char*)heap_caps_malloc(jsonSize, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+                if (!jsonBuffer) jsonBuffer = (char*)malloc(jsonSize);
+                if (jsonBuffer) {
+                    serializeJson(doc, jsonBuffer, jsonSize);
+                    _ws.textAll(jsonBuffer);
+                    free(jsonBuffer);
+                }
+            }
         }
         
         // Small delay to prevent UART buffer overflow

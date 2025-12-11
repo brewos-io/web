@@ -1,6 +1,6 @@
 import { useStore } from "@/lib/store";
 import { getActiveConnection } from "@/lib/connection";
-import { Wifi, RefreshCw, X, Download, RotateCw, AlertCircle } from "lucide-react";
+import { Wifi, RefreshCw, X, Download, AlertCircle } from "lucide-react";
 import { Button } from "./Button";
 import { useState, useEffect } from "react";
 
@@ -11,15 +11,13 @@ const DEV_BYPASS_KEY = "brewos-dev-bypass-overlay";
 // Debounce time before hiding overlay after connection
 const HIDE_DELAY_MS = 500;
 
-// Reconnection settings after OTA
-const OTA_RECONNECT_DELAY_MS = 3000;
-const OTA_RECONNECT_MAX_ATTEMPTS = 30; // 30 attempts * 3 seconds = 90 seconds max
+// Key to track OTA in progress across page reloads (shared with store.ts)
+const OTA_IN_PROGRESS_KEY = "brewos-ota-in-progress";
 
 export function ConnectionOverlay() {
   const connectionState = useStore((s) => s.connectionState);
   const ota = useStore((s) => s.ota);
   const [retrying, setRetrying] = useState(false);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
 
   // Check localStorage for dev bypass preference
   const [devBypassed, setDevBypassed] = useState(() => {
@@ -31,6 +29,13 @@ export function ConnectionOverlay() {
   const isUpdating = ota.isUpdating || ota.stage === "complete";
   const [isVisible, setIsVisible] = useState(!isConnected || isUpdating);
 
+  // Track OTA state in localStorage so store.ts can detect it after reconnect
+  useEffect(() => {
+    if (ota.isUpdating) {
+      localStorage.setItem(OTA_IN_PROGRESS_KEY, "true");
+    }
+  }, [ota.isUpdating]);
+
   // Visibility control - show during OTA or when not connected
   useEffect(() => {
     if (isUpdating) {
@@ -40,29 +45,12 @@ export function ConnectionOverlay() {
       // Hide with delay when connected (and not updating)
       const timeout = setTimeout(() => {
         setIsVisible(false);
-        setReconnectAttempts(0);
       }, HIDE_DELAY_MS);
       return () => clearTimeout(timeout);
     } else {
       setIsVisible(true);
     }
   }, [isConnected, isUpdating]);
-
-  // Auto-reconnect after OTA complete (device restarts)
-  useEffect(() => {
-    if (ota.stage === "complete" && !isConnected) {
-      const attemptReconnect = () => {
-        if (reconnectAttempts < OTA_RECONNECT_MAX_ATTEMPTS) {
-          console.log(`[OTA] Reconnect attempt ${reconnectAttempts + 1}/${OTA_RECONNECT_MAX_ATTEMPTS}`);
-          getActiveConnection()?.connect();
-          setReconnectAttempts((prev) => prev + 1);
-        }
-      };
-
-      const timeout = setTimeout(attemptReconnect, OTA_RECONNECT_DELAY_MS);
-      return () => clearTimeout(timeout);
-    }
-  }, [ota.stage, isConnected, reconnectAttempts]);
 
   // Lock body scroll when overlay is visible
   useEffect(() => {
@@ -111,33 +99,15 @@ export function ConnectionOverlay() {
 
   // Build status based on current state
   const getStatus = () => {
-    // OTA in progress
-    if (ota.isUpdating) {
-      const stageLabels: Record<string, string> = {
-        download: "Downloading update...",
-        flash: "Installing update...",
-      };
+    // OTA in progress - show simple animation without progress bar
+    if (ota.isUpdating || ota.stage === "complete") {
       return {
         icon: <Download className="w-16 h-16 text-accent" />,
-        title: stageLabels[ota.stage] || "Updating...",
-        subtitle: ota.message || `Progress: ${ota.progress}%`,
+        title: "Updating BrewOS...",
+        subtitle: "Please wait while the update is being installed. The device will restart automatically.",
         showRetry: false,
         showPulse: true,
-        showProgress: true,
-        progress: ota.progress,
-      };
-    }
-
-    // OTA complete - waiting for device to restart
-    if (ota.stage === "complete") {
-      return {
-        icon: <RotateCw className="w-16 h-16 text-accent animate-spin" />,
-        title: "Update installed!",
-        subtitle: "Device is restarting... Please wait.",
-        showRetry: false,
-        showPulse: false,
-        showProgress: false,
-        progress: 100,
+        isOTA: true,
       };
     }
 
@@ -149,8 +119,7 @@ export function ConnectionOverlay() {
         subtitle: ota.message || "The device will restart.",
         showRetry: false,
         showPulse: false,
-        showProgress: false,
-        progress: 0,
+        isOTA: false,
       };
     }
 
@@ -161,8 +130,7 @@ export function ConnectionOverlay() {
       subtitle: "Please wait while we establish a connection",
       showRetry: !isRetryingOrConnecting,
       showPulse: true,
-      showProgress: false,
-      progress: 0,
+      isOTA: false,
     };
   };
 
@@ -202,16 +170,13 @@ export function ConnectionOverlay() {
           <p className="text-theme-muted leading-relaxed">{status.subtitle}</p>
         </div>
 
-        {/* OTA Progress Bar */}
-        {status.showProgress && (
-          <div className="w-full max-w-xs mx-auto">
-            <div className="h-2 bg-theme-tertiary rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-accent transition-all duration-300 ease-out rounded-full"
-                style={{ width: `${status.progress}%` }}
-              />
-            </div>
-            <p className="text-sm text-theme-muted mt-2">{status.progress}%</p>
+        {/* OTA Animation - pulsing dots */}
+        {status.isOTA && (
+          <div className="flex items-center justify-center gap-2 py-4">
+            <div className="w-3 h-3 rounded-full bg-accent animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="w-3 h-3 rounded-full bg-accent animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="w-3 h-3 rounded-full bg-accent animate-bounce" style={{ animationDelay: "300ms" }} />
+            <div className="w-3 h-3 rounded-full bg-accent animate-bounce" style={{ animationDelay: "450ms" }} />
           </div>
         )}
 
@@ -229,8 +194,8 @@ export function ConnectionOverlay() {
           </Button>
         )}
 
-        {/* Connection attempts indicator */}
-        {status.showPulse && (
+        {/* Connection attempts indicator (not during OTA - has its own animation) */}
+        {status.showPulse && !status.isOTA && (
           <div className="flex items-center justify-center gap-1.5 text-xs text-theme-muted">
             <span
               className="w-1.5 h-1.5 rounded-full bg-accent animate-bounce"

@@ -463,6 +463,19 @@ export const useStore = create<BrewOSState>()(
     processMessage: (message) => {
       const { type, ...data } = message;
 
+      // If OTA was in progress and we receive ANY message, the device is back online - reload
+      const OTA_IN_PROGRESS_KEY = "brewos-ota-in-progress";
+      const wasOtaInProgress = localStorage.getItem(OTA_IN_PROGRESS_KEY) === "true";
+      if (wasOtaInProgress) {
+        console.log("[Store] Received message after OTA, reloading page...");
+        localStorage.removeItem(OTA_IN_PROGRESS_KEY);
+        // Small delay to ensure we don't reload multiple times
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
+        return; // Don't process this message, we're reloading
+      }
+
       switch (type) {
         // =======================================================================
         // Unified Status - Primary message type (comprehensive machine state)
