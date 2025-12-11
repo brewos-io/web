@@ -84,6 +84,17 @@ export function Machines() {
     }
   }, [user, authLoading, navigate, fetchDevices, isDemo]);
 
+  // Auto-refresh device status every 10 seconds
+  useEffect(() => {
+    if (isDemo || !user) return;
+
+    const interval = setInterval(() => {
+      fetchDevices();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [isDemo, user, fetchDevices]);
+
   const handleClaim = async (
     deviceId: string,
     token: string,
