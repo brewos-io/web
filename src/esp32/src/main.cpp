@@ -813,8 +813,14 @@ void setup() {
     Serial.println("Pico UART initialized OK");
     Serial.flush();
     
+    // Set up packet handler BEFORE waiting for Pico
+    // This ensures we capture the MSG_BOOT packet with machine type
+    Serial.println("[4.4/8] Setting up Pico packet handler...");
+    Serial.flush();
+    picoUart->onPacket(onPicoPacket);
+    
     // Reset Pico to ensure fresh boot
-    Serial.println("[4.4/8] Resetting Pico...");
+    Serial.println("[4.5/8] Resetting Pico...");
     Serial.flush();
     picoUart->resetPico();
     delay(1000);  // Give Pico time to reset and start booting (Core 1 needs time to init)
@@ -822,7 +828,7 @@ void setup() {
     // Wait for Pico to connect (sends boot message)
     // Pico Core 1 needs time to initialize and send boot message
     // Increased to 10 seconds to allow for simultaneous power-on initialization
-    Serial.println("[4.5/8] Waiting for Pico connection (10 seconds)...");
+    Serial.println("[4.6/8] Waiting for Pico connection (10 seconds)...");
     Serial.flush();
     unsigned long picoWaitStart = millis();
     bool picoConnected = false;
@@ -892,11 +898,6 @@ void setup() {
             Serial.flush();
         }
     }
-    
-    // Set up packet handler using static function to avoid PSRAM issues
-    Serial.println("[4.6/8] Setting up Pico packet handler...");
-    Serial.flush();
-    picoUart->onPacket(onPicoPacket);
     
     // Initialize WiFi callbacks using static function pointers
     // This avoids std::function which allocates in PSRAM and causes InstructionFetchError
