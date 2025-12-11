@@ -15,10 +15,10 @@ services:
       - DATA_DIR=/data
       - WEB_DIST_PATH=/app/web
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - TRUST_PROXY=${TRUST_PROXY:-false}
     restart: unless-stopped
     # Allow time for database to save on shutdown
     stop_grace_period: 30s
 
 volumes:
   brewos-data:
-

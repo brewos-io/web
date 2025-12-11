@@ -265,6 +265,7 @@ jobs:
             GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
             PORT=3001
             DATA_DIR=/data
+            TRUST_PROXY=true
             EOF
 
             # Get version number without 'v' prefix
