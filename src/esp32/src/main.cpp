@@ -1270,10 +1270,13 @@ void loop() {
     // =========================================================================
     
     // Cloud connection (handles WebSocket to cloud server)
-    // Throttle to every 200ms to reduce CPU load from SSL processing
-    // This gives more CPU time to local web server and other tasks
+    // Throttle cloud loop to prioritize local UI responsiveness
+    // - Normal: 200ms interval (responsive enough for remote control)
+    // - Local clients connected: 1000ms interval (frees up CPU for local app/SSL contention)
     static unsigned long lastCloudLoop = 0;
-    if (cloudConnection && millis() - lastCloudLoop >= 200) {
+    unsigned long cloudInterval = (webServer && webServer->getClientCount() > 0) ? 1000 : 200;
+
+    if (cloudConnection && millis() - lastCloudLoop >= cloudInterval) {
         lastCloudLoop = millis();
         cloudConnection->loop();
     }

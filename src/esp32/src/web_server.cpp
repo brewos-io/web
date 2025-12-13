@@ -1767,8 +1767,13 @@ void WebServer::setupRoutes() {
         request->send(200, "application/json", response);
     });
     
-    // Handle ALL static file requests manually to fix Content-Length issues
-    // AsyncWebServer's serveStatic has known bugs with LittleFS file size calculation
+    // Use built-in serveStatic which is more efficient
+    // It automatically handles Content-Length and caching
+    _server.serveStatic("/", LittleFS, "/")
+           .setDefaultFile("index.html")
+           .setCacheControl("public, max-age=31536000, immutable");
+    
+    // Handle SPA fallback and API 404s
     _server.onNotFound([this](AsyncWebServerRequest* request) {
         String url = request->url();
         
@@ -1778,53 +1783,17 @@ void WebServer::setupRoutes() {
             return;
         }
         
-        // Check if URL has a file extension (likely a static file request)
-        // SPA routes like /brewing, /stats, /settings don't have extensions
-        String path = url;
-        if (path == "/") path = "/index.html";
-        
-        int lastSlash = path.lastIndexOf('/');
-        int lastDot = path.lastIndexOf('.');
-        bool hasFileExtension = (lastDot > lastSlash);  // Has extension after last slash
-        
-        // Only try LittleFS for paths that look like files (have extensions)
-        if (hasFileExtension && LittleFS.exists(path)) {
-            // Open file to get actual size for Content-Length header
-            File file = LittleFS.open(path, "r");
-            if (file) {
-                size_t fileSize = file.size();
-                String contentType = getContentType(path);
-                
-                // Create response with explicit Content-Length
-                AsyncWebServerResponse* response = request->beginResponse(
-                    LittleFS, path, contentType, false
-                );
-                response->addHeader("Content-Length", String(fileSize));
-                response->addHeader("Cache-Control", "public, max-age=31536000, immutable");
-                request->send(response);
-                file.close();
-                return;
-            }
-        }
-        
-        // Asset files that don't exist should 404
-        if (url.startsWith("/assets/")) {
-            Serial.printf("[WEB] Asset not found: %s\n", path.c_str());
+        // Asset files that don't exist should 404 (don't serve index.html)
+        if (url.startsWith("/assets/") || url.endsWith(".js") || url.endsWith(".css") || url.endsWith(".png") || url.endsWith(".jpg") || url.endsWith(".ico")) {
+            LOG_W("Asset not found: %s", url.c_str());
             request->send(404, "text/plain", "Not found");
             return;
         }
         
         // SPA fallback - serve index.html for React Router paths
         // (paths like /brewing, /stats, /settings, etc.)
-        File indexFile = LittleFS.open("/index.html", "r");
-        if (indexFile) {
-            size_t indexSize = indexFile.size();
-            AsyncWebServerResponse* response = request->beginResponse(
-                LittleFS, "/index.html", "text/html", false
-            );
-            response->addHeader("Content-Length", String(indexSize));
-            request->send(response);
-            indexFile.close();
+        if (LittleFS.exists("/index.html")) {
+            request->send(LittleFS, "/index.html", "text/html");
         } else {
             request->send(404, "text/plain", "index.html not found");
         }
