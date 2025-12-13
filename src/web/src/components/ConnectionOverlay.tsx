@@ -176,8 +176,11 @@ export function ConnectionOverlay() {
 
   const status = getStatus();
 
+  // Lower z-index when device is offline so header (z-50) remains accessible
+  const zIndex = status.isDeviceOffline ? "z-[40]" : "z-[60]";
+  
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-6 bg-theme/95 backdrop-blur-md overflow-hidden touch-none overscroll-none">
+    <div className={`fixed inset-0 ${zIndex} flex items-center justify-center p-6 bg-theme/95 backdrop-blur-md overflow-hidden touch-none overscroll-none`}>
       {/* Dev mode bypass button */}
       {DEV_MODE && (
         <button

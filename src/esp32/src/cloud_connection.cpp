@@ -167,8 +167,11 @@ void CloudConnection::connect() {
     
     // Disconnect and cleanup any existing connection first
     // This is critical for SSL memory management
+    // Use yield() to prevent watchdog timeout during cleanup
     _ws.disconnect();
+    yield();
     delay(100);  // Give it time to clean up SSL resources
+    yield();
     
     _lastConnectAttempt = millis();
     _connecting = true;
@@ -195,15 +198,18 @@ void CloudConnection::connect() {
     LOG_I("Connecting to %s:%d%s (SSL=%d, free heap: %u bytes)", 
           host.c_str(), port, wsPath.c_str(), useSSL, freeHeap);
     
-    // Enable heartbeat (ping every 15s, timeout 3s, disconnect after 2 failures)
-    _ws.enableHeartbeat(15000, 3000, 2);
+    // Enable heartbeat (ping every 20s, timeout 5s, disconnect after 3 failures)
+    // Increased timeout to account for throttled loop() calls when local clients are connected
+    _ws.enableHeartbeat(20000, 5000, 3);
     
-    // Connect
+    // Connect - yield before to prevent watchdog timeout
+    yield();
     if (useSSL) {
         _ws.beginSSL(host.c_str(), port, wsPath.c_str());
     } else {
         _ws.begin(host.c_str(), port, wsPath.c_str());
     }
+    yield();  // Yield after to allow connection to start
 }
 
 bool CloudConnection::parseUrl(const String& url, String& host, uint16_t& port, String& path, bool& useSSL) {
@@ -263,6 +269,13 @@ void CloudConnection::handleEvent(WStype_t type, uint8_t* payload, size_t length
             {
                 bool wasConnected = _connected;
                 unsigned long now = millis();
+                
+                // Log disconnect reason if available
+                if (length > 0 && payload) {
+                    LOG_W("Disconnected: %.*s", length, payload);
+                } else {
+                    LOG_W("Disconnected (no reason provided)");
+                }
                 
                 _connected = false;
                 _connecting = false;
@@ -334,11 +347,13 @@ void CloudConnection::handleEvent(WStype_t type, uint8_t* payload, size_t length
             break;
             
         case WStype_PING:
-            // Ping handled automatically by library - no logging needed
+            // Server sent ping - library should auto-respond with pong
+            LOG_D("Received ping from server");
             break;
             
         case WStype_PONG:
-            // Pong handled automatically by library - no logging needed
+            // Response to our ping
+            LOG_D("Received pong from server");
             break;
             
         default:

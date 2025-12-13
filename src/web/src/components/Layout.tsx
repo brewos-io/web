@@ -242,7 +242,7 @@ export function Layout({ onExitDemo }: LayoutProps) {
       {/* Header - hides on scroll down (mobile only) */}
       <header
         className={cn(
-          "sticky z-50 header-glass border-b border-theme transition-all duration-300",
+          "sticky z-50 relative header-glass border-b border-theme transition-all duration-300",
           headerVisible ? "top-0" : "-top-16"
         )}
       >

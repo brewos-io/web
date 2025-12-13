@@ -32,6 +32,10 @@ import { initializePushNotifications } from "./services/push.js";
 const app = express();
 const port = process.env.PORT || 3001;
 
+// Trust proxy - required when behind reverse proxy (nginx, Caddy, etc.)
+// This allows Express to correctly identify client IPs and handle X-Forwarded-* headers
+app.set("trust proxy", true);
+
 // Middleware
 // CORS configuration - CORS_ORIGIN must be set in production
 const corsOrigin = process.env.CORS_ORIGIN;

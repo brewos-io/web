@@ -1295,9 +1295,10 @@ void loop() {
     // Cloud connection (handles WebSocket to cloud server)
     // Throttle cloud loop to prioritize local UI responsiveness
     // - Normal: 200ms interval (responsive enough for remote control)
-    // - Local clients connected: 1000ms interval (frees up CPU for local app/SSL contention)
+    // - Local clients connected: 500ms interval (balance between local UI and cloud heartbeat)
+    // Note: Cloud heartbeat is 15s ping with 3s timeout, so we need to process events at least every 500ms
     static unsigned long lastCloudLoop = 0;
-    unsigned long cloudInterval = (webServer && webServer->getClientCount() > 0) ? 1000 : 200;
+    unsigned long cloudInterval = (webServer && webServer->getClientCount() > 0) ? 500 : 200;
 
     if (cloudConnection && millis() - lastCloudLoop >= cloudInterval) {
         lastCloudLoop = millis();

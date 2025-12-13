@@ -141,9 +141,12 @@ export class DeviceRelay {
     });
 
     // Handle disconnect
-    ws.on("close", () => {
+    ws.on("close", (code: number, reason: Buffer) => {
       this.devices.delete(deviceId);
-      console.log(`[Device] Disconnected: ${deviceId}`);
+      const reasonStr = reason ? reason.toString() : "no reason";
+      console.log(
+        `[Device] Disconnected: ${deviceId} (code: ${code}, reason: ${reasonStr})`
+      );
 
       // Update device offline status in database
       try {
