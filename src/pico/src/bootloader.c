@@ -1,6 +1,6 @@
 /**
  * Pico Firmware - Serial Bootloader
- * RESTORED: The working version, with critical variable fix and safer timing.
+ * FIXED: Removed risky Flash Verification, Added Watchdog Reset, Tuned UART timing.
  */
 
  #include "bootloader.h"
@@ -42,7 +42,7 @@
  // Bootloader state
  static uint32_t g_received_size = 0;
  static uint32_t g_chunk_count = 0;
- static bool g_receiving = false; // [FIXED] Restored missing declaration
+ static bool g_receiving = false;
  static volatile bool g_bootloader_active = false;
  
  // -----------------------------------------------------------------------------
@@ -104,9 +104,8 @@
      absolute_time_t timeout = make_timeout_time_ms(timeout_ms);
      while (!uart_is_readable(ESP32_UART_ID)) {
          if (time_reached(timeout)) return false;
-         // [TUNED] Reduced from 100us to 10us. 
-         // 100us allows ~11 bytes to arrive at 921k baud, risking FIFO (32 byte) overflow.
-         // 10us allows ~1 byte, which is completely safe while still being nice to the CPU.
+         // [TUNED] 10us allows ~1 byte at 921k baud (9us/byte).
+         // This is safe for the FIFO (32 bytes) while being efficient.
          sleep_us(10); 
      }
      *byte = uart_getc(ESP32_UART_ID);
@@ -175,8 +174,8 @@
   * Copy firmware using ONLY BootROM functions.
   * - Runs entirely from RAM
   * - Disables interrupts
-  * - Verifies write success
-  * - Handles watchdog manually
+  * - [FIX] No verification loop to avoid crashes during XIP readback
+  * - [FIX] Uses Watchdog Reset instead of AIRCR
   */
  static void __no_inline_not_in_flash_func(copy_firmware_to_main)(const boot_rom_funcs_t* rom, uint32_t firmware_size) {
      // 1. DISABLE INTERRUPTS GLOBALLY
@@ -187,59 +186,29 @@
      const uint8_t* staging_base = (const uint8_t*)(XIP_BASE + FLASH_TARGET_OFFSET);
  
      for (uint32_t sector = 0; sector < size_sectors; sector++) {
-         // [WATCHDOG] Feed manually via register write (safe in RAM)
-         // SDK's watchdog_update() is in Flash and cannot be called.
-         watchdog_hw->load = 0x7fffff; // Load large value (~8.3s at 1MHz)
+         // [WATCHDOG] Feed manually
+         watchdog_hw->load = 0x7fffff;
          
          uint32_t offset = sector * FLASH_SECTOR_SIZE;
          
-         // [READ] Copy from Staging to RAM buffer (Manual loop)
+         // [READ] Copy from Staging to RAM buffer
          for (int i = 0; i < FLASH_SECTOR_SIZE; i++) {
              g_sector_buffer[i] = staging_base[offset + i];
          }
  
-         bool verify_success = false;
-         
-         // [WRITE & VERIFY] Loop with retries
-         for (int retry = 0; retry < FLASH_WRITE_RETRIES; retry++) {
-             // A. Connect Flash (Command Mode) - Disables XIP
-             rom->connect_internal_flash();
- 
-             // B. Erase Sector (0x20 = 4KB Sector Erase)
-             rom->flash_range_erase(FLASH_MAIN_OFFSET + offset, FLASH_SECTOR_SIZE, FLASH_SECTOR_SIZE, 0x20);
- 
-             // C. Program Sector
-             rom->flash_range_program(FLASH_MAIN_OFFSET + offset, g_sector_buffer, FLASH_SECTOR_SIZE);
- 
-             // D. Restore XIP Mode (Required to read back for verification)
-             rom->flash_flush_cache();
-             rom->flash_exit_xip();
-             
-             // E. Verification
-             const uint8_t* written_ptr = (const uint8_t*)(XIP_BASE + FLASH_MAIN_OFFSET + offset);
-             bool match = true;
-             for (int v = 0; v < FLASH_SECTOR_SIZE; v++) {
-                 if (written_ptr[v] != g_sector_buffer[v]) {
-                     match = false;
-                     break;
-                 }
-             }
-             
-             if (match) {
-                 verify_success = true;
-                 break; // Exit retry loop
-             }
-         }
-         
-         // If verification failed 3 times, we can't do much but try to reset.
-         if (!verify_success) {
-             break; // Proceed to reset, hope for the best
-         }
+         // [WRITE] Single pass - no retry/verify loop (risky readback removed)
+         rom->connect_internal_flash();
+         rom->flash_range_erase(FLASH_MAIN_OFFSET + offset, FLASH_SECTOR_SIZE, FLASH_SECTOR_SIZE, 0x20);
+         rom->flash_range_program(FLASH_MAIN_OFFSET + offset, g_sector_buffer, FLASH_SECTOR_SIZE);
+         rom->flash_flush_cache();
+         rom->flash_exit_xip();
      }
  
-     // 4. Hard Reset via AIRCR
-     __dmb();
-     *((volatile uint32_t *)0xE000ED0C) = 0x05FA0004;
+     // 4. Force Watchdog Reset (Cleaner than AIRCR)
+     // Writing 1 to load forces immediate timeout.
+     // 0x40000000 enables the trigger bit.
+     watchdog_hw->load = 1; 
+     watchdog_hw->ctrl = 0x40000000; 
      
      while(1) __asm volatile("nop");
  }
@@ -249,7 +218,7 @@
  // -----------------------------------------------------------------------------
  
  bootloader_result_t bootloader_receive_firmware(void) {
-     g_receiving = true; // [FIXED] Variable set, no longer causes error
+     g_receiving = true;
      g_received_size = 0;
      g_chunk_count = 0;
      

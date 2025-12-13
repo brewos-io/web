@@ -818,7 +818,7 @@ bool WebServer::startPicoGitHubOTA(const String& version) {
     LOG_I("Waiting for Pico to self-reset and boot with new firmware...");
     
     bool picoReconnected = false;
-    for (int i = 0; i < 250; i++) {  // Wait up to 25 seconds
+    for (int i = 0; i < 350; i++) {  // Wait up to 35 seconds
         delay(100);
         feedWatchdog();
         _picoUart.loop();  // Process incoming packets
@@ -836,11 +836,23 @@ bool WebServer::startPicoGitHubOTA(const String& version) {
         LOG_W("Pico did not self-reset, forcing manual reset...");
         _picoUart.resetPico();
         
-        // Wait for boot after manual reset
-        for (int i = 0; i < 30; i++) {  // 3 seconds
+        // Wait for boot after manual reset (up to 10 seconds)
+        LOG_I("Waiting for Pico to boot after manual reset...");
+        for (int i = 0; i < 100; i++) {  // 10 seconds
             delay(100);
             feedWatchdog();
             _picoUart.loop();
+            
+            if (_picoUart.isConnected()) {
+                LOG_I("Pico connected after manual reset (%d ms)", i * 100);
+                picoReconnected = true;
+                break;
+            }
+        }
+        
+        if (!picoReconnected) {
+            LOG_E("Pico failed to connect after manual reset");
+            return false;
         }
     }
     
