@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { RefreshCw, X } from "lucide-react";
-import { setUpdateCallback, activateNewServiceWorker } from "@/lib/push-notifications";
+import { setUpdateCallback, activateNewServiceWorker, checkForServiceWorkerUpdate } from "@/lib/push-notifications";
 
 export function UpdateNotification() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -12,6 +12,9 @@ export function UpdateNotification() {
       setUpdateAvailable(true);
       setDismissed(false);
     });
+    
+    // Also check for updates when component mounts (in case one is already waiting)
+    checkForServiceWorkerUpdate();
   }, []);
 
   const handleUpdate = () => {

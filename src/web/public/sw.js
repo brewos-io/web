@@ -22,8 +22,8 @@ const APP_SHELL = [
 ];
 
 // Patterns for different caching strategies
-// In dev mode: use network-first for JS/CSS to always get fresh code
-// In prod: use cache-first for performance
+// Use network-first for JS/CSS to ensure fresh updates are always fetched
+// This prevents stale UI versions from being served
 const CACHE_FIRST_PATTERNS = [
   /\.(?:woff2?|ttf|eot|ico|svg|png|jpg|jpeg|webp)$/, // Fonts and images only
   /^https:\/\/fonts\.(?:googleapis|gstatic)\.com/,
@@ -32,14 +32,9 @@ const CACHE_FIRST_PATTERNS = [
 const NETWORK_FIRST_PATTERNS = [
   /\/api\//,
   /\/ws/,
-  // In dev: always fetch JS/CSS fresh to avoid stale code
-  ...(IS_DEV_MODE ? [/\.(?:js|css)$/] : []),
-];
-
-// In production, also cache JS/CSS with cache-first for performance
-const PROD_CACHE_FIRST_PATTERNS = [
-  ...CACHE_FIRST_PATTERNS,
-  ...(!IS_DEV_MODE ? [/\.(?:js|css)$/] : []),
+  // Always use network-first for JS/CSS to ensure fresh code on every deployment
+  // This prevents stale UI versions from being served from cache
+  /\.(?:js|css)$/,
 ];
 
 // Install event - cache app shell
@@ -101,8 +96,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Cache-first for static assets (fonts, images, and in prod: JS/CSS)
-  if (PROD_CACHE_FIRST_PATTERNS.some((pattern) => pattern.test(url.href))) {
+  // Cache-first for static assets (fonts, images only - NOT JS/CSS)
+  if (CACHE_FIRST_PATTERNS.some((pattern) => pattern.test(url.href))) {
     event.respondWith(cacheFirst(request));
     return;
   }

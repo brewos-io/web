@@ -13,12 +13,44 @@ export interface PushSubscriptionData {
 
 // Callback for when a new version is available
 let onUpdateAvailable: (() => void) | null = null;
+// Store registration globally so we can check for waiting workers
+let serviceWorkerRegistration: ServiceWorkerRegistration | null = null;
 
 /**
  * Set callback for when a new version is available
  */
 export function setUpdateCallback(callback: () => void): void {
   onUpdateAvailable = callback;
+  
+  // If callback is set after an update is already waiting, trigger it immediately
+  if (serviceWorkerRegistration?.waiting) {
+    console.log('[PWA] Update already waiting, triggering callback immediately');
+    callback();
+  } else {
+    // Also check for updates when callback is set (in case update was found but callback wasn't set yet)
+    checkForServiceWorkerUpdate();
+  }
+}
+
+/**
+ * Manually check for service worker updates
+ */
+export async function checkForServiceWorkerUpdate(): Promise<void> {
+  if (!serviceWorkerRegistration) {
+    return;
+  }
+  
+  try {
+    await serviceWorkerRegistration.update();
+    
+    // Check again after update() completes - it might have found a waiting worker
+    if (serviceWorkerRegistration.waiting && onUpdateAvailable) {
+      console.log('[PWA] Found waiting update after manual check');
+      onUpdateAvailable();
+    }
+  } catch (error) {
+    console.error('[PWA] Failed to check for updates:', error);
+  }
 }
 
 /**
@@ -48,14 +80,39 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
     });
 
     console.log('[PWA] Service worker registered:', registration.scope);
+    
+    // Store registration globally
+    serviceWorkerRegistration = registration;
 
     // Check for updates immediately
     registration.update().catch(() => {});
     
-    // Check for updates periodically (every 1 hour)
+    // Check for updates on app visibility change (when user opens the app)
+    // This ensures users get the latest version when they return to the app
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        registration.update().catch(() => {});
+      }
+    });
+    
+    // Check for updates when window gains focus (user switches back to app)
+    window.addEventListener('focus', () => {
+      registration.update().catch(() => {});
+    });
+    
+    // Check for updates periodically (every 1 hour) as a fallback
     setInterval(() => {
       registration.update().catch(() => {});
     }, 60 * 60 * 1000);
+
+    // Check if there's already a waiting service worker (update already available)
+    if (registration.waiting) {
+      console.log('[PWA] Update already waiting!');
+      // Trigger callback if it's already set
+      if (onUpdateAvailable) {
+        onUpdateAvailable();
+      }
+    }
 
     // Handle update found
     registration.addEventListener('updatefound', () => {
@@ -66,7 +123,11 @@ export async function registerServiceWorker(): Promise<ServiceWorkerRegistration
             if (navigator.serviceWorker.controller) {
               // New version available - notify the app
               console.log('[PWA] New version available!');
-              onUpdateAvailable?.();
+              if (onUpdateAvailable) {
+                onUpdateAvailable();
+              } else {
+                console.warn('[PWA] Update available but callback not set yet');
+              }
             } else {
               // First install
               console.log('[PWA] App is ready for offline use');
