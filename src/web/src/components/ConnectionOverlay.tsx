@@ -2,17 +2,27 @@ import { useStore } from "@/lib/store";
 import { getActiveConnection } from "@/lib/connection";
 import { Wifi, RefreshCw, X, Download, AlertCircle, Power } from "lucide-react";
 import { Button } from "./Button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 // Allow bypassing overlay in development for easier testing
 const DEV_MODE = import.meta.env.DEV;
 const DEV_BYPASS_KEY = "brewos-dev-bypass-overlay";
 
 // Debounce time before hiding overlay after connection
-const HIDE_DELAY_MS = 500;
+const HIDE_DELAY_MS = 800;
+
+// Minimum time to show offline state before allowing transitions
+// This prevents flickering between "connecting" and "offline"
+const OFFLINE_STABLE_MS = 2000;
+
+// Debounce time for state transitions to prevent flickering
+const STATE_DEBOUNCE_MS = 500;
 
 // Key to track OTA in progress across page reloads (shared with store.ts)
 const OTA_IN_PROGRESS_KEY = "brewos-ota-in-progress";
+
+// Overlay display states for stable transitions
+type OverlayState = "hidden" | "connecting" | "offline" | "updating";
 
 export function ConnectionOverlay() {
   const connectionState = useStore((s) => s.connectionState);
@@ -31,9 +41,18 @@ export function ConnectionOverlay() {
   // but the physical machine is unreachable.
   const isDeviceOffline = machineState === "offline";
   const isUpdating = ota.isUpdating || ota.stage === "complete";
-  const [isVisible, setIsVisible] = useState(
-    !isConnected || isUpdating || isDeviceOffline
-  );
+  
+  // Track stable overlay state with debouncing to prevent flickering
+  const [overlayState, setOverlayState] = useState<OverlayState>(() => {
+    if (isUpdating) return "updating";
+    if (isDeviceOffline) return "offline";
+    if (!isConnected) return "connecting";
+    return "hidden";
+  });
+  
+  // Track when we entered offline state to enforce minimum display time
+  const offlineEnteredAt = useRef<number | null>(null);
+  const pendingStateChange = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Track OTA state in localStorage so store.ts can detect it after reconnect
   useEffect(() => {
@@ -42,24 +61,94 @@ export function ConnectionOverlay() {
     }
   }, [ota.isUpdating]);
 
-  // Visibility control - show during OTA, when not connected, or when device is offline
+  // Determine the target state based on current conditions
+  const getTargetState = useCallback((): OverlayState => {
+    if (isUpdating) return "updating";
+    if (isDeviceOffline && isConnected) return "offline";
+    if (!isConnected) return "connecting";
+    return "hidden";
+  }, [isUpdating, isDeviceOffline, isConnected]);
+
+  // Stabilized state transition logic
   useEffect(() => {
-    if (isUpdating) {
-      // Always show during OTA
-      setIsVisible(true);
-    } else if (isDeviceOffline) {
-      // Show when device is offline (cloud mode)
-      setIsVisible(true);
-    } else if (isConnected) {
-      // Hide with delay when connected (and not updating and device is online)
-      const timeout = setTimeout(() => {
-        setIsVisible(false);
-      }, HIDE_DELAY_MS);
-      return () => clearTimeout(timeout);
-    } else {
-      setIsVisible(true);
+    const targetState = getTargetState();
+    
+    // Clear any pending state change
+    if (pendingStateChange.current) {
+      clearTimeout(pendingStateChange.current);
+      pendingStateChange.current = null;
     }
-  }, [isConnected, isUpdating, isDeviceOffline]);
+    
+    // OTA always takes priority immediately
+    if (targetState === "updating") {
+      setOverlayState("updating");
+      return;
+    }
+    
+    // If entering offline state, record the time
+    if (targetState === "offline" && overlayState !== "offline") {
+      offlineEnteredAt.current = Date.now();
+      setOverlayState("offline");
+      return;
+    }
+    
+    // If leaving offline state, enforce minimum display time
+    if (overlayState === "offline" && targetState !== "offline") {
+      const elapsed = offlineEnteredAt.current 
+        ? Date.now() - offlineEnteredAt.current 
+        : OFFLINE_STABLE_MS;
+      const remainingTime = Math.max(0, OFFLINE_STABLE_MS - elapsed);
+      
+      if (remainingTime > 0) {
+        // Wait before transitioning away from offline
+        pendingStateChange.current = setTimeout(() => {
+          // Re-check if we should still transition
+          const newTarget = getTargetState();
+          if (newTarget !== "offline") {
+            offlineEnteredAt.current = null;
+            if (newTarget === "hidden") {
+              // Add extra delay before hiding
+              pendingStateChange.current = setTimeout(() => {
+                setOverlayState("hidden");
+              }, HIDE_DELAY_MS);
+            } else {
+              setOverlayState(newTarget);
+            }
+          }
+        }, remainingTime);
+        return;
+      }
+      offlineEnteredAt.current = null;
+    }
+    
+    // Transitioning to hidden (connected and online) - add delay
+    if (targetState === "hidden") {
+      pendingStateChange.current = setTimeout(() => {
+        setOverlayState("hidden");
+      }, HIDE_DELAY_MS);
+      return;
+    }
+    
+    // For connecting state, debounce to prevent rapid flickering
+    if (targetState === "connecting" && overlayState === "hidden") {
+      pendingStateChange.current = setTimeout(() => {
+        setOverlayState("connecting");
+      }, STATE_DEBOUNCE_MS);
+      return;
+    }
+    
+    // Direct transition for other cases
+    setOverlayState(targetState);
+    
+    return () => {
+      if (pendingStateChange.current) {
+        clearTimeout(pendingStateChange.current);
+      }
+    };
+  }, [isConnected, isUpdating, isDeviceOffline, overlayState, getTargetState]);
+
+  // Derived visibility from overlay state
+  const isVisible = overlayState !== "hidden";
 
   // Lock body scroll when overlay is visible
   useEffect(() => {
@@ -119,10 +208,11 @@ export function ConnectionOverlay() {
     connectionState === "connecting" ||
     connectionState === "reconnecting";
 
-  // Build status based on current state
+  // Build status based on stable overlay state (not raw connection state)
+  // This ensures the UI matches the debounced overlay state
   const getStatus = () => {
     // OTA in progress - show simple animation without progress bar
-    if (ota.isUpdating || ota.stage === "complete") {
+    if (overlayState === "updating" || ota.isUpdating || ota.stage === "complete") {
       return {
         icon: <Download className="w-16 h-16 text-accent" />,
         title: "Updating BrewOS...",
@@ -149,7 +239,8 @@ export function ConnectionOverlay() {
     }
 
     // Device offline (cloud mode - connected to cloud but device is offline)
-    if (isDeviceOffline && isConnected) {
+    // Use overlayState for stable display
+    if (overlayState === "offline") {
       return {
         icon: <Power className="w-16 h-16 text-theme-muted" />,
         title: "Machine is offline",
@@ -162,7 +253,7 @@ export function ConnectionOverlay() {
       };
     }
 
-    // Normal connection state
+    // Normal connection state (connecting)
     return {
       icon: <Wifi className="w-16 h-16 text-accent" />,
       title: "Connecting to your machine...",
