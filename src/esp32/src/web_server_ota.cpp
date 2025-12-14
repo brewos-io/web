@@ -204,7 +204,7 @@ constexpr unsigned long OTA_HTTP_TIMEOUT_MS = 30000;       // 30 seconds HTTP ti
 constexpr unsigned long OTA_WATCHDOG_FEED_INTERVAL_MS = 50;// Feed watchdog every 50ms
 
 // Buffer sizes
-constexpr size_t OTA_BUFFER_SIZE = 512;                    // Smaller buffer for more responsive yields
+constexpr size_t OTA_BUFFER_SIZE = 2048;                   // Increased buffer for responsiveness vs stack usage
 
 // Retry configuration
 constexpr int OTA_MAX_RETRIES = 3;
@@ -567,7 +567,7 @@ static bool downloadToFile(const char* url, const char* filePath,
                 }
             }
         } else {
-            delay(10);  // Reduce CPU spinning while waiting for data
+            yield();  // Yield to other tasks while waiting for data
             feedWatchdog();
         }
     }
@@ -964,7 +964,7 @@ void WebServer::startGitHubOTA(const String& version) {
                 }
             }
         } else {
-            delay(10);  // Reduce CPU spinning while waiting for data
+            yield();  // Yield to other tasks while waiting for data
             feedWatchdog();
         }
     }
