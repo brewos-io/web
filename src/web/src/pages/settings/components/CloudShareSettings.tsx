@@ -42,7 +42,8 @@ const DEMO_SHARE: ShareData = {
 export function CloudShareSettings() {
   const { getAccessToken, getSelectedDevice } = useAppStore();
   const isDemo = isDemoMode();
-  const selectedDevice = getSelectedDevice();
+  // Don't use real cloud device data in demo mode
+  const selectedDevice = isDemo ? null : getSelectedDevice();
 
   const [shareData, setShareData] = useState<ShareData | null>(
     isDemo ? DEMO_SHARE : null

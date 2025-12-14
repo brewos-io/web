@@ -60,7 +60,8 @@ export function Layout({ onExitDemo }: LayoutProps) {
 
   const isCloud = mode === "cloud";
   const isDemo = isDemoMode();
-  const selectedDevice = getSelectedDevice();
+  // Don't use real cloud device data in demo mode - demo has its own mock device
+  const selectedDevice = isDemo ? null : getSelectedDevice();
 
   // Scroll-aware header visibility (portrait mode only)
   const [headerVisible, setHeaderVisible] = useState(true);
