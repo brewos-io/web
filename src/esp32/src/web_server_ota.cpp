@@ -1057,15 +1057,24 @@ void WebServer::updateLittleFS(const char* tag) {
         return;
     }
     
-    // Find LittleFS partition
+    // Find filesystem partition (could be named "littlefs" or "spiffs" depending on partition table)
+    // PlatformIO's default partition tables use "spiffs" name even when using LittleFS filesystem
     const esp_partition_t* partition = esp_partition_find_first(
         ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_ANY, "littlefs");
     
     if (!partition) {
-        LOG_W("LittleFS partition not found");
+        // Try "spiffs" name (used in default_8MB.csv and other default partition tables)
+        partition = esp_partition_find_first(
+            ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_SPIFFS, NULL);
+    }
+    
+    if (!partition) {
+        LOG_W("Filesystem partition not found (tried littlefs and spiffs)");
         http.end();
         return;
     }
+    
+    LOG_I("Found filesystem partition: %s (%d bytes)", partition->label, partition->size);
     
     broadcastOtaProgress(&_ws, "flash", 97, "Erasing filesystem...");
     feedWatchdog();
