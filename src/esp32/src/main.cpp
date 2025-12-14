@@ -345,7 +345,7 @@ static void onPicoPacket(const PicoPacket& packet) {
     // Handle specific message types
     switch (packet.type) {
         case MSG_BOOT: {
-            LOG_I("Pico booted!");
+            LOG_I("Pico boot info received");
             if (webServer) webServer->broadcastLog("Pico booted");
             machineState.pico_connected = true;
             
