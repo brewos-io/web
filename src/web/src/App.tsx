@@ -334,6 +334,24 @@ function App() {
           deviceId: selectedDeviceId,
         });
 
+        // Set up token refresh handler for automatic token refresh
+        // This is called when the server warns us our token is expiring
+        // getAccessToken() already handles token refresh internally
+        connection.setTokenRefreshHandler(async () => {
+          try {
+            // Get a fresh access token (will auto-refresh if expired)
+            const newToken = await getAccessToken();
+            if (newToken) {
+              // Update the connection's stored token for future reconnects
+              connection.updateAuthToken(newToken);
+              return newToken;
+            }
+          } catch (error) {
+            console.error("[Cloud] Token refresh failed:", error);
+          }
+          return null;
+        });
+
         initializeStore(connection);
 
         connection.connect().catch((error) => {

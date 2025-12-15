@@ -235,4 +235,49 @@ export class DeviceRelay {
       lastSeen: conn.lastSeen,
     }));
   }
+
+  /**
+   * Get last seen time for a device (even if disconnected)
+   * Returns null if device was never connected
+   */
+  getDeviceLastSeen(deviceId: string): Date | null {
+    const connection = this.devices.get(deviceId);
+    return connection?.lastSeen || null;
+  }
+
+  /**
+   * Get detailed stats for health endpoint
+   */
+  getStats(): {
+    connectedDevices: number;
+    devices: Array<{
+      id: string;
+      connectedAt: string;
+      lastSeen: string;
+      connectionAge: number;
+    }>;
+  } {
+    const devices = Array.from(this.devices.entries()).map(([id, conn]) => ({
+      id,
+      connectedAt: conn.connectedAt.toISOString(),
+      lastSeen: conn.lastSeen.toISOString(),
+      connectionAge: Date.now() - conn.connectedAt.getTime(),
+    }));
+
+    return {
+      connectedDevices: this.devices.size,
+      devices,
+    };
+  }
+
+  /**
+   * Cleanup on shutdown
+   */
+  shutdown(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    console.log("[DeviceRelay] Shutdown complete");
+  }
 }

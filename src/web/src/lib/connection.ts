@@ -2,6 +2,7 @@ import type { ConnectionConfig, ConnectionState, WebSocketMessage, IConnection }
 
 type MessageHandler = (message: WebSocketMessage) => void;
 type StateHandler = (state: ConnectionState) => void;
+type TokenRefreshHandler = () => Promise<string | null>;
 
 /**
  * Stale connection threshold in milliseconds.
@@ -16,8 +17,25 @@ const STALE_THRESHOLD_MS = 3000;
 const STALE_CHECK_INTERVAL_MS = 1000;
 
 /**
+ * Connection metrics tracked by the client
+ */
+export interface ConnectionMetrics {
+  messagesReceived: number;
+  messagesSent: number;
+  reconnectCount: number;
+  connectionStartTime: number;
+  lastServerPingRTT: number | null;
+}
+
+/**
  * WebSocket connection manager
  * Handles both local (ESP32 direct) and cloud connections
+ * 
+ * Features:
+ * - Connection health monitoring via message flow
+ * - Automatic reconnection with exponential backoff
+ * - Token refresh support for cloud connections
+ * - Connection quality metrics
  * 
  * Connection health is detected by monitoring incoming messages rather than ping/pong.
  * Since status updates are sent every 500ms, missing several updates indicates a problem.
@@ -33,9 +51,28 @@ export class Connection implements IConnection {
   private maxReconnectDelay = 5000;
   private lastMessageTime = 0;
   private staleCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private tokenRefreshHandler: TokenRefreshHandler | null = null;
+  private isRefreshingToken = false;
+  
+  // Connection metrics
+  private metrics: ConnectionMetrics = {
+    messagesReceived: 0,
+    messagesSent: 0,
+    reconnectCount: 0,
+    connectionStartTime: 0,
+    lastServerPingRTT: null,
+  };
 
   constructor(config: ConnectionConfig) {
     this.config = config;
+  }
+
+  /**
+   * Set the token refresh handler (for cloud connections)
+   * This handler will be called when the server sends a token_expiring message
+   */
+  setTokenRefreshHandler(handler: TokenRefreshHandler): void {
+    this.tokenRefreshHandler = handler;
   }
 
   // Public API
@@ -58,6 +95,7 @@ export class Connection implements IConnection {
           this.setState('connected');
           this.reconnectDelay = 1000;
           this.lastMessageTime = Date.now();
+          this.metrics.connectionStartTime = Date.now();
           this.startStaleCheck();
           resolve();
         };
@@ -66,7 +104,8 @@ export class Connection implements IConnection {
           console.log(`[BrewOS] Disconnected (code: ${event.code})`);
           this.stopStaleCheck();
           this.setState('disconnected');
-          if (event.code !== 1000) {
+          // Reconnect on abnormal close (not 1000) and not auth error (4002)
+          if (event.code !== 1000 && event.code !== 4002) {
             this.scheduleReconnect();
           }
         };
@@ -79,8 +118,15 @@ export class Connection implements IConnection {
 
         this.ws.onmessage = (event) => {
           this.lastMessageTime = Date.now();
+          this.metrics.messagesReceived++;
+          
           try {
             const message = JSON.parse(event.data) as WebSocketMessage;
+            
+            // Handle internal messages before notifying handlers
+            this.handleInternalMessage(message);
+            
+            // Notify all message handlers
             this.notifyMessage(message);
           } catch {
             console.warn('[BrewOS] Invalid message:', event.data);
@@ -91,6 +137,70 @@ export class Connection implements IConnection {
         reject(error);
       }
     });
+  }
+
+  /**
+   * Handle internal connection-related messages
+   */
+  private handleInternalMessage(message: WebSocketMessage): void {
+    switch (message.type) {
+      case 'token_expiring':
+        this.handleTokenExpiring(message);
+        break;
+      case 'auth_refreshed':
+        if (message.success) {
+          console.log('[BrewOS] Token refreshed successfully');
+        } else {
+          console.warn('[BrewOS] Token refresh failed:', message.error);
+        }
+        this.isRefreshingToken = false;
+        break;
+      case 'pong':
+        // Calculate RTT from application-level ping
+        if (message.clientTimestamp) {
+          this.metrics.lastServerPingRTT = Date.now() - (message.clientTimestamp as number);
+        }
+        break;
+      case 'device_status':
+        // Log device status changes
+        if (message.online === false) {
+          console.log(`[BrewOS] Device offline. Last seen: ${message.lastSeen || 'unknown'}`);
+          if (message.messageQueued) {
+            console.log(`[BrewOS] Message queued (${message.queuedMessages} pending, ${message.queueTTL}s TTL)`);
+          }
+        }
+        break;
+      case 'queued_message_sent':
+        console.log(`[BrewOS] Queued message delivered (type: ${message.messageType})`);
+        break;
+    }
+  }
+
+  /**
+   * Handle token expiring warning from server
+   */
+  private async handleTokenExpiring(message: WebSocketMessage): Promise<void> {
+    if (this.isRefreshingToken || !this.tokenRefreshHandler) {
+      return;
+    }
+
+    console.log(`[BrewOS] Token expiring in ${message.expiresIn}s, refreshing...`);
+    this.isRefreshingToken = true;
+
+    try {
+      const newToken = await this.tokenRefreshHandler();
+      
+      if (newToken && this.ws?.readyState === WebSocket.OPEN) {
+        // Send the new token to the server
+        this.send('refresh_auth', { token: newToken });
+      } else {
+        console.warn('[BrewOS] Failed to refresh token - will disconnect on expiry');
+        this.isRefreshingToken = false;
+      }
+    } catch (error) {
+      console.error('[BrewOS] Token refresh error:', error);
+      this.isRefreshingToken = false;
+    }
   }
 
   disconnect(): void {
@@ -112,11 +222,41 @@ export class Connection implements IConnection {
         ? { type, deviceId: this.config.deviceId, ...payload }
         : { type, ...payload };
       this.ws.send(JSON.stringify(message));
+      this.metrics.messagesSent++;
     }
   }
 
   sendCommand(cmd: string, data: Record<string, unknown> = {}): void {
     this.send('command', { cmd, ...data });
+  }
+
+  /**
+   * Send an application-level ping to measure RTT
+   * Server will respond with 'pong' containing our timestamp
+   */
+  sendPing(): void {
+    this.send('ping', { timestamp: Date.now() });
+  }
+
+  /**
+   * Request connection metrics from the server
+   */
+  requestMetrics(): void {
+    this.send('get_metrics');
+  }
+
+  /**
+   * Get client-side connection metrics
+   */
+  getMetrics(): ConnectionMetrics {
+    return { ...this.metrics };
+  }
+
+  /**
+   * Update the auth token (for cloud reconnection with refreshed token)
+   */
+  updateAuthToken(token: string): void {
+    this.config.authToken = token;
   }
 
   // Event handlers
@@ -207,7 +347,8 @@ export class Connection implements IConnection {
     if (this.reconnectTimer) return;
 
     this.setState('reconnecting');
-    console.log(`[BrewOS] Reconnecting in ${this.reconnectDelay}ms...`);
+    this.metrics.reconnectCount++;
+    console.log(`[BrewOS] Reconnecting in ${this.reconnectDelay}ms... (attempt ${this.metrics.reconnectCount})`);
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

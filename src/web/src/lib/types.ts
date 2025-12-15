@@ -49,9 +49,16 @@ export type MessageType =
   // OTA update progress
   | "ota_progress"
   // Cloud-specific message types
-  | "connected"      // Cloud tells client if device is online
-  | "device_online"  // Device came online
-  | "device_offline"; // Device went offline
+  | "connected"           // Cloud tells client if device is online
+  | "device_online"       // Device came online
+  | "device_offline"      // Device went offline
+  // Cloud connection reliability messages
+  | "device_status"       // Device status update (online/offline with details)
+  | "token_expiring"      // Access token expiring soon, client should refresh
+  | "auth_refreshed"      // Auth token refresh result
+  | "pong"                // Application-level ping response
+  | "metrics"             // Connection quality metrics
+  | "queued_message_sent"; // Notification that a queued message was delivered
 
 export interface WebSocketMessage {
   type: MessageType;

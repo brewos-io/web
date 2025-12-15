@@ -304,18 +304,83 @@ const deviceRelay = new DeviceRelay(deviceWss);
 const clientWss = new WebSocketServer({ noServer: true });
 const clientProxy = new ClientProxy(clientWss, deviceRelay);
 
-// Health check
+// Health check - enhanced with detailed stats
 app.get("/api/health", (_req, res) => {
+  const memUsage = process.memoryUsage();
+  const deviceStats = deviceRelay.getStats();
+  const clientStats = clientProxy.getStats();
+
   res.json({
     status: "ok",
     timestamp: new Date().toISOString(),
+    uptime: {
+      seconds: Math.floor(process.uptime()),
+      formatted: formatUptime(process.uptime()),
+    },
     connections: {
-      devices: deviceRelay.getConnectedDeviceCount(),
-      clients: clientProxy.getConnectedClientCount(),
+      devices: deviceStats.connectedDevices,
+      clients: clientStats.connectedClients,
+      totalClientConnections: clientStats.totalConnections,
+      totalMessagesRelayed: clientStats.totalMessages,
+    },
+    messageQueue: {
+      pendingMessages: clientStats.queuedMessagesTotal,
+    },
+    memory: {
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+      external: Math.round(memUsage.external / 1024 / 1024),
+      rss: Math.round(memUsage.rss / 1024 / 1024),
     },
     sessionCache: getCacheStats(),
   });
 });
+
+// Detailed health check (more verbose, for debugging)
+app.get("/api/health/detailed", (_req, res) => {
+  const memUsage = process.memoryUsage();
+  const deviceStats = deviceRelay.getStats();
+  const clientStats = clientProxy.getStats();
+
+  res.json({
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    uptime: {
+      seconds: Math.floor(process.uptime()),
+      formatted: formatUptime(process.uptime()),
+    },
+    devices: deviceStats,
+    clients: clientStats,
+    memory: {
+      heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
+      heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+      external: Math.round(memUsage.external / 1024 / 1024),
+      rss: Math.round(memUsage.rss / 1024 / 1024),
+    },
+    sessionCache: getCacheStats(),
+    node: {
+      version: process.version,
+      platform: process.platform,
+      arch: process.arch,
+    },
+  });
+});
+
+// Helper function for formatting uptime
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0) parts.push(`${minutes}m`);
+  parts.push(`${secs}s`);
+
+  return parts.join(" ");
+}
 
 // Mode endpoint - tells client this is cloud mode
 app.get("/api/mode", (_req, res) => {
@@ -525,6 +590,19 @@ start();
 process.on("SIGTERM", () => {
   console.log("[Cloud] Shutting down...");
   stopBatchUpdateInterval(); // Flush pending updates before shutdown
+  clientProxy.shutdown(); // Clean up client proxy intervals and timers
+  deviceRelay.shutdown(); // Clean up device relay intervals
+  deviceWss.close();
+  clientWss.close();
+  server.close();
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  console.log("[Cloud] Received SIGINT, shutting down...");
+  stopBatchUpdateInterval();
+  clientProxy.shutdown();
+  deviceRelay.shutdown();
   deviceWss.close();
   clientWss.close();
   server.close();
