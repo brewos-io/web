@@ -36,9 +36,18 @@ void WebServer::handleWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* clie
             break;
             
         case WS_EVT_CONNECT:
-            LOG_I("WebSocket client %u connected from %s", client->id(), client->remoteIP().toString().c_str());
-            // Send device info immediately so UI has the saved settings
-            broadcastDeviceInfo();
+            {
+                LOG_I("WebSocket client %u connected from %s", client->id(), client->remoteIP().toString().c_str());
+                // Check if we have enough memory to send device info (needs ~3KB for JSON)
+                size_t freeHeap = ESP.getFreeHeap();
+                if (freeHeap > 10000) {
+                    // Send device info immediately so UI has the saved settings
+                    broadcastDeviceInfo();
+                } else {
+                    LOG_W("Low memory (%zu bytes), deferring device info broadcast", freeHeap);
+                    // Client will request full state later when memory is available
+                }
+            }
             break;
             
         case WS_EVT_DATA:

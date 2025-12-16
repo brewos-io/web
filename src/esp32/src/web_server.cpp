@@ -10,6 +10,7 @@
 #include "statistics/statistics_manager.h"
 #include "power_meter/power_meter_manager.h"
 #include "ui/ui.h"
+#include <WiFi.h>
 #include <LittleFS.h>
 #include <HTTPClient.h>
 #include <Update.h>
@@ -1594,8 +1595,20 @@ void WebServer::setupRoutes() {
         }
         
         // Generate a new token if needed
+        bool tokenGenerated = false;
         if (!_pairingManager->isTokenValid()) {
             _pairingManager->generateToken();
+            tokenGenerated = true;
+        }
+        
+        // Register token with cloud if newly generated (or not yet registered)
+        // This ensures the token is valid in the cloud before user scans QR
+        if (tokenGenerated && WiFi.isConnected()) {
+            bool registered = _pairingManager->registerTokenWithCloud();
+            if (!registered) {
+                LOG_W("Failed to register pairing token with cloud");
+                // Continue anyway - user can retry
+            }
         }
         
         #pragma GCC diagnostic push
@@ -1634,6 +1647,17 @@ void WebServer::setupRoutes() {
         
         _pairingManager->generateToken();
         
+        // Register the new token with cloud immediately
+        // This ensures the token is valid before user scans QR
+        bool registered = false;
+        if (WiFi.isConnected()) {
+            registered = _pairingManager->registerTokenWithCloud();
+            if (!registered) {
+                LOG_W("Failed to register pairing token with cloud");
+                // Continue anyway - user can retry
+            }
+        }
+        
         #pragma GCC diagnostic push
         #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         StaticJsonDocument<2048> doc;
@@ -1642,6 +1666,7 @@ void WebServer::setupRoutes() {
         doc["token"] = _pairingManager->getCurrentToken();
         doc["url"] = _pairingManager->getPairingUrl();
         doc["expiresIn"] = 600;  // 10 minutes
+        doc["registered"] = registered;  // Let UI know if registration succeeded
         
         
         // Allocate JSON buffer in internal RAM (not PSRAM)

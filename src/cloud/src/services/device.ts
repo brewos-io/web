@@ -167,6 +167,10 @@ export function verifyClaimToken(deviceId: string, token: string): boolean {
 /**
  * Claim a device for a user
  * Allows multiple users to claim the same device with per-user names
+ * 
+ * If the user already has this device claimed, this is a "re-claim" scenario
+ * (e.g., after ESP32 reset). We allow this to succeed so the new device key
+ * registered via /register-claim can be used.
  */
 export function claimDevice(
   deviceId: string,
@@ -177,7 +181,7 @@ export function claimDevice(
 
   // Check if user already has this device
   const existingUserDevice = db.exec(
-    `SELECT user_id FROM user_devices WHERE user_id = ? AND device_id = ?`,
+    `SELECT user_id, name FROM user_devices WHERE user_id = ? AND device_id = ?`,
     [userId, deviceId]
   );
 
@@ -185,7 +189,31 @@ export function claimDevice(
     existingUserDevice.length > 0 &&
     existingUserDevice[0].values.length > 0
   ) {
-    throw new Error("Device is already claimed by this user");
+    // User already has this device - this is a re-claim scenario (e.g., ESP32 was reset)
+    // The device key was already updated via /register-claim endpoint
+    // Just return success to allow the user to continue
+    console.log(`[Device] Re-claim for ${deviceId} by user ${userId} - allowing (device may have been reset)`);
+    
+    // Optionally update the device name if provided
+    if (name) {
+      const now = nowUTC();
+      db.run(
+        `UPDATE user_devices SET name = ?, updated_at = ? WHERE user_id = ? AND device_id = ?`,
+        [name, now, userId, deviceId]
+      );
+      saveDatabase();
+    }
+    
+    // Delete the claim token (cleanup)
+    db.run(`DELETE FROM device_claim_tokens WHERE device_id = ?`, [deviceId]);
+    saveDatabase();
+    
+    // Return the device
+    const deviceResult = db.exec(`SELECT * FROM devices WHERE id = ?`, [deviceId]);
+    if (deviceResult.length === 0 || deviceResult[0].values.length === 0) {
+      throw new Error("Device not found");
+    }
+    return resultToObjects<Device>(deviceResult[0])[0];
   }
 
   const now = nowUTC();
