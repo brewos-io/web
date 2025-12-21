@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { X, Flame, Sparkles, Check, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
@@ -59,6 +59,27 @@ export function PowerModeModal({
     return null;
   });
 
+  // Memoize handleConfirm to avoid recreating on every render
+  const handleConfirm = useCallback(
+    (mode: PowerMode) => {
+      // Calculate the actual heating strategy based on power mode and config
+      const strategy = getHeatingStrategyForPowerMode(
+        mode,
+        machine,
+        powerConfig
+      );
+
+      // Save mode preference
+      localStorage.setItem(STORAGE_KEY, mode);
+      sendCommand("set_preferences", { lastPowerMode: mode });
+
+      // Send the calculated strategy to the machine
+      onSelect(strategy);
+      onClose();
+    },
+    [machine, powerConfig, sendCommand, onSelect, onClose]
+  );
+
   // Handle keyboard navigation
   useEffect(() => {
     if (!isOpen) return;
@@ -91,20 +112,7 @@ export function PowerModeModal({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, selectedMode, onClose]);
-
-  const handleConfirm = (mode: PowerMode) => {
-    // Calculate the actual heating strategy based on power mode and config
-    const strategy = getHeatingStrategyForPowerMode(mode, machine, powerConfig);
-
-    // Save mode preference
-    localStorage.setItem(STORAGE_KEY, mode);
-    sendCommand("set_preferences", { lastPowerMode: mode });
-
-    // Send the calculated strategy to the machine
-    onSelect(strategy);
-    onClose();
-  };
+  }, [isOpen, selectedMode, onClose, handleConfirm]);
 
   if (!isOpen) return null;
 
