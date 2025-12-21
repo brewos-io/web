@@ -13,12 +13,12 @@ const HIDE_DELAY_MS = 1500;
 
 // Minimum time to show any overlay state before allowing transitions
 // This prevents rapid flickering between states
-// Increased to 5s to handle slow connections and avoid "connecting -> offline -> online" loops
-const STATE_STABLE_MS = 5000;
+const STATE_STABLE_MS = 3000;
 
-// Extra delay before showing offline state after initial connection
-// This gives the device time to respond after cloud connection is established
-const OFFLINE_GRACE_PERIOD_MS = 8000;
+// Grace period before showing offline state after device first detected offline
+// This gives the device time to respond (e.g., after cloud connection establishes)
+// Reduced from 8s since we now track offline detection time, not connection time
+const OFFLINE_GRACE_PERIOD_MS = 5000;
 
 // Key to track OTA in progress across page reloads (shared with store.ts)
 const OTA_IN_PROGRESS_KEY = "brewos-ota-in-progress";
@@ -68,8 +68,9 @@ export function ConnectionOverlay() {
   const pendingStateChange = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track if device has been confirmed offline (persists across cloud reconnects)
   const deviceConfirmedOffline = useRef<boolean>(false);
-  // Track when cloud connection was first established (for grace period)
-  const cloudConnectedAt = useRef<number | null>(null);
+  // Track when device was first detected as offline (for grace period)
+  // This persists across connection fluctuations
+  const offlineDetectedAt = useRef<number | null>(null);
 
   // Track OTA state in localStorage so store.ts can detect it after reconnect
   useEffect(() => {
@@ -97,31 +98,27 @@ export function ConnectionOverlay() {
     }
   }, [ota.stage, ota.isUpdating, machineState, isConnected]);
 
-  // Track cloud connection time for grace period logic
+  // Track when device was first detected offline (persists across connection fluctuations)
   useEffect(() => {
-    if (isConnected && cloudConnectedAt.current === null) {
-      cloudConnectedAt.current = Date.now();
-    } else if (!isConnected) {
-      cloudConnectedAt.current = null;
+    if (isDeviceOffline) {
+      // Start tracking offline time when device first goes offline
+      if (offlineDetectedAt.current === null) {
+        offlineDetectedAt.current = Date.now();
+      }
+    } else {
+      // Device is no longer offline - clear tracking
+      offlineDetectedAt.current = null;
+      deviceConfirmedOffline.current = false;
     }
-  }, [isConnected]);
+  }, [isDeviceOffline]);
 
-  // Track device offline state - once confirmed offline, stay that way until device comes back
-  // But only mark as confirmed offline after the grace period
+  // Track device offline state - once grace period passes, mark as confirmed
   useEffect(() => {
-    if (isDeviceOffline && isConnected) {
-      // Only confirm offline after grace period has passed
-      const timeSinceConnect = cloudConnectedAt.current 
-        ? Date.now() - cloudConnectedAt.current 
-        : 0;
-      
-      if (timeSinceConnect >= OFFLINE_GRACE_PERIOD_MS) {
+    if (isDeviceOffline && offlineDetectedAt.current !== null) {
+      const elapsed = Date.now() - offlineDetectedAt.current;
+      if (elapsed >= OFFLINE_GRACE_PERIOD_MS) {
         deviceConfirmedOffline.current = true;
       }
-    } else if (!isDeviceOffline && isConnected) {
-      // Device is no longer offline - clear the flag
-      // This includes "unknown" state (just reconnected, waiting for status)
-      deviceConfirmedOffline.current = false;
     }
   }, [isDeviceOffline, isConnected]);
 
@@ -129,29 +126,27 @@ export function ConnectionOverlay() {
   const getTargetState = useCallback((): OverlayState => {
     if (isUpdating) return "updating";
 
-    // Device is offline (cloud connected but device unreachable)
-    if (isDeviceOffline && isConnected) {
-      // Check if we're still in the grace period
-      // During grace period, device might be "offline" just because it hasn't responded yet
-      const timeSinceConnect = cloudConnectedAt.current 
-        ? Date.now() - cloudConnectedAt.current 
+    // Device is offline - check grace period based on when offline was first detected
+    if (isDeviceOffline) {
+      const timeSinceOffline = offlineDetectedAt.current 
+        ? Date.now() - offlineDetectedAt.current 
         : 0;
       
-      if (timeSinceConnect < OFFLINE_GRACE_PERIOD_MS) {
+      if (timeSinceOffline < OFFLINE_GRACE_PERIOD_MS) {
         // Still in grace period - show connecting instead of offline
         return "connecting";
       }
+      // Grace period passed - confirm offline
+      deviceConfirmedOffline.current = true;
       return "offline";
     }
 
-    // Not connected to server - show connecting or offline
+    // Not connected to server - show connecting or offline based on previous state
     if (!isConnected) {
       return deviceConfirmedOffline.current ? "offline" : "connecting";
     }
 
     // Connected to cloud and device is not offline - hide overlay
-    // Don't show "connecting" just because we're waiting for first status message
-    // The device is online, we're just waiting for fresh data
     return "hidden";
   }, [isUpdating, isDeviceOffline, isConnected]);
 
@@ -178,9 +173,9 @@ export function ConnectionOverlay() {
     if (targetState === overlayState) {
       // During offline grace period, we return "connecting" even though device is offline
       // Schedule a re-check after grace period ends to properly transition to "offline"
-      if (targetState === "connecting" && isDeviceOffline && isConnected && cloudConnectedAt.current) {
-        const timeSinceConnect = Date.now() - cloudConnectedAt.current;
-        const timeUntilGraceEnds = OFFLINE_GRACE_PERIOD_MS - timeSinceConnect;
+      if (targetState === "connecting" && isDeviceOffline && offlineDetectedAt.current) {
+        const timeSinceOffline = Date.now() - offlineDetectedAt.current;
+        const timeUntilGraceEnds = OFFLINE_GRACE_PERIOD_MS - timeSinceOffline;
         
         if (timeUntilGraceEnds > 0) {
           // Schedule re-check after grace period
@@ -243,8 +238,12 @@ export function ConnectionOverlay() {
         let newTarget: OverlayState;
         if (isCurrentlyUpdating) {
           newTarget = "updating";
-        } else if (isCurrentlyOffline && isCurrentlyConnected) {
-          newTarget = "offline";
+        } else if (isCurrentlyOffline) {
+          // Device is offline - check if grace period has passed
+          const timeSinceOffline = offlineDetectedAt.current
+            ? Date.now() - offlineDetectedAt.current
+            : 0;
+          newTarget = timeSinceOffline >= OFFLINE_GRACE_PERIOD_MS ? "offline" : "connecting";
         } else if (!isCurrentlyConnected) {
           newTarget = deviceConfirmedOffline.current ? "offline" : "connecting";
         } else {
