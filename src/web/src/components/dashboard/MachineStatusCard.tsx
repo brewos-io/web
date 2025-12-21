@@ -461,9 +461,9 @@ const PowerControls = memo(function PowerControls({
   const isOnActive = mode === "on";
   const isEcoActive = mode === "eco";
 
-  // Can switch modes when not brewing, not in fault/safe state
+  // Can switch modes when machine is ready (not brewing, not in fault/safe state, not initializing)
   // This allows: On ↔ Eco, Standby → On, Standby → Eco, and changing power mode while running
-  const canSwitchModes = state !== "brewing" && state !== "fault" && state !== "safe" && state !== "offline";
+  const canSwitchModes = state !== "brewing" && state !== "fault" && state !== "safe" && state !== "offline" && state !== "init" && state !== "unknown";
 
   // Split "On" button for dual boiler
   const SplitOnButton = () => {
@@ -504,7 +504,7 @@ const PowerControls = memo(function PowerControls({
           )}
           title={
             !canSwitchModes
-              ? "Cannot change mode while brewing or in fault state"
+              ? "Cannot change mode while machine is not ready"
               : undefined
           }
         >
@@ -544,7 +544,7 @@ const PowerControls = memo(function PowerControls({
           )}
           title={
             !canSwitchModes
-              ? "Cannot change mode while brewing or in fault state"
+              ? "Cannot change mode while machine is not ready"
               : "Change power mode"
           }
         >
@@ -587,7 +587,7 @@ const PowerControls = memo(function PowerControls({
             )}
             title={
               !canSwitchModes
-                ? "Cannot change mode while brewing or in fault state"
+                ? "Cannot change mode while machine is not ready"
                 : undefined
             }
           >
@@ -620,7 +620,7 @@ const PowerControls = memo(function PowerControls({
           )}
           title={
             !canSwitchModes
-              ? "Cannot change mode while brewing or in fault state"
+              ? "Cannot change mode while machine is not ready"
               : undefined
           }
         >
