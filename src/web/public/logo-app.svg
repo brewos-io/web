@@ -98,13 +98,14 @@
       <stop offset=".26" stop-color="#8c8b87" />
       <stop offset="1" stop-color="#eff1ee" />
     </linearGradient>
-    <!-- Background gradient for app icon -->
-    <linearGradient id="background-gradient" x1="0%" y1="0%" x2="100%" y2="100%"
+    <!-- Background gradient for app icon - radial for more dramatic effect -->
+    <radialGradient id="background-gradient" cx="50%" cy="30%" r="80%"
       gradientUnits="userSpaceOnUse">
-      <stop offset="0%" stop-color="#f5e6d3" />
-      <stop offset="50%" stop-color="#e4cdb7" />
-      <stop offset="100%" stop-color="#d4b89a" />
-    </linearGradient>
+      <stop offset="0%" stop-color="#fff8f0" />
+      <stop offset="40%" stop-color="#e4cdb7" />
+      <stop offset="80%" stop-color="#c9a882" />
+      <stop offset="100%" stop-color="#8b6f4f" />
+    </radialGradient>
   </defs>
   <!-- Background with rounded corners and gradient -->
   <rect width="2000" height="2000" rx="400" ry="400" fill="url(#background-gradient)" />
