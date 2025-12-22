@@ -21,6 +21,7 @@ import {
   getPowerModeFromStrategy,
   type PowerMode,
 } from "@/lib/powerValidation";
+import { supportsPowerModes } from "@/lib/machineFeatures";
 
 // Time to show pressure card after brewing ends (ms)
 const POST_BREW_PRESSURE_DISPLAY_MS = 30000; // 30 seconds
@@ -139,7 +140,8 @@ export function Dashboard() {
   const { sendCommand } = useCommand();
   const [showPowerModeModal, setShowPowerModeModal] = useState(false);
 
-  const isDualBoiler = machineType === "dual_boiler";
+  // Check if machine supports power mode selection (Brew Only / Brew & Steam)
+  const hasPowerModes = supportsPowerModes(machineType);
 
   // Get machine and power config for auto-strategy calculation
   const machineBrand = useStore((s) => s.device.machineBrand);
@@ -168,20 +170,27 @@ export function Dashboard() {
 
   // Quick on: use last power mode from localStorage, auto-calculate strategy
   const handleQuickOn = useCallback(() => {
-    if (isDualBoiler) {
+    if (hasPowerModes) {
       // Get stored power mode preference
-      const stored = localStorage.getItem("brewos-last-power-mode") as PowerMode | null;
-      const powerMode = (stored === POWER_MODES.BREW_ONLY || stored === POWER_MODES.BREW_STEAM) 
-        ? stored 
-        : POWER_MODES.BREW_STEAM; // Default to Brew & Steam
-      
+      const stored = localStorage.getItem(
+        "brewos-last-power-mode"
+      ) as PowerMode | null;
+      const powerMode =
+        stored === POWER_MODES.BREW_ONLY || stored === POWER_MODES.BREW_STEAM
+          ? stored
+          : POWER_MODES.BREW_STEAM; // Default to Brew & Steam
+
       // Auto-calculate the best heating strategy for this power mode
-      const strategy = getHeatingStrategyForPowerMode(powerMode, machine, powerConfig);
+      const strategy = getHeatingStrategyForPowerMode(
+        powerMode,
+        machine,
+        powerConfig
+      );
       setMode("on", strategy);
     } else {
       setMode("on");
     }
-  }, [isDualBoiler, setMode, machine, powerConfig]);
+  }, [hasPowerModes, setMode, machine, powerConfig]);
 
   // Open power mode selector dialog
   const handleOpenPowerModeModal = useCallback(() => {
@@ -261,7 +270,7 @@ export function Dashboard() {
         <MachineStatusCard
           mode={machineMode}
           state={machineState}
-          isDualBoiler={isDualBoiler}
+          machineType={machineType}
           heatingStrategy={heatingStrategy}
           onSetMode={setMode}
           onQuickOn={handleQuickOn}
@@ -340,7 +349,9 @@ export function Dashboard() {
       </div>
 
       <PowerModeModal
-        key={showPowerModeModal ? `open-${defaultPowerMode ?? 'off'}` : 'closed'}
+        key={
+          showPowerModeModal ? `open-${defaultPowerMode ?? "off"}` : "closed"
+        }
         isOpen={showPowerModeModal}
         onClose={() => setShowPowerModeModal(false)}
         onSelect={handlePowerModeSelect}

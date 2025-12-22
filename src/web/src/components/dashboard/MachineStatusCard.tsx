@@ -14,14 +14,20 @@ import {
 import { cn, getMachineStateLabel, getMachineStateColor } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { convertFromCelsius, getUnitSymbol } from "@/lib/temperature";
-import type { HeatingStrategy } from "@/lib/types";
+import type { HeatingStrategy, MachineType } from "@/lib/types";
 import { getPowerModeFromStrategy, POWER_MODES } from "@/lib/powerValidation";
+import {
+  getMachineFeatures,
+  isDualBoiler as checkIsDualBoiler,
+  getMachineTypeLabel,
+} from "@/lib/machineFeatures";
 
 // User-facing power mode labels (not internal heating strategies)
-const POWER_MODE_LABELS: Record<string, { label: string; icon: typeof Flame }> = {
-  brew_only: { label: "Brew Only", icon: Flame },
-  brew_steam: { label: "Brew & Steam", icon: Sparkles },
-};
+const POWER_MODE_LABELS: Record<string, { label: string; icon: typeof Flame }> =
+  {
+    brew_only: { label: "Brew Only", icon: Flame },
+    brew_steam: { label: "Brew & Steam", icon: Sparkles },
+  };
 
 // Extracted outside component to prevent re-creation on each render
 interface PowerButtonProps {
@@ -69,7 +75,7 @@ const PowerButton = memo(function PowerButton({
 interface MachineStatusCardProps {
   mode: string;
   state: string;
-  isDualBoiler: boolean;
+  machineType?: MachineType | undefined;
   heatingStrategy?: HeatingStrategy | null;
   onSetMode: (mode: string) => void;
   onQuickOn: () => void;
@@ -79,12 +85,15 @@ interface MachineStatusCardProps {
 export const MachineStatusCard = memo(function MachineStatusCard({
   mode,
   state,
-  isDualBoiler,
+  machineType,
   heatingStrategy,
   onSetMode,
   onQuickOn,
   onOpenStrategyModal,
 }: MachineStatusCardProps) {
+  // Get machine features for this type
+  const features = getMachineFeatures(machineType);
+  const isDualBoiler = checkIsDualBoiler(machineType);
   // Use specific selectors to avoid re-renders from unrelated store changes
   // Round temperature to 1 decimal to prevent flicker from tiny fluctuations
   const brewCurrent = useStore(
@@ -204,15 +213,16 @@ export const MachineStatusCard = memo(function MachineStatusCard({
               >
                 {getMachineStateLabel(state)}
               </Badge>
-              {/* Power mode - show for dual boiler when machine is on */}
-              {isDualBoiler &&
+              {/* Power mode - show for machines that support power modes when machine is on */}
+              {features.supportsPowerModes &&
                 mode !== "standby" &&
                 heatingStrategy !== null &&
                 heatingStrategy !== undefined && (
                   <span className="inline-flex items-center gap-1.5 text-xs text-theme-muted">
                     <span className="text-theme-tertiary">•</span>
                     {(() => {
-                      const powerMode = getPowerModeFromStrategy(heatingStrategy);
+                      const powerMode =
+                        getPowerModeFromStrategy(heatingStrategy);
                       const modeInfo = POWER_MODE_LABELS[powerMode];
                       const Icon = modeInfo?.icon || Flame;
                       return (
@@ -222,6 +232,15 @@ export const MachineStatusCard = memo(function MachineStatusCard({
                         </>
                       );
                     })()}
+                  </span>
+                )}
+              {/* Machine type indicator for non-dual-boiler machines when on */}
+              {!features.supportsPowerModes &&
+                mode !== "standby" &&
+                machineType && (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-theme-muted">
+                    <span className="text-theme-tertiary">•</span>
+                    {getMachineTypeLabel(machineType)}
                   </span>
                 )}
             </div>
@@ -250,7 +269,7 @@ export const MachineStatusCard = memo(function MachineStatusCard({
                 mode,
                 state,
                 heatingProgress,
-                isDualBoiler,
+                machineType,
                 heatingStrategy
               )}
             </p>
@@ -262,7 +281,7 @@ export const MachineStatusCard = memo(function MachineStatusCard({
           mode={mode}
           state={state}
           heatingStrategy={heatingStrategy}
-          isDualBoiler={isDualBoiler}
+          machineType={machineType}
           onSetMode={onSetMode}
           onQuickOn={onQuickOn}
           onOpenStrategyModal={onOpenStrategyModal}
@@ -276,9 +295,11 @@ function getStatusDescription(
   mode: string,
   state: string,
   heatingProgress?: number,
-  isDualBoiler?: boolean,
+  machineType?: MachineType,
   heatingStrategy?: HeatingStrategy | null
 ): string {
+  const features = getMachineFeatures(machineType);
+
   // Handle offline state first - device not reachable
   if (state === "offline") {
     return "Machine is offline. Check power and network connection.";
@@ -290,12 +311,27 @@ function getStatusDescription(
     }
     return "Machine is in standby mode. Turn on to start heating.";
   }
-  if (mode === "eco")
+  if (mode === "eco") {
+    if (features.needsModeSwitching) {
+      return "Eco mode - boiler at reduced temperature to save power.";
+    }
     return "Eco mode active. Lower temperature to save energy.";
+  }
   if (state === "heating") {
     if (heatingProgress && heatingProgress > 0) {
-      // More descriptive message for dual boilers in Brew & Steam mode
-      const isBrewSteamMode = isDualBoiler && heatingStrategy !== 0;
+      // Single boiler - simple message
+      if (features.needsModeSwitching) {
+        return `Heating boiler... ${Math.round(
+          heatingProgress
+        )}% to brew temperature.`;
+      }
+      // Heat exchanger - heating steam boiler
+      if (features.isHeatExchanger) {
+        return `Heating steam boiler... ${Math.round(heatingProgress)}%`;
+      }
+      // Dual boiler - more descriptive message when in Brew & Steam mode
+      const isBrewSteamMode =
+        features.supportsPowerModes && heatingStrategy !== 0;
       if (isBrewSteamMode) {
         // For sequential heating (strategy 1), show which boiler
         if (heatingStrategy === 1 && heatingProgress < 50) {
@@ -314,8 +350,17 @@ function getStatusDescription(
     return "Warming up... Your machine will be ready soon.";
   }
   if (state === "ready") {
-    // Check if in Brew & Steam mode (any strategy except 0)
-    const isBrewSteamMode = isDualBoiler && heatingStrategy !== 0;
+    // Single boiler
+    if (features.needsModeSwitching) {
+      return "Boiler at brew temperature. Ready to brew!";
+    }
+    // Heat exchanger
+    if (features.isHeatExchanger) {
+      return "Steam boiler ready. Group head at brewing temperature!";
+    }
+    // Dual boiler - check if in Brew & Steam mode (any strategy except 0)
+    const isBrewSteamMode =
+      features.supportsPowerModes && heatingStrategy !== 0;
     if (isBrewSteamMode) {
       return "Both boilers at temperature. Ready to brew!";
     }
@@ -443,7 +488,7 @@ const StatusRing = memo(function StatusRing({
 interface PowerControlsProps {
   mode: string;
   heatingStrategy?: HeatingStrategy | null;
-  isDualBoiler?: boolean;
+  machineType?: MachineType;
   onSetMode: (mode: string) => void;
   onQuickOn: () => void;
   onOpenStrategyModal: () => void;
@@ -452,18 +497,25 @@ interface PowerControlsProps {
 const PowerControls = memo(function PowerControls({
   mode,
   heatingStrategy,
-  isDualBoiler,
+  machineType,
   onSetMode,
   onQuickOn,
   onOpenStrategyModal,
   state,
 }: PowerControlsProps & { state: string }) {
+  const features = getMachineFeatures(machineType);
   const isOnActive = mode === "on";
   const isEcoActive = mode === "eco";
 
   // Can switch modes when machine is ready (not brewing, not in fault/safe state, not initializing)
   // This allows: On ↔ Eco, Standby → On, Standby → Eco, and changing power mode while running
-  const canSwitchModes = state !== "brewing" && state !== "fault" && state !== "safe" && state !== "offline" && state !== "init" && state !== "unknown";
+  const canSwitchModes =
+    state !== "brewing" &&
+    state !== "fault" &&
+    state !== "safe" &&
+    state !== "offline" &&
+    state !== "init" &&
+    state !== "unknown";
 
   // Split "On" button for dual boiler
   const SplitOnButton = () => {
@@ -473,7 +525,10 @@ const PowerControls = memo(function PowerControls({
         return getPowerModeFromStrategy(heatingStrategy);
       }
       const stored = localStorage.getItem("brewos-last-power-mode");
-      if (stored === POWER_MODES.BREW_ONLY || stored === POWER_MODES.BREW_STEAM) {
+      if (
+        stored === POWER_MODES.BREW_ONLY ||
+        stored === POWER_MODES.BREW_STEAM
+      ) {
         return stored;
       }
       return POWER_MODES.BREW_STEAM; // Default to Brew & Steam
@@ -570,8 +625,8 @@ const PowerControls = memo(function PowerControls({
           onClick={handleStandby}
         />
 
-        {/* On button - split for dual boiler, simple for others */}
-        {isDualBoiler ? (
+        {/* On button - split for machines that support power modes, simple for others */}
+        {features.supportsPowerModes ? (
           <SplitOnButton />
         ) : (
           <button

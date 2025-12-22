@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useStore } from "@/lib/store";
 import { useCommand } from "@/lib/useCommand";
 import { Card, CardHeader, CardTitle } from "@/components/Card";
@@ -12,6 +12,7 @@ import {
   getTemperatureStep,
   formatTemperatureWithUnit,
 } from "@/lib/temperature";
+import { getEcoModeDescription, getMachineFeatures } from "@/lib/machineFeatures";
 
 // Default eco mode values
 const DEFAULT_ECO_TEMP = 80;
@@ -20,10 +21,15 @@ const DEFAULT_ECO_TIMEOUT = 30;
 export function EcoModeSettings() {
   const temperatureUnit = useStore((s) => s.preferences.temperatureUnit);
   const ecoMode = useStore((s) => s.ecoMode);
+  const machineType = useStore((s) => s.device.machineType);
   const { sendCommand } = useCommand();
 
   const [savingEco, setSavingEco] = useState(false);
   const [editingEco, setEditingEco] = useState(false);
+
+  // Get machine features for this type
+  const features = useMemo(() => getMachineFeatures(machineType), [machineType]);
+  const ecoDescription = useMemo(() => getEcoModeDescription(machineType), [machineType]);
 
   // Get values with fallbacks
   const ecoBrewTemp = ecoMode?.ecoBrewTemp ?? DEFAULT_ECO_TEMP;
@@ -138,12 +144,12 @@ export function EcoModeSettings() {
         /* Edit mode */
         <div className="space-y-4">
           <p className="text-sm text-theme-muted">
-            Reduce power consumption when idle by lowering boiler temperatures.
+            {ecoDescription}
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input
-              label="Eco Brew Temp"
+              label={features.needsModeSwitching || features.isHeatExchanger ? "Eco Temperature" : "Eco Brew Temp"}
               type="number"
               min={ecoTempMin}
               max={ecoTempMax}
