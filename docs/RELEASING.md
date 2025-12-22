@@ -311,6 +311,7 @@ Create environment named `staging`:
 - **No protection rules** (auto-deploy on push)
 - **Secrets required:**
   - `STAGING_SERVER_SSH_KEY` - SSH private key for deployment
+  - `STAGING_SSH_HOST` - **Required if domain is behind Cloudflare**: Real server IP address (not the Cloudflare-proxied domain). If not set, defaults to `staging.brewos.io`
   - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 
 #### 2. Production Environment
@@ -323,6 +324,7 @@ Create environment named `production`:
   - ✓ Deployment branches: Only `v*` tags
 - **Secrets required:**
   - `SERVER_SSH_KEY` - SSH private key for deployment
+  - `SERVER_SSH_HOST` - **Required if domain is behind Cloudflare**: Real server IP address (not the Cloudflare-proxied domain). If not set, defaults to `cloud.brewos.io`
   - `GOOGLE_CLIENT_ID` - Google OAuth client ID
 
 ### Required Repository Secrets

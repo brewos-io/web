@@ -64,7 +64,7 @@ jobs:
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         with:
-          host: staging.brewos.io
+          host: ${{ secrets.STAGING_SSH_HOST || 'staging.brewos.io' }}
           username: root
           key: ${{ secrets.STAGING_SERVER_SSH_KEY }}
           envs: GOOGLE_CLIENT_ID
