@@ -4,6 +4,7 @@ import type { CloudDevice, ConnectionMode } from "./types";
 import {
   getStoredSession,
   loginWithGoogle,
+  loginWithFacebook,
   logout as authLogout,
   getValidAccessToken,
   isTokenExpired,
@@ -235,6 +236,7 @@ interface AppState {
   // Actions
   initialize: () => Promise<void>;
   handleGoogleLogin: (credential: string) => Promise<void>;
+  handleFacebookLogin: (accessToken: string) => Promise<void>;
   signOut: () => void;
   updateSession: (session: AuthSession) => void;
 
@@ -413,6 +415,32 @@ export const useAppStore = create<AppState>()(
           startTokenRefreshMonitor(get());
         } catch (error) {
           console.error("[Auth] Login failed:", error);
+          set({ authLoading: false });
+          throw error;
+        }
+      },
+
+      handleFacebookLogin: async (accessToken: string) => {
+        try {
+          set({ authLoading: true });
+
+          const session = await loginWithFacebook(accessToken);
+
+          // Set devicesLoading: true to prevent flash to Onboarding while fetching
+          set({
+            user: session.user,
+            session,
+            authLoading: false,
+            devicesLoading: true,
+          });
+
+          // Fetch devices after login
+          get().fetchDevices();
+
+          // Start token refresh monitoring
+          startTokenRefreshMonitor(get());
+        } catch (error) {
+          console.error("[Auth] Facebook login failed:", error);
           set({ authLoading: false });
           throw error;
         }

@@ -116,6 +116,36 @@ export async function loginWithGoogle(
   return session;
 }
 
+/**
+ * Exchange Facebook access token for our session tokens
+ */
+export async function loginWithFacebook(
+  facebookAccessToken: string
+): Promise<AuthSession> {
+  const response = await fetch("/api/auth/facebook", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ accessToken: facebookAccessToken }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Facebook login failed");
+  }
+
+  const data = await response.json();
+
+  const session: AuthSession = {
+    accessToken: data.accessToken,
+    refreshToken: data.refreshToken,
+    expiresAt: data.expiresAt,
+    user: data.user,
+  };
+
+  storeSession(session);
+  return session;
+}
+
 // Timeout for refresh requests (8 seconds)
 const REFRESH_TIMEOUT_MS = 8000;
 
@@ -298,6 +328,10 @@ export function isAuthenticated(): boolean {
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 export const isGoogleAuthConfigured = !!GOOGLE_CLIENT_ID;
 
+// Facebook App ID for the sign-in button
+export const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID || "";
+export const isFacebookAuthConfigured = !!FACEBOOK_APP_ID;
+
 // Import store for hooks
 import { useAppStore } from "./mode";
 
@@ -308,12 +342,14 @@ export function useAuth() {
   const user = useAppStore((state) => state.user);
   const loading = useAppStore((state) => state.authLoading);
   const handleGoogleLogin = useAppStore((state) => state.handleGoogleLogin);
+  const handleFacebookLogin = useAppStore((state) => state.handleFacebookLogin);
   const signOut = useAppStore((state) => state.signOut);
 
   return {
     user,
     loading,
     handleGoogleLogin,
+    handleFacebookLogin,
     signOut,
   };
 }

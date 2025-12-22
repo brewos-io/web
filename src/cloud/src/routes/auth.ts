@@ -77,6 +77,10 @@ router.use(generalLimiter);
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
+// Facebook OAuth configuration
+const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID || "";
+const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET || "";
+
 /**
  * POST /api/auth/google
  *
@@ -121,17 +125,18 @@ router.post(
         return res.status(401).json({ error: "Invalid token payload" });
       }
 
-      ensureProfile(payload.sub, payload.email, payload.name, payload.picture);
+      // ensureProfile returns the actual user ID (may differ if linked by email)
+      const userId = ensureProfile(payload.sub, payload.email, payload.name, payload.picture);
 
       const metadata = {
         userAgent: req.headers["user-agent"],
         ipAddress: req.ip || req.socket.remoteAddress,
       };
 
-      const tokens = createSession(payload.sub, metadata);
+      const tokens = createSession(userId, metadata);
 
       // Check if user is admin (after profile is created/updated)
-      const isAdmin = checkUserIsAdmin(payload.sub);
+      const isAdmin = checkUserIsAdmin(userId);
 
       console.log(`[Auth] User ${payload.email} logged in via Google${isAdmin ? " (admin)" : ""}`);
 
@@ -140,7 +145,7 @@ router.post(
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.accessExpiresAt,
         user: {
-          id: payload.sub,
+          id: userId,
           email: payload.email,
           name: payload.name || null,
           picture: payload.picture || null,
@@ -149,6 +154,125 @@ router.post(
       });
     } catch (error) {
       console.error("[Auth] Login error:", error);
+      res.status(500).json({ error: "Authentication failed" });
+    }
+  }
+);
+
+/**
+ * POST /api/auth/facebook
+ *
+ * Exchange Facebook access token for our session tokens.
+ * Facebook SDK returns an access_token (not an ID token like Google)
+ */
+router.post(
+  "/facebook",
+  authStrictLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const { accessToken } = req.body;
+
+      if (!accessToken) {
+        return res.status(400).json({ error: "Missing access token" });
+      }
+
+      // Validate accessToken is a string and reasonable length
+      if (typeof accessToken !== "string" || accessToken.length > 512) {
+        return res.status(400).json({ error: "Invalid access token format" });
+      }
+
+      if (!FACEBOOK_APP_ID || !FACEBOOK_APP_SECRET) {
+        console.error("[Auth] Facebook OAuth not configured");
+        return res.status(500).json({ error: "Facebook auth not configured" });
+      }
+
+      // Verify the token with Facebook's Debug Token endpoint
+      // This confirms the token is valid and was issued for our app
+      const debugUrl = `https://graph.facebook.com/debug_token?input_token=${encodeURIComponent(accessToken)}&access_token=${FACEBOOK_APP_ID}|${FACEBOOK_APP_SECRET}`;
+
+      let debugData: {
+        data?: {
+          is_valid?: boolean;
+          app_id?: string;
+          user_id?: string;
+        };
+        error?: { message: string };
+      };
+      try {
+        const debugResponse = await fetch(debugUrl);
+        debugData = await debugResponse.json() as typeof debugData;
+      } catch (error) {
+        console.error("[Auth] Facebook token debug request failed:", error);
+        return res.status(401).json({ error: "Failed to verify Facebook token" });
+      }
+
+      if (!debugData.data?.is_valid) {
+        console.error("[Auth] Facebook token invalid:", debugData);
+        return res.status(401).json({ error: "Invalid Facebook token" });
+      }
+
+      // Verify the token was issued for our app
+      if (debugData.data.app_id !== FACEBOOK_APP_ID) {
+        console.error("[Auth] Facebook token app_id mismatch");
+        return res.status(401).json({ error: "Invalid Facebook token" });
+      }
+
+      // Get user info from Facebook Graph API
+      const userUrl = `https://graph.facebook.com/me?fields=id,email,name,picture.type(large)&access_token=${encodeURIComponent(accessToken)}`;
+
+      let userData: {
+        id?: string;
+        email?: string;
+        name?: string;
+        picture?: { data?: { url?: string } };
+      };
+      try {
+        const userResponse = await fetch(userUrl);
+        userData = await userResponse.json() as typeof userData;
+      } catch (error) {
+        console.error("[Auth] Facebook user info request failed:", error);
+        return res.status(401).json({ error: "Failed to get Facebook user info" });
+      }
+
+      if (!userData.id) {
+        return res.status(401).json({ error: "Invalid Facebook user data" });
+      }
+
+      // Prefix Facebook user ID to avoid collisions with Google user IDs
+      const providerUserId = `fb_${userData.id}`;
+      const email = userData.email;
+      const name = userData.name;
+      const picture = userData.picture?.data?.url;
+
+      // Create or update user profile (may return different ID if linked by email)
+      const userId = ensureProfile(providerUserId, email, name, picture);
+
+      const metadata = {
+        userAgent: req.headers["user-agent"],
+        ipAddress: req.ip || req.socket.remoteAddress,
+      };
+
+      const tokens = createSession(userId, metadata);
+
+      // Check if user is admin
+      const isAdmin = checkUserIsAdmin(userId);
+
+      console.log(`[Auth] User ${email || providerUserId} logged in via Facebook${isAdmin ? " (admin)" : ""}`);
+
+      res.json({
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        expiresAt: tokens.accessExpiresAt,
+        user: {
+          id: userId,
+          email: email || null,
+          name: name || null,
+          picture: picture || null,
+          isAdmin,
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] Facebook login error:", error);
       res.status(500).json({ error: "Authentication failed" });
     }
   }

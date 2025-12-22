@@ -3,15 +3,16 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { LogoIcon } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
-import { isGoogleAuthConfigured } from "@/lib/auth";
+import { isGoogleAuthConfigured, isFacebookAuthConfigured } from "@/lib/auth";
 import { useThemeStore } from "@/lib/themeStore";
 import { ChevronRight } from "lucide-react";
 import { LoginHero, LoginForm } from "@/components/login";
+import { FacebookLoginButton } from "@/components/FacebookLoginButton";
 
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, handleGoogleLogin } = useAuth();
+  const { user, handleGoogleLogin, handleFacebookLogin } = useAuth();
   const { theme } = useThemeStore();
   const isDark = theme.isDark;
 
@@ -101,6 +102,19 @@ export function Login() {
               text="continue_with"
               shape="pill"
             />
+          }
+          facebookButton={
+            isFacebookAuthConfigured ? (
+              <FacebookLoginButton
+                onSuccess={(accessToken) => {
+                  handleFacebookLogin(accessToken);
+                }}
+                onError={() => {
+                  console.error("Facebook login failed");
+                }}
+                theme={isDark ? "dark" : "light"}
+              />
+            ) : undefined
           }
         />
       </div>

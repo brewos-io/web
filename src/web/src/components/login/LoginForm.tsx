@@ -43,6 +43,8 @@ interface LoginFormProps {
   showMobileLogo?: boolean;
   /** Custom Google button slot (for real GoogleLogin component) */
   googleButton?: React.ReactNode;
+  /** Custom Facebook button slot (for real FacebookLogin component) */
+  facebookButton?: React.ReactNode;
   /** Compact mode for mobile landscape */
   compact?: boolean;
 }
@@ -52,6 +54,7 @@ export function LoginForm({
   animated = true,
   showMobileLogo = true,
   googleButton,
+  facebookButton,
   compact = false,
 }: LoginFormProps) {
   return (
@@ -94,12 +97,17 @@ export function LoginForm({
           </div>
         )}
 
-        {/* Google Sign In */}
+        {/* Social Sign In Buttons */}
         <div className={animated ? "login-google-btn" : ""}>
-          <div className={`flex justify-center ${compact ? 'mb-3' : 'mb-4 sm:mb-6'}`}>
+          <div className={`flex flex-col items-center gap-3 ${compact ? 'mb-3' : 'mb-4 sm:mb-6'}`}>
             <div className="transform hover:scale-[1.02] transition-transform duration-200">
               {googleButton || <MockGoogleButton />}
             </div>
+            {facebookButton && (
+              <div className="transform hover:scale-[1.02] transition-transform duration-200">
+                {facebookButton}
+              </div>
+            )}
           </div>
 
           {/* Divider */}

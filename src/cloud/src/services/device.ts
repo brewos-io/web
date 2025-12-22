@@ -836,21 +836,26 @@ export function claimDeviceWithShareToken(
 /**
  * Ensure user profile exists (upsert from auth provider)
  * Auto-promotes the first user to admin if no admins exist
+ * 
+ * Account Linking: If a user with the same email already exists (from a different
+ * OAuth provider), returns that user's ID to link the accounts.
+ * 
+ * @returns The actual user ID to use (may differ from input if linked by email)
  */
 export function ensureProfile(
   userId: string,
   email?: string,
   displayName?: string,
   avatarUrl?: string
-): void {
+): string {
   const db = getDb();
   const now = nowUTC();
 
-  // Check if profile exists
+  // Check if profile exists with this exact ID
   const result = db.exec(`SELECT id FROM profiles WHERE id = ?`, [userId]);
-  const isNewUser = result.length === 0 || result[0].values.length === 0;
+  const profileExists = result.length > 0 && result[0].values.length > 0;
 
-  if (!isNewUser) {
+  if (profileExists) {
     // Update existing profile
     db.run(
       `UPDATE profiles SET 
@@ -861,36 +866,73 @@ export function ensureProfile(
        WHERE id = ?`,
       [email || null, displayName || null, avatarUrl || null, now, userId]
     );
-  } else {
-    // Check if any admin exists before inserting new user
-    const adminCount = db.exec(
-      `SELECT COUNT(*) as count FROM profiles WHERE is_admin = 1`
-    );
-    const hasNoAdmins =
-      adminCount.length === 0 ||
-      adminCount[0].values.length === 0 ||
-      (adminCount[0].values[0][0] as number) === 0;
+    saveDatabase();
+    return userId;
+  }
 
-    // Insert new profile - make admin if first user
-    const shouldBeAdmin = hasNoAdmins ? 1 : 0;
-    db.run(
-      `INSERT INTO profiles (id, email, display_name, avatar_url, is_admin, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        userId,
-        email || null,
-        displayName || null,
-        avatarUrl || null,
-        shouldBeAdmin,
-        now,
-      ]
+  // Profile doesn't exist - check if we should link by email
+  if (email) {
+    const existingByEmail = db.exec(
+      `SELECT id, display_name, avatar_url FROM profiles WHERE email = ?`,
+      [email]
     );
 
-    if (shouldBeAdmin) {
-      console.log(`[Auth] First user ${email} auto-promoted to admin`);
+    if (existingByEmail.length > 0 && existingByEmail[0].values.length > 0) {
+      // Found existing account with same email - link accounts
+      const existingUserId = existingByEmail[0].values[0][0] as string;
+      const existingDisplayName = existingByEmail[0].values[0][1] as string | null;
+      const existingAvatarUrl = existingByEmail[0].values[0][2] as string | null;
+
+      console.log(`[Auth] Linking account: ${userId} -> ${existingUserId} (email: ${email})`);
+
+      // Update existing profile with new info if not already set
+      db.run(
+        `UPDATE profiles SET 
+          display_name = COALESCE(display_name, ?),
+          avatar_url = COALESCE(avatar_url, ?),
+          updated_at = ?
+         WHERE id = ?`,
+        [
+          displayName || existingDisplayName || null,
+          avatarUrl || existingAvatarUrl || null,
+          now,
+          existingUserId,
+        ]
+      );
+      saveDatabase();
+      return existingUserId;
     }
   }
 
+  // No existing profile - create new one
+  const adminCount = db.exec(
+    `SELECT COUNT(*) as count FROM profiles WHERE is_admin = 1`
+  );
+  const hasNoAdmins =
+    adminCount.length === 0 ||
+    adminCount[0].values.length === 0 ||
+    (adminCount[0].values[0][0] as number) === 0;
+
+  // Insert new profile - make admin if first user
+  const shouldBeAdmin = hasNoAdmins ? 1 : 0;
+  db.run(
+    `INSERT INTO profiles (id, email, display_name, avatar_url, is_admin, updated_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      userId,
+      email || null,
+      displayName || null,
+      avatarUrl || null,
+      shouldBeAdmin,
+      now,
+    ]
+  );
+
+  if (shouldBeAdmin) {
+    console.log(`[Auth] First user ${email} auto-promoted to admin`);
+  }
+
   saveDatabase();
+  return userId;
 }
 
 /**
