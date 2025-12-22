@@ -71,12 +71,6 @@ cp -r "$WEB_DIST"/* "$ESP32_DATA/"
 
 # Remove files not needed on ESP32 (save space)
 rm -rf "$ESP32_DATA/.well-known" 2>/dev/null || true
-# Remove PWA icon files (not needed on ESP32, save significant space)
-rm -rf "$ESP32_DATA/icons" 2>/dev/null || true
-rm -f "$ESP32_DATA/icon-source.png" "$ESP32_DATA/icon-source.png.gz" 2>/dev/null || true
-rm -f "$ESP32_DATA/apple-touch-icon.png" "$ESP32_DATA/apple-touch-icon.png.gz" 2>/dev/null || true
-rm -f "$ESP32_DATA/favicon-16x16.png" "$ESP32_DATA/favicon-16x16.png.gz" 2>/dev/null || true
-rm -f "$ESP32_DATA/favicon-32x32.png" "$ESP32_DATA/favicon-32x32.png.gz" 2>/dev/null || true
 
 # Show what's being deployed
 echo ""

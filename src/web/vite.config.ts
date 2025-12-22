@@ -148,44 +148,6 @@ export default defineConfig(({ mode, command }) => {
           // Exclude uncompressed folder - keep assets for LVGL/firmware access
           filter: (file) => !/(index\.html|uncompressed\/)/.test(file),
         }),
-      // Exclude PWA icons from ESP32 builds (not needed, save space)
-      isEsp32 &&
-        (() => {
-          return {
-            name: "exclude-pwa-icons",
-            closeBundle() {
-              // Remove icon files after build completes
-              const outDir = path.resolve(__dirname, "../esp32/data");
-              const iconFiles = [
-                "icons/icon-192.png",
-                "icons/icon-512.png",
-                "icons/icon-maskable-192.png",
-                "icons/icon-maskable-512.png",
-                "icon-source.png",
-                "apple-touch-icon.png",
-                "favicon-16x16.png",
-                "favicon-32x32.png",
-              ];
-              
-              iconFiles.forEach((file) => {
-                const filePath = path.join(outDir, file);
-                const gzPath = `${filePath}.gz`;
-                try {
-                  if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                    console.log(`[Vite] Removed ${file} from ESP32 build`);
-                  }
-                  if (fs.existsSync(gzPath)) {
-                    fs.unlinkSync(gzPath);
-                    console.log(`[Vite] Removed ${file}.gz from ESP32 build`);
-                  }
-                } catch {
-                  // Ignore errors if file doesn't exist
-                }
-              });
-            },
-          };
-        })(),
     ].filter(Boolean),
     resolve: {
       alias: {

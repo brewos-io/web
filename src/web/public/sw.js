@@ -15,11 +15,9 @@ const RUNTIME_CACHE_NAME = `brewos-runtime-${CACHE_VERSION}`;
 const APP_SHELL = [
   "/",
   "/index.html",
-  "/favicon-32x32.png",
-  "/favicon-16x16.png",
-  "/apple-touch-icon.png",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
+  "/favicon.svg",
+  "/logo-icon.svg",
+  "/logo.png",
   "/manifest.json",
 ];
 
@@ -332,8 +330,8 @@ self.addEventListener("push", (event) => {
   let notificationData = {
     title: "BrewOS",
     body: "You have a new notification",
-    icon: "/icons/icon-192.png",
-    badge: "/icons/icon-192.png",
+    icon: "/logo-icon.svg",
+    badge: "/logo-icon.svg",
     tag: "brewos-notification",
     requireInteraction: false,
     data: {},
