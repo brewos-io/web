@@ -91,7 +91,7 @@ if (process.env.NODE_ENV === "production") {
 app.use((_req, res, next) => {
   // COOP: same-origin-allow-popups allows the Google Sign-In popup to communicate back
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
-  
+
   // Content Security Policy - Allow Google Sign-In iframes while preventing clickjacking
   // frame-src allows Google Sign-In button iframes
   // script-src allows Google Sign-In scripts
@@ -99,17 +99,17 @@ app.use((_req, res, next) => {
     "default-src 'self'",
     "frame-src 'self' https://accounts.google.com https://*.google.com",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://*.google.com https://www.googletagmanager.com https://www.google-analytics.com",
-    "connect-src 'self' https://accounts.google.com https://*.google.com wss://cloud.brewos.io ws://localhost:* http://localhost:*",
+    "connect-src 'self' https://accounts.google.com https://*.google.com https://*.googleusercontent.com https://fonts.googleapis.com https://www.googletagmanager.com wss://cloud.brewos.io ws://localhost:* http://localhost:*",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: blob:",
   ].join("; ");
   res.setHeader("Content-Security-Policy", csp);
-  
+
   // X-Frame-Options is less flexible than CSP, but keep it for older browsers
   // SAMEORIGIN allows same-origin iframes (our app) but blocks cross-origin except where CSP allows
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  
+
   // Prevent MIME type sniffing
   res.setHeader("X-Content-Type-Options", "nosniff");
   // Enable XSS protection (legacy browsers)
@@ -420,7 +420,10 @@ app.get("/api/health/detailed", (_req, res) => {
       external: Math.round(memUsage.external / 1024 / 1024),
       rss: Math.round(memUsage.rss / 1024 / 1024),
       arrayBuffers: Math.round(memUsage.arrayBuffers / 1024 / 1024),
-      heapUsagePercent: ((memUsage.heapUsed / memUsage.heapTotal) * 100).toFixed(1),
+      heapUsagePercent: (
+        (memUsage.heapUsed / memUsage.heapTotal) *
+        100
+      ).toFixed(1),
       // Note: High percentage is normal - Node.js grows heap on demand
       note: "Node.js dynamically grows heap as needed (up to ~4GB on 64-bit). High % is normal.",
     },
@@ -439,7 +442,8 @@ app.get("/api/health/detailed", (_req, res) => {
 app.post("/api/health/gc", (_req, res) => {
   if (typeof global.gc !== "function") {
     res.status(400).json({
-      error: "GC not exposed. Start node with --expose-gc flag to enable this endpoint.",
+      error:
+        "GC not exposed. Start node with --expose-gc flag to enable this endpoint.",
     });
     return;
   }
@@ -547,7 +551,9 @@ app.use(
   "/api/devices",
   (req, _res, next) => {
     // Inject live device connection checker - this is the source of truth for online status
-    (req as unknown as Record<string, unknown>).isDeviceConnected = (deviceId: string) => {
+    (req as unknown as Record<string, unknown>).isDeviceConnected = (
+      deviceId: string
+    ) => {
       return deviceRelay.isDeviceConnected(deviceId);
     };
     next();
@@ -561,7 +567,9 @@ app.use(
   "/api/admin",
   (req, _res, next) => {
     // Inject helper functions for admin routes
-    (req as unknown as Record<string, unknown>).disconnectDevice = (deviceId: string) => {
+    (req as unknown as Record<string, unknown>).disconnectDevice = (
+      deviceId: string
+    ) => {
       return deviceRelay.disconnectDevice(deviceId);
     };
     (req as unknown as Record<string, unknown>).getConnectionStats = () => {
@@ -571,12 +579,14 @@ app.use(
       };
     };
     // Inject live device connection checker - this is the source of truth for online status
-    (req as unknown as Record<string, unknown>).isDeviceConnected = (deviceId: string) => {
+    (req as unknown as Record<string, unknown>).isDeviceConnected = (
+      deviceId: string
+    ) => {
       return deviceRelay.isDeviceConnected(deviceId);
     };
     // Inject function to get list of connected device IDs
     (req as unknown as Record<string, unknown>).getConnectedDeviceIds = () => {
-      return deviceRelay.getConnectedDevices().map(d => d.id);
+      return deviceRelay.getConnectedDevices().map((d) => d.id);
     };
     next();
   },
@@ -637,7 +647,9 @@ async function start() {
     try {
       const offlineCount = markAllDevicesOffline();
       if (offlineCount > 0) {
-        console.log(`[Startup] Reset ${offlineCount} device(s) to offline state`);
+        console.log(
+          `[Startup] Reset ${offlineCount} device(s) to offline state`
+        );
       }
     } catch (error) {
       console.error("[Startup] Failed to reset device states:", error);
@@ -654,7 +666,9 @@ async function start() {
       const deletedTokens = cleanupExpiredTokens();
       const deletedSessions = cleanupExpiredSessions();
       if (deletedTokens > 0 || deletedSessions > 0) {
-        console.log(`[Cleanup] Startup: ${deletedTokens} tokens, ${deletedSessions} sessions deleted`);
+        console.log(
+          `[Cleanup] Startup: ${deletedTokens} tokens, ${deletedSessions} sessions deleted`
+        );
       }
     } catch (error) {
       console.error("[Cleanup] Startup cleanup error:", error);
@@ -674,7 +688,9 @@ async function start() {
         // Cleanup expired sessions (expired OR unused for 7 days)
         const deletedSessions = cleanupExpiredSessions();
         if (deletedSessions > 0) {
-          console.log(`[Cleanup] Deleted ${deletedSessions} expired/stale sessions`);
+          console.log(
+            `[Cleanup] Deleted ${deletedSessions} expired/stale sessions`
+          );
         }
       } catch (error) {
         console.error("[Cleanup] Error:", error);
