@@ -177,7 +177,7 @@ void CloudConnection::taskCode(void* parameter) {
         
         // Yield to other tasks
         if (self->_connected) {
-            vTaskDelay(pdMS_TO_TICKS(100));  // Connected: responsive but not too aggressive
+            vTaskDelay(pdMS_TO_TICKS(50));   // Connected: responsive to process queue quickly
         } else if (self->_connecting) {
             vTaskDelay(pdMS_TO_TICKS(20));   // Handshake: fast loop
         } else {
@@ -487,14 +487,10 @@ void CloudConnection::processSendQueue() {
     }
     
     char* msg = nullptr;
-    // Process up to 3 messages per loop to avoid blocking
-    for (int i = 0; i < 3; i++) {
-        if (xQueueReceive(_sendQueue, &msg, 0) == pdTRUE && msg) {
-            _ws.sendTXT(msg);
-            free(msg);
-        } else {
-            break;
-        }
+    // Process ALL queued messages to prevent queue overflow
+    while (xQueueReceive(_sendQueue, &msg, 0) == pdTRUE && msg) {
+        _ws.sendTXT(msg);
+        free(msg);
     }
 }
 
