@@ -33,17 +33,20 @@ void WebServer::handleWsEvent(AsyncWebSocket* server, AsyncWebSocketClient* clie
     switch (type) {
         case WS_EVT_DISCONNECT:
             LOG_I("WebSocket client %u disconnected", client->id());
-            // Resume cloud connection when last local client disconnects
+            // When last local client disconnects, wait 30s before resuming cloud
+            // This prevents rapid cloud reconnect if user is just refreshing the page
             // Note: count() still includes the disconnecting client at this point
             if (server->count() <= 1 && _cloudConnection) {
-                _cloudConnection->resume();
+                // Extend pause by 30s instead of immediate resume
+                _cloudConnection->pause();
+                LOG_I("Cloud will resume in 30s");
             }
             break;
             
         case WS_EVT_CONNECT:
             {
-                // Limit to 2 concurrent clients to save RAM
-                if (server->count() > 2) {
+                // Limit to 1 concurrent client to save RAM (each WS client uses ~4KB)
+                if (server->count() > 1) {
                     LOG_W("Too many WebSocket clients (%u), rejecting %u", server->count(), client->id());
                     client->close();
                     return;

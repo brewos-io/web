@@ -50,8 +50,8 @@ void WebServer::begin() {
     LOG_I("Starting web server...");
     
     // Initialize LittleFS with more open files to handle parallel asset requests
-    // Default is 5, increasing to 15 to prevent "fopen failed" errors
-    if (!LittleFS.begin(true, "/littlefs", 15)) {
+    // Default is 5, increasing to 10 to prevent "fopen failed" errors (reduced from 15 to save heap)
+    if (!LittleFS.begin(true, "/littlefs", 10)) {
         LOG_E("Failed to mount LittleFS");
     } else {
         LOG_I("LittleFS mounted");

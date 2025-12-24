@@ -13,7 +13,7 @@
 #define MIN_HEAP_FOR_CONNECT 50000  // Need 50KB heap for SSL buffers + web server headroom
 #define MIN_HEAP_TO_STAY_CONNECTED 35000  // Disconnect if heap drops below this
 #define SSL_HANDSHAKE_TIMEOUT_MS 15000  // 15s timeout (RSA should take 5-10s)
-#define CLOUD_TASK_STACK_SIZE 8192  // 8KB stack for SSL operations
+#define CLOUD_TASK_STACK_SIZE 6144  // 6KB stack for SSL operations (reduced from 8KB)
 #define CLOUD_TASK_PRIORITY 1  // Low priority - below web server
 
 CloudConnection::CloudConnection() {
@@ -221,6 +221,16 @@ void CloudConnection::taskCode(void* parameter) {
             continue;
         }
         
+        // Skip WebSocket operations when waiting for reconnect delay
+        // This prevents the library from internally retrying and blocking the device
+        if (!self->_connected && !self->_connecting) {
+            if (nowForWs - self->_lastConnectAttempt < self->_reconnectDelay) {
+                // Still waiting - sleep and skip _ws.loop()
+                vTaskDelay(pdMS_TO_TICKS(1000));
+                continue;
+            }
+        }
+        
         // All WebSocket operations under mutex
         if (xSemaphoreTake(self->_mutex, pdMS_TO_TICKS(50)) == pdTRUE) {
             // Double-check pause (could have been set while waiting for mutex)
@@ -230,8 +240,12 @@ void CloudConnection::taskCode(void* parameter) {
                 continue;
             }
             
-            // Process WebSocket events - this drives the SSL handshake
-            self->_ws.loop();
+            // Only call _ws.loop() when connected or connecting
+            // Skip when idle/waiting to prevent library's internal reconnect attempts
+            if (self->_connected || self->_connecting) {
+                // Process WebSocket events - this drives the SSL handshake
+                self->_ws.loop();
+            }
             
             // Send queued messages (only when connected)
             if (self->_connected) {
@@ -247,7 +261,7 @@ void CloudConnection::taskCode(void* parameter) {
         } else if (self->_connecting) {
             vTaskDelay(pdMS_TO_TICKS(20));   // Handshake: fast loop
         } else {
-            vTaskDelay(pdMS_TO_TICKS(500));  // Idle: save CPU
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Idle/waiting: save CPU, check every 1s
         }
     }
     

@@ -676,11 +676,11 @@ void setup() {
     
     // Initialize LittleFS (needed by State, WebServer, etc.)
     Serial.println("[2/8] Initializing LittleFS...");
-    // Use 15 max open files to support parallel asset loading in web UI
-    if (!LittleFS.begin(true, "/littlefs", 15)) {
+    // Use 10 max open files (reduced from 15 to save heap)
+    if (!LittleFS.begin(true, "/littlefs", 10)) {
         Serial.println("LittleFS mount failed - formatting...");
         LittleFS.format();
-        if (!LittleFS.begin(true, "/littlefs", 15)) {
+        if (!LittleFS.begin(true, "/littlefs", 10)) {
             Serial.println("ERROR: LittleFS format failed!");
             // Continue anyway - web server will handle missing files gracefully
         } else {

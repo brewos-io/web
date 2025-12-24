@@ -197,6 +197,10 @@ export default defineConfig(({ mode, command }) => {
               if (id.includes("node_modules/lucide-react")) {
                 return "icons";
               }
+              // Charts (recharts is large ~200KB)
+              if (id.includes("node_modules/recharts") || id.includes("node_modules/d3")) {
+                return "charts";
+              }
               // QR code libraries - don't split separately to avoid circular dependency issues
               // They'll be bundled with the components that use them (lazy loaded)
               // OAuth (only used in cloud mode)
