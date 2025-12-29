@@ -7,6 +7,7 @@
 #include "power_meter/power_meter_manager.h"
 #include "notifications/notification_manager.h"
 #include "state/state_manager.h"
+#include "display/display.h"
 #include <LittleFS.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
@@ -76,9 +77,13 @@ static void pauseBackgroundServices() {
 
 /**
  * @brief Resumes all background services after OTA
+ * Note: Usually not called since device restarts after OTA (success or failure)
  */
 static void resumeBackgroundServices() {
     LOG_I("Resuming background services after OTA...");
+    
+    // Turn display back on
+    display.backlightOn();
     
     // Re-enable MQTT client after OTA
     if (mqttClient) {
@@ -112,6 +117,7 @@ static void handleOTAFailure(AsyncWebSocket* ws);
 /**
  * Pause all background services before OTA
  * This prevents network/BLE interference and SSL crashes during update
+ * Also frees memory needed for SSL buffers (~50KB for HTTPS)
  * 
  * Services paused:
  * - CloudConnection: SSL WebSocket to cloud server
@@ -119,6 +125,7 @@ static void handleOTAFailure(AsyncWebSocket* ws);
  * - ScaleManager: BLE scanning/connection (interferes with WiFi)
  * - PowerMeterManager: HTTP polling to Shelly/Tasmota
  * - NotificationManager: Push notifications to cloud
+ * - Display: Backlight and RGB signals turned off (reduces DMA activity)
  * 
  * Services NOT paused (needed for OTA):
  * - WiFiManager: Network connectivity
@@ -127,6 +134,9 @@ static void handleOTAFailure(AsyncWebSocket* ws);
  */
 static void pauseServicesForOTA(CloudConnection* cloudConnection) {
     LOG_I("Pausing services for OTA...");
+    
+    size_t heapBefore = ESP.getFreeHeap();
+    LOG_I("Heap before pausing: %zu bytes", heapBefore);
     
     // 0. Disable watchdog - OTA has long-blocking operations
     disableWatchdogForOTA();
@@ -165,13 +175,22 @@ static void pauseServicesForOTA(CloudConnection* cloudConnection) {
         notificationManager->setEnabled(false);
     }
     
-    // Give all services time to cleanly shut down
-    for (int i = 0; i < 5; i++) {
+    // 6. Turn off display to free memory and reduce interference
+    // Display uses PSRAM for buffers but turning it off reduces DMA activity
+    LOG_I("  - Turning off display...");
+    display.backlightOff();
+    
+    // Give all services time to cleanly shut down and memory to be freed
+    // Wait 2 seconds total for services to release their resources
+    LOG_I("Waiting for memory to be freed...");
+    for (int i = 0; i < 20; i++) {
         delay(100);
         yield();
     }
     
-    LOG_I("All services paused for OTA");
+    size_t heapAfter = ESP.getFreeHeap();
+    LOG_I("All services paused for OTA. Heap: %zu bytes (freed %d bytes)", 
+          heapAfter, (int)(heapAfter - heapBefore));
 }
 
 /**
@@ -211,6 +230,11 @@ constexpr unsigned long OTA_WATCHDOG_FEED_INTERVAL_MS = 50;// Feed watchdog ever
 
 // Buffer sizes
 constexpr size_t OTA_BUFFER_SIZE = 512;                    // Smaller buffer for stack safety
+
+// SSL buffer sizes - reduced for low memory (default is 16KB each!)
+// RX needs to be large enough for TLS records, TX can be small (HTTP requests)
+constexpr size_t OTA_SSL_RX_BUFFER = 4096;                 // 4KB RX buffer (down from 16KB)
+constexpr size_t OTA_SSL_TX_BUFFER = 512;                  // 512B TX buffer (down from 16KB)
 
 // Retry configuration
 constexpr int OTA_MAX_RETRIES = 3;
@@ -444,9 +468,11 @@ static bool downloadToFile(const char* url, const char* filePath,
                            size_t* outFileSize = nullptr) {
     LOG_I("Downloading: %s", url);
     
-    // Configure secure client for maximum throughput
+    // Configure secure client with reduced buffer sizes for low memory
+    // Default 16KB buffers would fail with only ~40KB free heap
     WiFiClientSecure client;
     client.setInsecure();
+    client.setBufferSizes(OTA_SSL_RX_BUFFER, OTA_SSL_TX_BUFFER);
     
     HTTPClient http;
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -849,9 +875,10 @@ void BrewWebServer::startGitHubOTA(const String& version) {
     
     broadcastOtaProgress(&_ws, "download", 65, "Downloading ESP32 firmware...");
     
-    // Configure secure client for maximum throughput
+    // Configure secure client with reduced buffer sizes for low memory
     WiFiClientSecure client;
     client.setInsecure(); // Skip cert verification for speed/simplicity
+    client.setBufferSizes(OTA_SSL_RX_BUFFER, OTA_SSL_TX_BUFFER);
     
     // Download ESP32 firmware
     HTTPClient http;
@@ -1056,9 +1083,10 @@ void BrewWebServer::updateLittleFS(const char* tag) {
              "https://github.com/" GITHUB_OWNER "/" GITHUB_REPO "/releases/download/%s/" GITHUB_ESP32_LITTLEFS_ASSET, 
              tag);
     
-    // Configure secure client
+    // Configure secure client with reduced buffer sizes for low memory
     WiFiClientSecure client;
     client.setInsecure();
+    client.setBufferSizes(OTA_SSL_RX_BUFFER, OTA_SSL_TX_BUFFER);
     
     HTTPClient http;
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
