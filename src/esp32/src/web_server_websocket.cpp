@@ -135,6 +135,13 @@ void BrewWebServer::processCommand(JsonDocument& doc) {
         size_t freeHeap = ESP.getFreeHeap();
         const size_t MIN_HEAP_FOR_STATE_BROADCAST = 35000;  // Need 35KB (state uses PSRAM buffers)
         
+        // If this is from cloud server (not proactive), cancel pending proactive broadcast
+        // to avoid duplicate state sends
+        String source = doc["source"] | "";
+        if (source != "proactive" && _cloudConnection) {
+            _cloudConnection->cancelPendingStateBroadcast();
+        }
+        
         if (freeHeap < MIN_HEAP_FOR_STATE_BROADCAST) {
             // Heap critically low - schedule deferred broadcast
             LOG_W("Cloud: Scheduling deferred state broadcast (heap=%zu, need %zu)", 

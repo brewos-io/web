@@ -117,6 +117,12 @@ public:
      * Call this when encoder/button events occur
      */
     void notifyUserActivity();
+    
+    /**
+     * Cancel pending proactive state broadcast
+     * Call when server sends request_state to avoid duplicate broadcast
+     */
+    void cancelPendingStateBroadcast();
 
 private:
     WebSocketsClient _ws;

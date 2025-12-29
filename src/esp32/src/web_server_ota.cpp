@@ -1231,6 +1231,17 @@ void BrewWebServer::updateLittleFS(const char* tag) {
     
     LOG_I("Found filesystem partition: %s (%d bytes)", partition->label, partition->size);
     
+    // Check if downloaded image fits in the partition
+    // This prevents silent truncation when partition table has changed
+    if ((size_t)contentLength > partition->size) {
+        LOG_W("LittleFS image (%d bytes) exceeds partition size (%d bytes)", 
+              contentLength, partition->size);
+        LOG_W("Partition table mismatch - USB flash required for this upgrade");
+        broadcastOtaProgress(&_ws, "error", 0, "Partition too small - USB flash required");
+        http.end();
+        return;
+    }
+    
     broadcastOtaProgress(&_ws, "flash", 97, "Erasing filesystem...");
     feedWatchdog();
     

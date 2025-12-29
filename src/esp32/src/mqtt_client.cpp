@@ -571,10 +571,10 @@ void MQTTClient::publishHomeAssistantDiscovery() {
             LOG_W("Failed to publish HA discovery for %s", sensorId);
         }
         yield();  // Yield to prevent blocking network stack
-        // Small delay every 5 publishes to prevent network stack saturation
-        if (++publishCount % 5 == 0) {
-            delay(10);  // 10ms delay every 5 publishes
-        }
+        // Delay after each publish to prevent broker overwhelm
+        // Some brokers (Mosquitto, etc) disconnect clients that publish too rapidly
+        delay(50);  // 50ms delay per publish (~2 seconds total for 35 entities)
+        publishCount++;
     };
     
     // Publish binary sensors for status
@@ -608,10 +608,9 @@ void MQTTClient::publishHomeAssistantDiscovery() {
         snprintf(configTopic, sizeof(configTopic), "homeassistant/binary_sensor/brewos_%s/%s/config",
                  deviceId.c_str(), sensorId);
         _client.publish(configTopic, (const uint8_t*)payloadBuffer, payloadLen, true);
-        yield();  // Yield to prevent blocking network stack
-        if (++publishCount % 5 == 0) {
-            delay(10);
-        }
+        yield();
+        delay(50);  // Prevent broker overwhelm
+        publishCount++;
     };
     
     // Helper to publish a switch
@@ -646,10 +645,9 @@ void MQTTClient::publishHomeAssistantDiscovery() {
         snprintf(configTopic, sizeof(configTopic), "homeassistant/switch/brewos_%s/%s/config",
                  deviceId.c_str(), switchId);
         _client.publish(configTopic, (const uint8_t*)payloadBuffer, payloadLen, true);
-        yield();  // Yield to prevent blocking network stack
-        if (++publishCount % 5 == 0) {
-            delay(10);
-        }
+        yield();
+        delay(50);  // Prevent broker overwhelm
+        publishCount++;
     };
     
     // Helper to publish a button
@@ -678,10 +676,9 @@ void MQTTClient::publishHomeAssistantDiscovery() {
         snprintf(configTopic, sizeof(configTopic), "homeassistant/button/brewos_%s/%s/config",
                  deviceId.c_str(), buttonId);
         _client.publish(configTopic, (const uint8_t*)payloadBuffer, payloadLen, true);
-        yield();  // Yield to prevent blocking network stack
-        if (++publishCount % 5 == 0) {
-            delay(10);
-        }
+        yield();
+        delay(50);  // Prevent broker overwhelm
+        publishCount++;
     };
     
     // Helper to publish a number entity
@@ -718,10 +715,9 @@ void MQTTClient::publishHomeAssistantDiscovery() {
         snprintf(configTopic, sizeof(configTopic), "homeassistant/number/brewos_%s/%s/config",
                  deviceId.c_str(), numberId);
         _client.publish(configTopic, (const uint8_t*)payloadBuffer, payloadLen, true);
-        yield();  // Yield to prevent blocking network stack
-        if (++publishCount % 5 == 0) {
-            delay(10);
-        }
+        yield();
+        delay(50);  // Prevent broker overwhelm
+        publishCount++;
     };
     
     // Helper to publish a select entity
@@ -758,10 +754,9 @@ void MQTTClient::publishHomeAssistantDiscovery() {
         snprintf(configTopic, sizeof(configTopic), "homeassistant/select/brewos_%s/%s/config",
                  deviceId.c_str(), selectId);
         _client.publish(configTopic, (const uint8_t*)payloadBuffer, payloadLen, true);
-        yield();  // Yield to prevent blocking network stack
-        if (++publishCount % 5 == 0) {
-            delay(10);
-        }
+        yield();
+        delay(50);  // Prevent broker overwhelm
+        publishCount++;
     };
     
     // ==========================================================================

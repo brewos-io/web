@@ -303,6 +303,10 @@ void CloudConnection::notifyUserActivity() {
     _lastUserActivity = millis();
 }
 
+void CloudConnection::cancelPendingStateBroadcast() {
+    _pendingInitialStateBroadcast = false;
+}
+
 void CloudConnection::connect() {
     if (_serverUrl.isEmpty() || _deviceId.isEmpty()) {
         LOG_W("Cannot connect: missing server URL or device ID");
