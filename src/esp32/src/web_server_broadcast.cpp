@@ -2,6 +2,7 @@
 #include "config.h"
 #include "memory_utils.h"
 #include "cloud_connection.h"
+#include "mqtt_client.h"
 #include "state/state_manager.h"
 #include "statistics/statistics_manager.h"
 #include "power_meter/power_meter_manager.h"

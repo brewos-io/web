@@ -34,6 +34,8 @@ export type MessageType =
   | "pico_status"
   | "scale_status"
   | "power_meter_status"
+  | "mqtt_status"
+  | "mqtt_test_result"
   | "bbw_settings"
   | "preinfusion_settings"
   | "stats"

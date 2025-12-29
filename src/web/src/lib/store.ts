@@ -903,7 +903,8 @@ export const useStore = create<BrewOSState>()(
               mqtt: {
                 ...state.mqtt,
                 enabled: (mqttData.enabled as boolean) ?? state.mqtt.enabled,
-                connected: (mqttData.connected as boolean) ?? state.mqtt.connected,
+                connected:
+                  (mqttData.connected as boolean) ?? state.mqtt.connected,
                 broker: (mqttData.broker as string) ?? state.mqtt.broker,
                 topic: (mqttData.topic as string) ?? state.mqtt.topic,
               },
