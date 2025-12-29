@@ -3,7 +3,11 @@
 
 #include <Arduino.h>
 #include <functional>
-#include "config.h"  // For BrewOSLogLevel enum
+
+// Include config.h for BrewOSLogLevel enum
+// Include guards prevent infinite recursion when config.h includes this file
+// We just need to avoid using LOG macros in this header (which we don't)
+#include "config.h"
 
 // Log buffer size (50KB)
 #define LOG_BUFFER_SIZE (50 * 1024)
@@ -127,5 +131,9 @@ private:
 
 // Global instance access (may be nullptr if never enabled)
 extern LogManager* g_logManager;
+
+// Helper functions for LOG macros (take int to avoid needing enum definition)
+// These are implemented in log_manager.cpp where we have the full enum definition
+void log_manager_add_logf(int level, LogSource source, const char* format, ...);
 
 #endif // LOG_MANAGER_H

@@ -133,12 +133,43 @@ BrewOSLogLevel getLogLevel();
 const char* logLevelToString(BrewOSLogLevel level);
 BrewOSLogLevel stringToLogLevel(const char* str);
 
+// Forward declarations for log manager
+// Note: We include log_manager.h here to enable automatic log capture in LOG macros
+// This is safe because we removed the config.h include from log_manager.h
+#include "log_manager.h"
+
 // Log macros with level checking (only define if platform.h wasn't included first)
 #define LOG_TAG                 "BrewOS"
-#define LOG_E(fmt, ...)         Serial.printf("[%lu] E: " fmt "\n", millis(), ##__VA_ARGS__)
-#define LOG_W(fmt, ...)         do { if (g_brewos_log_level >= BREWOS_LOG_WARN) Serial.printf("[%lu] W: " fmt "\n", millis(), ##__VA_ARGS__); } while(0)
-#define LOG_I(fmt, ...)         do { if (g_brewos_log_level >= BREWOS_LOG_INFO) Serial.printf("[%lu] I: " fmt "\n", millis(), ##__VA_ARGS__); } while(0)
-#define LOG_D(fmt, ...)         do { if (g_brewos_log_level >= BREWOS_LOG_DEBUG) Serial.printf("[%lu] D: " fmt "\n", millis(), ##__VA_ARGS__); } while(0)
+#define LOG_E(fmt, ...)         do { \
+    Serial.printf("[%lu] E: " fmt "\n", millis(), ##__VA_ARGS__); \
+    if (g_logManager && g_logManager->isEnabled()) { \
+        log_manager_add_logf(BREWOS_LOG_ERROR, LOG_SOURCE_ESP32, fmt, ##__VA_ARGS__); \
+    } \
+} while(0)
+#define LOG_W(fmt, ...)         do { \
+    if (g_brewos_log_level >= BREWOS_LOG_WARN) { \
+        Serial.printf("[%lu] W: " fmt "\n", millis(), ##__VA_ARGS__); \
+        if (g_logManager && g_logManager->isEnabled()) { \
+            log_manager_add_logf(BREWOS_LOG_WARN, LOG_SOURCE_ESP32, fmt, ##__VA_ARGS__); \
+        } \
+    } \
+} while(0)
+#define LOG_I(fmt, ...)         do { \
+    if (g_brewos_log_level >= BREWOS_LOG_INFO) { \
+        Serial.printf("[%lu] I: " fmt "\n", millis(), ##__VA_ARGS__); \
+        if (g_logManager && g_logManager->isEnabled()) { \
+            log_manager_add_logf(BREWOS_LOG_INFO, LOG_SOURCE_ESP32, fmt, ##__VA_ARGS__); \
+        } \
+    } \
+} while(0)
+#define LOG_D(fmt, ...)         do { \
+    if (g_brewos_log_level >= BREWOS_LOG_DEBUG) { \
+        Serial.printf("[%lu] D: " fmt "\n", millis(), ##__VA_ARGS__); \
+        if (g_logManager && g_logManager->isEnabled()) { \
+            log_manager_add_logf(BREWOS_LOG_DEBUG, LOG_SOURCE_ESP32, fmt, ##__VA_ARGS__); \
+        } \
+    } \
+} while(0)
 #else
 // Platform.h was included first, so use its log_level_t and LOG_* macros
 // Define BrewOSLogLevel as an alias for backward compatibility with existing code

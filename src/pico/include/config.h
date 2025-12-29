@@ -99,7 +99,17 @@
 // Both DEBUG_PRINT and LOG_PRINT output to USB serial in all builds
 // DEBUG_PRINT: Verbose debugging information
 // LOG_PRINT: Important operational logs
+// Note: log_forward.h is included here to enable automatic log forwarding
+// when enabled. This creates a dependency, but log_forward.h doesn't include config.h
+// so it's safe.
+#include "log_forward.h"
+
 #define DEBUG_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
-#define LOG_PRINT(fmt, ...) printf(fmt, ##__VA_ARGS__)
+#define LOG_PRINT(fmt, ...) do { \
+    printf(fmt, ##__VA_ARGS__); \
+    if (log_forward_is_enabled()) { \
+        log_forward_sendf(LOG_FWD_INFO, fmt, ##__VA_ARGS__); \
+    } \
+} while(0)
 
 #endif // CONFIG_H

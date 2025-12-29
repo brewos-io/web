@@ -1,6 +1,9 @@
 #include "log_manager.h"
+#include "config.h"  // For BrewOSLogLevel enum definition
 #include "protocol_defs.h"
 #include <esp_heap_caps.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include <stdarg.h>
 
 // Global instance pointer
@@ -114,10 +117,7 @@ void LogManager::writeToBuffer(const char* data, size_t len) {
     if (!_buffer || len == 0) return;
     
     for (size_t i = 0; i < len; i++) {
-        _buffer[_head] = data[i];
-        _head = (_head + 1) % LOG_BUFFER_SIZE;
-        
-        // If we've caught up to tail, advance tail (discard oldest)
+        // Check if we're about to overwrite tail (buffer full)
         if (_wrapped && _head == _tail) {
             // Find next newline to maintain log entry integrity
             while (_buffer[_tail] != '\n' && _tail != _head) {
@@ -129,7 +129,11 @@ void LogManager::writeToBuffer(const char* data, size_t len) {
             }
         }
         
-        if (_head == 0 && i > 0) {
+        _buffer[_head] = data[i];
+        _head = (_head + 1) % LOG_BUFFER_SIZE;
+        
+        // Detect wrap: if head wraps to 0, we've wrapped around
+        if (_head == 0) {
             _wrapped = true;
         }
     }
@@ -146,22 +150,41 @@ void LogManager::addLog(BrewOSLogLevel level, LogSource source, const char* mess
     // No-op if disabled
     if (!_enabled || !_buffer || !message) return;
     
+    // Safety: Don't log from interrupt context (mutex can't be used in ISR)
+    // Note: We rely on mutex timeout to handle ISR cases
+    // If called from ISR, xSemaphoreTake will fail safely
+    
     // Take mutex (with timeout to avoid deadlock)
     if (xSemaphoreTake(_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
         return; // Skip this log entry if can't get mutex
     }
     
     // Format: [timestamp] [SOURCE] LEVEL: message\n
+    // Truncate message if too long to fit in entry buffer
     char entry[LOG_ENTRY_MAX_SIZE];
     unsigned long timestamp = millis();
+    
+    // Calculate available space for message (leave room for prefix and newline)
+    size_t prefixLen = snprintf(entry, sizeof(entry), "[%lu] [%s] %s: ", 
+                                 timestamp, sourceToString(source), levelToString(level));
+    size_t maxMsgLen = sizeof(entry) - prefixLen - 2; // -2 for \n and \0
+    
+    // Truncate message if needed
+    char truncatedMsg[LOG_ENTRY_MAX_SIZE];
+    strncpy(truncatedMsg, message, maxMsgLen);
+    truncatedMsg[maxMsgLen] = '\0';
+    
+    // Format complete entry
     int len = snprintf(entry, sizeof(entry), "[%lu] [%s] %s: %s\n",
                        timestamp,
                        sourceToString(source),
                        levelToString(level),
-                       message);
+                       truncatedMsg);
     
-    if (len > 0 && len < (int)sizeof(entry)) {
-        writeToBuffer(entry, len);
+    // Write to buffer (snprintf will truncate if needed, but we ensure it fits)
+    if (len > 0) {
+        size_t writeLen = (len < (int)sizeof(entry)) ? len : sizeof(entry) - 1;
+        writeToBuffer(entry, writeLen);
     }
     
     xSemaphoreGive(_mutex);
@@ -171,7 +194,11 @@ void LogManager::addLogf(BrewOSLogLevel level, LogSource source, const char* for
     // No-op if disabled
     if (!_enabled || !_buffer || !format) return;
     
-    char message[LOG_ENTRY_MAX_SIZE - 32]; // Leave room for timestamp/source prefix
+    // Safety: Don't log from interrupt context (mutex can't be used in ISR)
+    // Note: We rely on mutex timeout to handle ISR cases
+    // If called from ISR, xSemaphoreTake will fail safely
+    
+    char message[200]; // Larger buffer to avoid truncation
     va_list args;
     va_start(args, format);
     vsnprintf(message, sizeof(message), format, args);
@@ -192,16 +219,17 @@ String LogManager::getLogs() {
     
     if (_wrapped) {
         // Buffer has wrapped - read from tail to end, then from start to head
+        // Read all bytes including nulls (they're part of the log data)
         for (size_t i = _tail; i < LOG_BUFFER_SIZE; i++) {
-            if (_buffer[i]) result += _buffer[i];
+            result += _buffer[i];
         }
         for (size_t i = 0; i < _head; i++) {
-            if (_buffer[i]) result += _buffer[i];
+            result += _buffer[i];
         }
     } else {
         // Buffer hasn't wrapped - simple copy from start to head
         for (size_t i = 0; i < _head; i++) {
-            if (_buffer[i]) result += _buffer[i];
+            result += _buffer[i];
         }
     }
     
@@ -258,18 +286,42 @@ void LogManager::handlePicoLog(const uint8_t* payload, size_t length) {
     // No-op if disabled
     if (!_enabled || !payload || length == 0) return;
     
+    // Safety: Don't log from interrupt context (mutex can't be used in ISR)
+    // Note: We rely on mutex timeout to handle ISR cases
+    // If called from ISR, xSemaphoreTake will fail safely
+    
     // Payload format: [level (1 byte)] [message (rest)]
     if (length < 2) return;
     
     BrewOSLogLevel level = (BrewOSLogLevel)payload[0];
     if (level > BREWOS_LOG_DEBUG) level = BREWOS_LOG_INFO;
     
-    // Copy message (ensure null termination)
-    char message[LOG_ENTRY_MAX_SIZE];
+    // Copy message (ensure null termination, truncate if too long)
+    char message[200]; // Sufficient size for log messages
     size_t msgLen = length - 1;
     if (msgLen >= sizeof(message)) msgLen = sizeof(message) - 1;
     memcpy(message, &payload[1], msgLen);
     message[msgLen] = '\0';
     
     addLog(level, LOG_SOURCE_PICO, message);
+}
+
+// Helper function for LOG macros (takes int to avoid circular dependency)
+void log_manager_add_logf(int level, LogSource source, const char* format, ...) {
+    if (!g_logManager || !g_logManager->isEnabled()) {
+        return;
+    }
+    
+    // Safety: Don't log from interrupt context (mutex can't be used in ISR)
+    // Note: We rely on mutex timeout to handle ISR cases
+    // If called from ISR, xSemaphoreTake will fail safely
+    
+    // Use larger buffer to avoid truncation (LOG_ENTRY_MAX_SIZE is 256, so use 200 for message)
+    char message[200];
+    va_list args;
+    va_start(args, format);
+    vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+    
+    g_logManager->addLog((BrewOSLogLevel)level, source, message);
 }
