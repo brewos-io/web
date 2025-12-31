@@ -1,0 +1,794 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const breadcrumbItems = [
+  { name: "Home", url: "/" },
+  { name: "About", url: "/about" }
+];
+
+const milestones = [
+  { year: "2023", event: "BrewOS project started", description: "Born from frustration with stock controller limitations" },
+  { year: "2024", event: "First public release", description: "Open source firmware available to the community" },
+  { year: "2024", event: "Home Assistant integration", description: "Native MQTT auto-discovery for seamless smart home integration" },
+  { year: "2024", event: "Cloud service launch", description: "Free remote access and monitoring for all users" }
+];
+
+const stats = [
+  { value: "100+", label: "Supported Machines", icon: "machine" },
+  { value: "±0.5°C", label: "Temperature Precision", icon: "precision" },
+  { value: "100%", label: "Open Source", icon: "opensource" },
+  { value: "35+", label: "Home Assistant Entities", icon: "integration" }
+];
+
+const philosophy = [
+  {
+    title: "Democratizing Professional Espresso",
+    description: "We believe that café-quality espresso shouldn't be limited to expensive commercial machines or proprietary systems. BrewOS brings professional-grade control to home machines, making perfect espresso accessible to everyone."
+  },
+  {
+    title: "Safety by Design",
+    description: "Every feature is built with safety as the foundation. Multiple hardware and software safety layers ensure your machine is protected, from temperature limits to hardware watchdogs and fail-safe mechanisms."
+  },
+  {
+    title: "Open to Collaboration",
+    description: "BrewOS is open to community contributions. Feature requests, bug reports, and code contributions are welcome and help shape the future of the project."
+  }
+];
+
+const values = [
+  {
+    icon: "open-source",
+    title: "Open Source",
+    description: "100% open source and community-driven. All code is available on GitHub for transparency and collaboration."
+  },
+  {
+    icon: "safety",
+    title: "Safety First",
+    description: "Multiple layers of hardware and software safety mechanisms ensure your machine is protected at every level."
+  },
+  {
+    icon: "community",
+    title: "Community",
+    description: "Built by coffee enthusiasts, for coffee enthusiasts. We welcome feedback, contributions, and collaboration from the community."
+  },
+  {
+    icon: "innovation",
+    title: "Innovation",
+    description: "Continuously improving with new features, better algorithms, and support for more machines."
+  }
+];
+---
+
+<BaseLayout 
+  title="About BrewOS - Our Mission & Story" 
+  description="Learn about BrewOS, our mission to transform home espresso, our open-source philosophy, and the community behind professional-grade espresso machine firmware."
+  currentPath="/about"
+>
+  <section class="about-page">
+    <div class="container">
+      <Breadcrumbs items={breadcrumbItems} />
+      
+      <!-- Hero -->
+      <div class="about-hero">
+        <span class="section-label">Our Story</span>
+        <h1>About BrewOS</h1>
+        <p class="about-intro">
+          BrewOS is an open-source firmware project dedicated to transforming home espresso machines 
+          with professional-grade control, precision, and modern connectivity. Built by coffee enthusiasts 
+          who were frustrated with the limitations of stock controllers, we've created a solution that 
+          brings café-quality espresso to your home.
+        </p>
+        <p class="about-intro-secondary">
+          What started as a personal project to improve temperature stability on a single machine has 
+          evolved into an open-source solution designed to support many machines and empower 
+          coffee enthusiasts to achieve consistent, perfect espresso shots every time.
+        </p>
+      </div>
+
+      <!-- Stats -->
+      <div class="about-stats">
+        {stats.map(stat => (
+          <div class="stat-card">
+            <div class="stat-icon">
+              {stat.icon === 'machine' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="M6 8h12M6 12h12M6 16h8"/>
+                </svg>
+              )}
+              {stat.icon === 'precision' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <circle cx="12" cy="12" r="6"/>
+                  <circle cx="12" cy="12" r="2"/>
+                </svg>
+              )}
+              {stat.icon === 'opensource' && (
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+              )}
+              {stat.icon === 'integration' && (
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+              )}
+            </div>
+            <div class="stat-value">{stat.value}</div>
+            <div class="stat-label">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Mission -->
+      <section class="about-section">
+        <h2>Our Mission</h2>
+        <div class="mission-content">
+          <p>
+            Our mission is to make professional-grade espresso machine control accessible to everyone. 
+            We believe that great espresso shouldn't require expensive commercial equipment or proprietary 
+            systems. By open-sourcing our firmware and building a supportive community, we're empowering 
+            coffee enthusiasts to unlock the full potential of their machines.
+          </p>
+          <p>
+            We're committed to safety, reliability, and continuous innovation. Every feature we add, 
+            every bug we fix, and every machine we support brings us closer to our goal of making 
+            perfect espresso accessible to all.
+          </p>
+          <div class="mission-highlights">
+            <div class="highlight-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+              </svg>
+              <div>
+                <strong>Free & Open Source</strong>
+                <span>No licensing fees, no vendor lock-in</span>
+              </div>
+            </div>
+            <div class="highlight-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <div>
+                <strong>Safety First</strong>
+                <span>Multiple layers of protection</span>
+              </div>
+            </div>
+            <div class="highlight-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <div>
+                <strong>Community Driven</strong>
+                <span>Built by and for coffee enthusiasts</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Philosophy -->
+      <section class="about-section philosophy-section">
+        <h2>Our Philosophy</h2>
+        <div class="philosophy-grid">
+          {philosophy.map(item => (
+            <div class="philosophy-card">
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Values -->
+      <section class="about-section">
+        <h2>Our Values</h2>
+        <div class="values-grid">
+          {values.map(value => (
+            <div class="value-card">
+              <div class="value-icon">
+                {value.icon === 'open-source' && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                  </svg>
+                )}
+                {value.icon === 'safety' && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                )}
+                {value.icon === 'community' && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                )}
+                {value.icon === 'innovation' && (
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                  </svg>
+                )}
+              </div>
+              <h3>{value.title}</h3>
+              <p>{value.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Community -->
+      <section class="about-section">
+        <h2>Join Our Community</h2>
+        <div class="community-content">
+          <p>
+            BrewOS is an open-source project built for coffee enthusiasts, developers, and makers. 
+            Whether you're looking to install BrewOS, contribute code, report bugs, or just chat about 
+            espresso, we welcome you to get involved.
+          </p>
+          <div class="community-links">
+            <a href="https://github.com/brewos-io/firmware" class="community-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub Repository (opens in new tab)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+              </svg>
+              <div>
+                <strong>GitHub</strong>
+                <span>Code, issues, and discussions</span>
+              </div>
+            </a>
+            <a href="https://github.com/brewos-io/firmware/discussions" class="community-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub Discussions (opens in new tab)">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              <div>
+                <strong>Discussions</strong>
+                <span>Community Q&A and support</span>
+              </div>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="about-cta">
+        <h2>Ready to Get Started?</h2>
+        <p>Transform your espresso machine today</p>
+        <div class="about-cta-buttons">
+          <a href="/getting-started" class="btn btn-primary">Get Started</a>
+          <a href="https://cloud.brewos.io/?demo=true" class="btn btn-secondary" target="_blank" rel="noopener noreferrer" aria-label="Try demo (opens in new tab)">Try Demo</a>
+        </div>
+      </section>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .about-page {
+    padding: 140px 0 100px;
+    background: var(--cream-100);
+  }
+
+  .about-hero {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 80px;
+  }
+
+  .about-hero h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--coffee-800);
+    margin: 16px 0 24px;
+    letter-spacing: -0.02em;
+  }
+
+  .about-intro {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+
+  .about-intro-secondary {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    font-style: italic;
+  }
+
+  /* Stats Section */
+  .about-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto 80px;
+  }
+
+  .stat-card {
+    background: var(--white);
+    border: 1px solid var(--cream-300);
+    border-radius: 16px;
+    padding: 32px 24px;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .stat-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+  }
+
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, rgba(212, 112, 58, 0.1) 0%, rgba(212, 112, 58, 0.05) 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    color: var(--accent);
+  }
+
+  .stat-icon svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--coffee-800);
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  /* Mission Highlights */
+  .mission-highlights {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 40px;
+  }
+
+  .highlight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+    background: var(--white);
+    border: 1px solid var(--cream-300);
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  }
+
+  .highlight-item:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .highlight-item svg {
+    width: 24px;
+    height: 24px;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .highlight-item strong {
+    display: block;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--coffee-800);
+    margin-bottom: 4px;
+  }
+
+  .highlight-item span {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* Philosophy Section */
+  .philosophy-section {
+    background: linear-gradient(180deg, var(--white) 0%, var(--cream-100) 100%);
+    padding: 60px 40px;
+    border-radius: 20px;
+    margin: 80px auto;
+  }
+
+  .philosophy-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .philosophy-card {
+    padding: 48px;
+    background: var(--white);
+    border: 1px solid var(--cream-300);
+    border-radius: 16px;
+    transition: all 0.2s ease;
+  }
+
+  .philosophy-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+  }
+
+  .philosophy-card h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--coffee-800);
+    margin-bottom: 16px;
+  }
+
+  .philosophy-card p {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    font-size: 1.05rem;
+  }
+
+  /* Timeline Section */
+  .timeline-section {
+    position: relative;
+  }
+
+  .timeline {
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+    padding-left: 40px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 48px;
+    padding-left: 60px;
+  }
+
+  .timeline-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -25px;
+    top: 0;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(212, 112, 58, 0.3);
+    border: 3px solid var(--white);
+  }
+
+  .timeline-year {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--white);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .timeline-content {
+    background: var(--white);
+    border: 1px solid var(--cream-300);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all 0.2s ease;
+  }
+
+  .timeline-item:hover .timeline-content {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .timeline-content h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--coffee-800);
+    margin-bottom: 8px;
+  }
+
+  .timeline-content p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  .about-section {
+    max-width: 900px;
+    margin: 0 auto 80px;
+  }
+
+  .about-section h2 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: var(--coffee-800);
+    margin-bottom: 32px;
+    text-align: center;
+  }
+
+  .mission-content p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 20px;
+  }
+
+  .values-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+  }
+
+  .value-card {
+    background: var(--white);
+    border: 1px solid var(--cream-300);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    transition: all 0.2s ease;
+  }
+
+  .value-card:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+  }
+
+  .value-icon {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, rgba(212, 112, 58, 0.1) 0%, rgba(212, 112, 58, 0.05) 100%);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    color: var(--accent);
+  }
+
+  .value-icon svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .value-card h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--coffee-800);
+    margin-bottom: 12px;
+  }
+
+  .value-card p {
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .community-content {
+    text-align: center;
+  }
+
+  .community-content p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin-bottom: 32px;
+    max-width: 700px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .community-links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .community-link {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+    background: var(--white);
+    border: 1px solid var(--cream-300);
+    border-radius: 12px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .community-link:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+  }
+
+  .community-link svg {
+    width: 32px;
+    height: 32px;
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .community-link strong {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--coffee-800);
+    margin-bottom: 4px;
+  }
+
+  .community-link span {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .about-cta {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    background: linear-gradient(135deg, var(--coffee-800) 0%, var(--coffee-900) 100%);
+    border-radius: 20px;
+    color: var(--white);
+  }
+
+  .about-cta h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--white);
+  }
+
+  .about-cta p {
+    font-size: 1.1rem;
+    color: var(--cream-300);
+    margin-bottom: 32px;
+  }
+
+  .about-cta-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .about-cta .btn-primary {
+    background: var(--accent);
+    color: var(--white);
+  }
+
+  .about-cta .btn-primary:hover {
+    background: var(--accent-light);
+  }
+
+  .about-cta .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--white);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .about-cta .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  @media (max-width: 1024px) {
+    .about-stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .mission-highlights {
+      grid-template-columns: 1fr;
+    }
+
+    .philosophy-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .about-hero h1 {
+      font-size: 2rem;
+    }
+
+    .about-intro {
+      font-size: 1.05rem;
+    }
+
+    .about-intro-secondary {
+      font-size: 0.95rem;
+    }
+
+    .about-stats {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .values-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .community-links {
+      grid-template-columns: 1fr;
+    }
+
+    .philosophy-section {
+      padding: 40px 24px;
+    }
+
+    .philosophy-card {
+      padding: 32px 24px;
+    }
+
+    .timeline {
+      padding-left: 30px;
+    }
+
+    .timeline-item {
+      padding-left: 50px;
+    }
+
+    .timeline-marker {
+      width: 40px;
+      height: 40px;
+      left: -20px;
+    }
+
+    .timeline-year {
+      font-size: 0.7rem;
+    }
+
+    .about-cta {
+      padding: 40px 24px;
+    }
+
+    .about-cta h2 {
+      font-size: 1.6rem;
+    }
+
+    .about-cta-buttons {
+      flex-direction: column;
+    }
+
+    .about-cta-buttons .btn {
+      width: 100%;
+    }
+  }
+</style>
+

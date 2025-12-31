@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
 
 const offerings = [
   {
@@ -55,6 +56,10 @@ const useCases = [
   <!-- Hero -->
   <section class="hero">
     <div class="container">
+      <Breadcrumbs items={[
+        { name: "Home", url: "/" },
+        { name: "Partnerships", url: "/partnerships" }
+      ]} />
       <span class="hero-badge">For Business</span>
       <h1>Partner with <span>BrewOS</span></h1>
       <p class="hero-description">

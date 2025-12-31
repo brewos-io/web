@@ -1,0 +1,303 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+
+const faqs = [
+  {
+    question: "How do I install BrewOS on my espresso machine?",
+    answer: "Installation involves replacing your machine's stock controller with the BrewOS board. The process typically takes 2-4 hours and includes: removing the stock PID/thermostat, rewiring existing sensors and SSRs to the BrewOS board, connecting the board, and setting up WiFi. No new sensors or relays need to be installed - BrewOS works with your machine's existing hardware. See our detailed installation guide on the Getting Started page for step-by-step instructions."
+  },
+  {
+    question: "Which espresso machines are compatible with BrewOS?",
+    answer: "BrewOS supports dual boiler, single boiler, and heat exchanger machines. We support machines like ECM Synchronika, Profitec Pro 700, Lelit Bianca (dual boiler), Rancilio Silvia, Gaggia Classic Pro (single boiler), and ECM Mechanika, Profitec Pro 500 (heat exchanger). All supported machine types work well. Check our Getting Started page for a full compatibility list."
+  },
+  {
+    question: "How does PID temperature control work?",
+    answer: "BrewOS uses dual independent PID (Proportional-Integral-Derivative) control loops to maintain precise temperature stability. The PID algorithm continuously monitors temperature and adjusts heating power to maintain your target temperature within ±0.5°C. This ensures consistent extraction temperatures for perfect espresso shots every time."
+  },
+  {
+    question: "Is BrewOS safe to use?",
+    answer: "Yes, safety is our top priority. BrewOS includes hardware watchdogs, temperature limits, water interlocks, and fail-safe design. The system has multiple layers of protection including hardware-level safety mechanisms, software limits, and automatic shutdown on errors. Your machine is protected at every level."
+  },
+  {
+    question: "How do I connect BrewOS to Home Assistant?",
+    answer: "BrewOS supports native MQTT auto-discovery with Home Assistant. Simply configure MQTT in your BrewOS settings, and Home Assistant will automatically discover your machine and create 35+ entities for monitoring and control. No manual configuration needed! See our Home Assistant integration guide for details."
+  },
+  {
+    question: "Can I control my machine remotely?",
+    answer: "Yes! BrewOS Cloud provides free remote access to your machine from anywhere in the world. Monitor temperatures, track shots, and control your machine via the web interface or mobile app. All data is transmitted securely via MQTT and WebSocket connections."
+  },
+  {
+    question: "What hardware do I need to get started?",
+    answer: "You'll need the BrewOS Control Board (PCB) and optionally a pressure transducer and flow meter. BrewOS works with your machine's existing temperature sensors and SSRs - no need to install new ones. See our Getting Started page for a complete hardware list."
+  },
+  {
+    question: "How do I update the firmware?",
+    answer: "BrewOS supports Over-The-Air (OTA) updates wirelessly. Simply connect to your machine's web interface, navigate to the firmware update section, and upload the latest firmware file. No cables or physical access required. The update process is safe and includes automatic rollback on failure."
+  },
+  {
+    question: "Does BrewOS support brew-by-weight?",
+    answer: "Yes! BrewOS supports automatic shot stopping with Bluetooth scales. Connect your Acaia, Felicita, or other compatible scale, and BrewOS will automatically stop the shot when your target weight is reached. This ensures consistent ratios and perfect extractions every time."
+  },
+  {
+    question: "Is BrewOS open source?",
+    answer: "Yes, BrewOS is 100% open source. The firmware is licensed under Apache 2.0 with Commons Clause, meaning you're free to use, modify, and distribute it for non-commercial purposes. All source code is available on GitHub, and we welcome community contributions."
+  },
+  {
+    question: "What's the difference between BrewOS and stock controllers?",
+    answer: "BrewOS provides professional-grade features that stock controllers lack: precise PID temperature control (±0.5°C vs ±2-3°C), WiFi connectivity, cloud remote access, shot analytics, pressure profiling, brew-by-weight, smart schedules, and Home Assistant integration. It transforms your machine into a smart, connected device."
+  },
+  {
+    question: "How much does BrewOS cost?",
+    answer: "BrewOS firmware is completely free and open source. You only need to purchase the hardware components (control board, optional sensors). The software, cloud service, and all features are free to use. There are no subscription fees or hidden costs."
+  }
+];
+
+// Generate FAQPage schema
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(faq => ({
+    "@type": "Question",
+    "name": faq.question,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": faq.answer
+    }
+  }))
+};
+
+const breadcrumbItems = [
+  { name: "Home", url: "/" },
+  { name: "FAQ", url: "/faq" }
+];
+---
+
+<BaseLayout 
+  title="Frequently Asked Questions - BrewOS" 
+  description="Get answers to common questions about BrewOS installation, compatibility, features, and usage. Learn how to transform your espresso machine with professional-grade firmware."
+  currentPath="/faq"
+>
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+
+  <section class="faq-page">
+    <div class="container">
+      <Breadcrumbs items={breadcrumbItems} />
+      
+      <div class="faq-header">
+        <span class="section-label">Help Center</span>
+        <h1>Frequently Asked Questions</h1>
+        <p class="faq-intro">
+          Find answers to common questions about BrewOS installation, compatibility, features, and usage.
+        </p>
+      </div>
+
+      <div class="faq-list">
+        {faqs.map((faq, index) => (
+          <details class="faq-item" open={index < 3}>
+            <summary class="faq-question">
+              <span>{faq.question}</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </summary>
+            <div class="faq-answer">
+              <p>{faq.answer}</p>
+            </div>
+          </details>
+        ))}
+      </div>
+
+      <div class="faq-cta">
+        <h2>Still have questions?</h2>
+        <p>Join our community for support and discussions</p>
+        <div class="faq-cta-buttons">
+          <a href="https://github.com/brewos-io/firmware/discussions" class="btn btn-primary" target="_blank" rel="noopener noreferrer" aria-label="Visit GitHub Discussions (opens in new tab)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            GitHub Discussions
+          </a>
+          <a href="/getting-started" class="btn btn-secondary">
+            Getting Started Guide
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .faq-page {
+    padding: 140px 0 100px;
+    background: var(--cream-100);
+  }
+
+  .faq-header {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 60px;
+  }
+
+  .faq-header h1 {
+    font-size: 2.75rem;
+    font-weight: 800;
+    color: var(--coffee-800);
+    margin: 16px 0 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .faq-intro {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .faq-list {
+    max-width: 800px;
+    margin: 0 auto 60px;
+  }
+
+  .faq-item {
+    background: var(--white);
+    border: 1px solid var(--cream-300);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+
+  .faq-item:hover {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-md);
+  }
+
+  .faq-item[open] {
+    border-color: var(--accent);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .faq-question {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 28px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--coffee-800);
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+
+  .faq-question::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-question svg {
+    flex-shrink: 0;
+    margin-left: 16px;
+    color: var(--accent);
+    transition: transform 0.2s ease;
+  }
+
+  .faq-item[open] .faq-question svg {
+    transform: rotate(180deg);
+  }
+
+  .faq-answer {
+    padding: 0 28px 24px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+
+  .faq-answer p {
+    margin: 0;
+  }
+
+  .faq-cta {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 60px 40px;
+    background: linear-gradient(135deg, var(--coffee-800) 0%, var(--coffee-900) 100%);
+    border-radius: 20px;
+    color: var(--white);
+  }
+
+  .faq-cta h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--white);
+  }
+
+  .faq-cta p {
+    font-size: 1.1rem;
+    color: var(--cream-300);
+    margin-bottom: 32px;
+  }
+
+  .faq-cta-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .faq-cta .btn-primary {
+    background: var(--accent);
+    color: var(--white);
+  }
+
+  .faq-cta .btn-primary:hover {
+    background: var(--accent-light);
+  }
+
+  .faq-cta .btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--white);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  .faq-cta .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  @media (max-width: 768px) {
+    .faq-page {
+      padding: 60px 0 80px;
+    }
+
+    .faq-header h1 {
+      font-size: 2rem;
+    }
+
+    .faq-question {
+      padding: 20px;
+      font-size: 1rem;
+    }
+
+    .faq-answer {
+      padding: 0 20px 20px;
+    }
+
+    .faq-cta {
+      padding: 40px 24px;
+    }
+
+    .faq-cta h2 {
+      font-size: 1.6rem;
+    }
+
+    .faq-cta-buttons {
+      flex-direction: column;
+    }
+
+    .faq-cta-buttons .btn {
+      width: 100%;
+    }
+  }
+</style>
+

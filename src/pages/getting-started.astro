@@ -1,24 +1,25 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
 
 const processSteps = [
   {
     number: 1,
     title: 'Check Compatibility',
     description: 'First, make sure your espresso machine is compatible with BrewOS. We currently support dual boiler, single boiler, and heat exchanger machines with standard wiring.',
-    items: ['E61 group head machines work best', 'Must have accessible temperature sensors or boilers', 'Standard 120V or 220V power configurations']
+    items: ['Check if your machine officially supported', 'Must have access to machine internals for wiring', 'Standard 120V or 220V power configurations']
   },
   {
     number: 2,
     title: 'Get the Hardware',
     description: 'BrewOS runs on a custom PCB with a Raspberry Pi Pico for real-time control and an ESP32 for WiFi connectivity. You\'ll need:',
-    items: ['BrewOS Control Board (PCB)', 'Temperature sensors (PT100/PT1000)', 'Solid State Relays (SSR)', 'Optional: Pressure transducer, flow meter']
+    items: ['BrewOS Control Board (PCB)', 'Work with the machine pre-existing hardware', 'Optional: Pressure transducer, flow meter']
   },
   {
     number: 3,
     title: 'Installation',
     description: 'The installation involves replacing your machine\'s stock controller with the BrewOS board. This typically takes 2-4 hours depending on your machine.',
-    items: ['Remove stock PID/thermostat', 'Install temperature sensors', 'Wire SSRs to heating elements', 'Connect the BrewOS board']
+    items: ['Remove stock PID/thermostat', 'Rewire existing sensors and SSRs to BrewOS board', 'Connect the BrewOS board', 'Connect to WiFi and complete setup']
   },
   {
     number: 4,
@@ -52,6 +53,10 @@ const requirements = [
   <!-- Hero -->
   <section class="hero">
     <div class="container">
+      <Breadcrumbs items={[
+        { name: "Home", url: "/" },
+        { name: "Getting Started", url: "/getting-started" }
+      ]} />
       <h1>Get Started with <span>BrewOS</span></h1>
       <p class="hero-description">
         Transform your espresso machine into a precision brewing powerhouse. 

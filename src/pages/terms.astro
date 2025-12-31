@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
 ---
 
 <BaseLayout 
@@ -10,6 +11,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 >
   <section class="legal-page">
     <div class="container">
+      <Breadcrumbs items={[
+        { name: "Home", url: "/" },
+        { name: "Terms of Service", url: "/terms" }
+      ]} />
       <h1>Terms of Service</h1>
       <p class="last-updated">Last updated: January 2025</p>
 
