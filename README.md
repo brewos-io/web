@@ -33,7 +33,7 @@ The site is automatically deployed to GitHub Pages on pushes to `main` branch vi
 │   ├── pages/          # Route pages
 │   └── styles/         # Global styles
 ├── public/             # Static assets (copied during build)
-├── assets/             # Source assets (logos, images)
+│   └── assets/         # Symlink to root assets folder (../../assets)
 └── astro.config.mjs    # Astro configuration
 ```
 
