@@ -1,0 +1,13 @@
+# robots.txt for brewos.io
+# https://www.robotstxt.org/
+
+User-agent: *
+Allow: /
+
+# Sitemap location (will be generated)
+Sitemap: https://brewos.io/sitemap.xml
+
+# Disallow any admin or private paths if they exist in the future
+# Disallow: /admin/
+# Disallow: /private/
+

@@ -7,13 +7,60 @@ interface Props {
   title: string;
   description?: string;
   currentPath?: string;
+  ogImage?: string;
+  ogType?: string;
+  noindex?: boolean;
 }
 
+const siteUrl = 'https://brewos.io';
 const { 
   title, 
   description = 'Transform your espresso machine with precise PID temperature control, WiFi monitoring, and OTA updates. Open-source firmware for coffee enthusiasts.',
-  currentPath = '/' 
+  currentPath = '/',
+  ogImage = `${siteUrl}/assets/sizes/social/icon/full-color/Brewos-1080x1080.png`,
+  ogType = 'website',
+  noindex = false
 } = Astro.props;
+
+const canonicalUrl = `${siteUrl}${currentPath}`;
+const fullTitle = title.includes('BrewOS') ? title : `${title} | BrewOS`;
+
+// Structured Data - Organization
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "BrewOS",
+  "url": siteUrl,
+  "logo": `${siteUrl}/assets/1080/horizontal/full-color/Brewos-1080.png`,
+  "description": "Open-source firmware for espresso machine control with precise PID temperature control, WiFi monitoring, and OTA updates.",
+  "sameAs": [
+    "https://github.com/brewos-io"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "Technical Support",
+    "url": "https://github.com/brewos-io/firmware/discussions"
+  }
+};
+
+// Structured Data - SoftwareApplication
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "BrewOS",
+  "applicationCategory": "Firmware",
+  "operatingSystem": "ESP32, Raspberry Pi Pico",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": "5",
+    "ratingCount": "1"
+  }
+};
 ---
 
 <!DOCTYPE html>
@@ -21,10 +68,60 @@ const {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{title}</title>
+    <meta name="generator" content={Astro.generator} />
+    
+    <!-- Primary Meta Tags -->
+    <title>{fullTitle}</title>
+    <meta name="title" content={fullTitle} />
     <meta name="description" content={description} />
-    <meta name="keywords" content="espresso, coffee, PID, firmware, raspberry pi pico, esp32, open source, temperature control" />
+    <meta name="keywords" content="espresso, coffee, PID, firmware, raspberry pi pico, esp32, open source, temperature control, espresso machine, home automation, MQTT, Home Assistant" />
+    <meta name="author" content="BrewOS" />
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
     <meta name="theme-color" content="#391f12" />
+    <link rel="canonical" href={canonicalUrl} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:alt" content="BrewOS - Open Source Espresso Machine Firmware" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="BrewOS" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonicalUrl} />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content="BrewOS - Open Source Espresso Machine Firmware" />
+    <meta name="twitter:creator" content="@brewos_io" />
+    <meta name="twitter:site" content="@brewos_io" />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(organizationSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(softwareSchema)} />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/sizes/favicon/icon/full-color/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/sizes/favicon/icon/full-color/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/sizes/favicon/icon/full-color/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/sizes/favicon/icon/full-color/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Performance: Preconnect to external domains -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+
+    <!-- Fonts with display=swap for performance -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" as="style" />
 
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-YMSSDYE742"></script>
@@ -35,30 +132,15 @@ const {
       gtag('config', 'G-YMSSDYE742');
     </script>
 
-    <!-- Open Graph -->
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://brewos.io" />
-    <meta property="og:image" content="https://brewos.io/assets/sizes/social/icon/full-color/Brewos-1080x1080.png" />
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="/assets/sizes/favicon/icon/full-color/favicon.ico" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/sizes/favicon/icon/full-color/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/sizes/favicon/icon/full-color/favicon-16x16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/sizes/favicon/icon/full-color/apple-touch-icon.png" />
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-
     <slot name="head" />
   </head>
   <body>
+    <!-- Skip to main content for screen readers -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    
     <Header currentPath={currentPath} />
     
-    <main>
+    <main id="main-content">
       <slot />
     </main>
 
