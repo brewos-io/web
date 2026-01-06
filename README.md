@@ -39,6 +39,7 @@ The site is automatically deployed to GitHub Pages on pushes to `main` branch vi
 
 ## Related Repositories
 
+- [Wiki](https://github.com/brewos-io/wiki) - Complete user documentation and guides
 - [Firmware](https://github.com/brewos-io/firmware) - Main firmware repository (ESP32, Pico, web UI, cloud)
 - [Home Assistant Integration](https://github.com/brewos-io/homeassistant) - HA custom component and Lovelace card
 
